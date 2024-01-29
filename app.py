@@ -30,7 +30,6 @@ class DataConfig:
     def retrieve_files(self):
         for country in self.countries:
             self.files[country] = glob.glob(f"{country}/*.csv")
-            st.xwrite(f"{country} and {len(self.files[country])}")
             # + glob.glob(
             #    f"../{country}/*.txt"
             # )
