@@ -186,6 +186,7 @@ def plot_trajectories(
         1: "blue",  # Assuming 1 is for female
         2: "green",  # Assuming 2 is for male
         0: "red",  # non binary
+        -1: "yellow",
     }
     x_exterior, y_exterior = Polygon(exterior).exterior.xy
     x_exterior = list(x_exterior)
@@ -352,11 +353,22 @@ if country:
     if selected_file:
         file_index = files.index(selected_file)
         # default values
+        substrings_to_check = [
+            "female",
+            "20_19",
+            "16_18",
+            "40_11",
+            "8_16",
+            "8_17",
+            "32_11",
+            "4_11",
+        ]
         if country == "ger":
-            if "female" in selected_file:
+            if any(substring in selected_file for substring in substrings_to_check):
                 st.session_state.center_x = 3.1
                 st.session_state.center_y = 3
                 st.session_state.angle_degrees = 90
+
             else:
                 st.session_state.center_x = 3.1
                 st.session_state.center_y = -3
