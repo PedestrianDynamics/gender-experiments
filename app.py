@@ -5,15 +5,13 @@ from collections import defaultdict
 
 # from tqdm import tqdm
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Tuple
+
 import numpy as np
-from shapely import Polygon
-from typing import Tuple
-import matplotlib.pyplot as plt
 import pandas as pd
-import pedpy
 import plotly.graph_objects as go
 import streamlit as st
+from shapely import Polygon
 
 
 @dataclass
@@ -134,8 +132,8 @@ def calculate_fps(data: pd.DataFrame) -> int:
     return int(round(1 / mean_diff))
 
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def rotate_trajectories(df, shift_x, shift_y, angle_degrees):
@@ -333,7 +331,7 @@ for country in st.session_state.config.countries:
             if file == files[0]:
                 fps = calculate_fps(data)
 
-            trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
+            trajectory_data = data  # pedpy.TrajectoryData(data=data, frame_rate=fps)
             st.session_state.loaded_data[country].append(trajectory_data)
 
             # Update the progress bar
@@ -400,7 +398,7 @@ if country:
             st.session_state.angle_degrees = 0
 
         trajectory_data = st.session_state.loaded_data[country][file_index]
-        data = trajectory_data.data
+        data = trajectory_data  # .data
         start_time = time.time()
         #        if selected_file not in st.session_state.figures.keys():
         framerate = st.slider("Every nth frame", 1, 100, 80, 10)
