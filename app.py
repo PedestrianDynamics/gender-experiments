@@ -333,7 +333,7 @@ def init_session_state(msg):
                 "y": float,
             },
             countries=["aus", "chn", "ger", "jap", "pal"],
-            # countries = ["ger"]
+            countries=["aus", "ger"],
         )
 
     if not hasattr(st.session_state, "figures"):
