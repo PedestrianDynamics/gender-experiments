@@ -132,10 +132,6 @@ def calculate_fps(data: pd.DataFrame) -> int:
     return int(round(1 / mean_diff))
 
 
-import numpy as np
-import pandas as pd
-
-
 def rotate_trajectories(df, shift_x, shift_y, angle_degrees):
     """
     Rotates the x and y coordinates in the dataframe around a center point by a specified angle.
@@ -374,7 +370,7 @@ def load_data(msg):
 
 
 def set_rotation_variables(country):
-    substrings_to_check = [
+    ger_substrings_to_check = [
         "female",
         "20_19",
         "16_18",
@@ -389,8 +385,9 @@ def set_rotation_variables(country):
         "4_15",
         "4_14",
     ]
+    aus_substrings_to_check = ["female", "mix_sorted_40_01", "mix_random_41_01"]
     if country == "ger":
-        if any(substring in selected_file for substring in substrings_to_check):
+        if any(substring in selected_file for substring in ger_substrings_to_check):
             st.session_state.center_x = 3.1
             st.session_state.center_y = 3
             st.session_state.angle_degrees = 90
@@ -400,7 +397,7 @@ def set_rotation_variables(country):
             st.session_state.angle_degrees = 90
 
     if country == "aus":
-        if "female" in selected_file:
+        if any(substring in selected_file for substring in aus_substrings_to_check):
             st.session_state.center_x = 1.7
             st.session_state.center_y = -0.2
             st.session_state.angle_degrees = 85
@@ -414,6 +411,10 @@ def set_rotation_variables(country):
             st.session_state.center_x = 0.1
             st.session_state.center_y = 0
             st.session_state.angle_degrees = 87
+        elif "mix_random" in selected_file:
+            st.session_state.center_x = 0.1
+            st.session_state.center_y = 0
+            st.session_state.angle_degrees = 85
         else:
             st.session_state.center_x = 0.3
             st.session_state.center_y = 0
