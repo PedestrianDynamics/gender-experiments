@@ -281,7 +281,7 @@ def animate(
     every_nth_frame: int = 50,
     width: int = 800,
     height: int = 800,
-    radius: float = 0.2,
+    radius: float = 0.1,
     title_note: str = "",
 ):
     data_df = pedpy.compute_individual_speed(

@@ -15,6 +15,9 @@ from shapely import Polygon, difference
 import pedpy
 from anim import animate
 
+# from memory_profiler import profile
+# from memory_profiler import memory_usage
+
 
 @dataclass
 class DataConfig:
@@ -331,7 +334,6 @@ def init_session_state(msg):
                 "x": float,
                 "y": float,
             },
-            # countries=["aus", "chn", "ger", "jap", "pal"],
             countries=["aus", "ger", "jap", "pal", "chn"],
         )
 
@@ -348,29 +350,39 @@ def load_data(msg, country):
             msg.warning(f"{country}: data missing")
             # continue
 
-        st.write(f"Processing data for <{country}>")
-        progress_text = st.empty()
-        progress = st.progress(0)
-        num_files = len(files)
-        st.session_state.loaded_data[country] = []
+        # st.write(f"Processing data for <{country}>")
+        # progress_text = st.empty()
+        # progress = st.progress(0)
+        # num_files = len(files)
+        # st.session_state.loaded_data[country] = []
 
-        for idx, file in enumerate(files):
-            data = pd.read_csv(file)
-            rename_columns(data, st.session_state.config.rename_mapping)
-            set_column_types(data, st.session_state.config.column_types)
-            if file == files[0]:
-                fps = calculate_fps(data)
+        # for idx, file in enumerate(files):
+        #     data = pd.read_csv(file)
+        #     rename_columns(data, st.session_state.config.rename_mapping)
+        #     set_column_types(data, st.session_state.config.column_types)
+        #     if file == files[0]:
+        #         fps = calculate_fps(data)
 
-            trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
-            st.session_state.loaded_data[country].append(trajectory_data)
+        #     trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
+        #     st.session_state.loaded_data[country].append(trajectory_data)
 
-            # Update the progress bar
-            progress_value = (idx + 1) / num_files
-            progress.progress(progress_value)
-            progress_text.text(f"File {idx + 1} of {num_files}")
+        #     # Update the progress bar
+        #     progress_value = (idx + 1) / num_files
+        #     progress.progress(progress_value)
+        #     progress_text.text(f"File {idx + 1} of {num_files}")
 
 
-def set_rotation_variables(country):
+# @st.cache_data
+def load_file(file):
+    data = pd.read_csv(file)
+    rename_columns(data, st.session_state.config.rename_mapping)
+    set_column_types(data, st.session_state.config.column_types)
+    fps = calculate_fps(data)
+    trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
+    return trajectory_data
+
+
+def set_rotation_variables(selected_file, country):
     ger_substrings_to_check = [
         "female",
         "20_19",
@@ -465,14 +477,8 @@ def sorting_key(filename):
         return (4, filename)  # For filenames that don't match any category
 
 
-# Main
-if __name__ == "__main__":
-    msg = st.empty()
-    init_session_state(msg)
-    st.sidebar.title("Trajectory Visualization")
-    exterior, interior = generate_parcour()
-    walkable_area = pedpy.WalkableArea(difference(Polygon(exterior), Polygon(interior)))
-
+def original():
+    """Plot original data"""
     c1, c2 = st.columns((1, 1))
     country = st.sidebar.selectbox(
         "Select a country:", st.session_state.config.countries
@@ -491,10 +497,11 @@ if __name__ == "__main__":
         )
         if selected_file:
             selected_file = country + "/" + selected_file
-            file_index = files.index(selected_file)
+            # file_index = files.index(selected_file)
             # default values
-            set_rotation_variables(country)
-            trajectory_data = st.session_state.loaded_data[country][file_index]
+            set_rotation_variables(selected_file, country)
+            # trajectory_data = st.session_state.loaded_data[country][file_index]
+            trajectory_data = load_file(selected_file)
             data = trajectory_data.data
             start_time = time.time()
             #        if selected_file not in st.session_state.figures.keys():
@@ -542,7 +549,7 @@ if __name__ == "__main__":
             st.plotly_chart(fig)
             end_time = time.time()
             elapsed_time = end_time - start_time
-            st.write(f"Time taken to plot trajectories: {elapsed_time:.2f} seconds")
+            print(f"Time taken to plot trajectories: {elapsed_time:.2f} seconds")
 
             if do_animate:
                 rotated_data = rotate_trajectories(
@@ -559,6 +566,21 @@ if __name__ == "__main__":
                     walkable_area,
                     width=500,
                     height=500,
-                    # every_nth_frame=20,
+                    every_nth_frame=100,
                 )
                 st.plotly_chart(anm)
+
+
+# Main
+if __name__ == "__main__":
+    msg = st.empty()
+    st.sidebar.title("Trajectory Visualization")
+    exterior, interior = generate_parcour()
+    walkable_area = pedpy.WalkableArea(difference(Polygon(exterior), Polygon(interior)))
+    # tab1, tab2 = st.tabs(["original", "linear"])
+    # with tab1:
+    init_session_state(msg)
+    #    mem_usage_before = memory_usage()[0]
+    original()
+#   mem_usage_after = memory_usage()[0]
+#  st.info(f"Memory usage: {mem_usage_after - mem_usage_before:.2f} MiB")
