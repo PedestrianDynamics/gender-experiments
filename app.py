@@ -332,7 +332,7 @@ def init_session_state(msg):
                 "x": float,
                 "y": float,
             },
-            countries=["aus", "chn", "ger", "jap", "pal"],
+            # countries=["aus", "chn", "ger", "jap", "pal"],
             countries=["aus", "ger"],
         )
 
