@@ -179,11 +179,24 @@ def plot_trajectories(
     data: pd.DataFrame, framerate: int, uid: int, exterior, interior
 ) -> go.Figure:
     fig = go.Figure()
-    rotated = st.checkbox("Rotated", value=True)
+    c1, c2 = st.columns((1, 1))
+    num_agents = len(np.unique(data["id"]))
+    male_agents = data[data["gender"] == 2]
+    female_agents = data[data["gender"] == 1]
+    unknown_agents = data[data["gender"].isin([0, -1])]
+
+    # Count unique IDs in each subset
+    num_unique_males = male_agents["id"].nunique()
+    num_unique_females = female_agents["id"].nunique()
+    num_unique_unknowns = unknown_agents["id"].nunique()
+
+    rotated = c1.checkbox("Rotated", value=True)
+    plot_parcour = c2.checkbox("Parcour", value=True)
+    gender_map = {1: "F", 2: "M", 0: "N", -1: "E"}
     gender_colors = {
         1: "blue",  # Assuming 1 is for female
         2: "green",  # Assuming 2 is for male
-        0: "red",  # non binary
+        0: "black",  # non binary
         -1: "yellow",
     }
     x_exterior, y_exterior = Polygon(exterior).exterior.xy
@@ -202,6 +215,7 @@ def plot_trajectories(
     # For each unique id, plot a trajectory
     if uid is not None:
         df = data[data["id"] == uid]
+        gender = gender_map[df["gender"].iloc[0]]
         color_choice = gender_colors[df["gender"].iloc[0]]
         if not rotated:
             fig.add_trace(
@@ -211,24 +225,26 @@ def plot_trajectories(
                     line=dict(color=color_choice),
                     marker=dict(color=color_choice),
                     mode="lines",
-                    name=f"ID {uid}",
+                    name=f"ID {uid}, {gender}",
                 )
             )
         rotated_df = rotated_data[rotated_data["id"] == uid]
         if rotated:
+            color_choice = gender_colors[rotated_df["gender"].iloc[0]]
             fig.add_trace(
                 go.Scatter(
                     x=rotated_df["x"][::framerate],
                     y=rotated_df["y"][::framerate],
-                    line=dict(color=color_choice, dash="dash"),
+                    line=dict(color=color_choice),
                     marker=dict(color=color_choice),
                     mode="lines",
-                    name=f"ID {uid}",
+                    name=f"ID {uid}, {gender}",
                 )
             )
     else:
         for uid, df in data.groupby("id"):
             color_choice = gender_colors[df["gender"].iloc[0]]
+            gender = gender_map[df["gender"].iloc[0]]
             if not rotated:
                 fig.add_trace(
                     go.Scatter(
@@ -237,46 +253,54 @@ def plot_trajectories(
                         line=dict(color=color_choice),
                         marker=dict(color=color_choice),
                         mode="lines",
-                        name=f"ID {uid}",
+                        name=f"ID {uid}, {gender}",
                     )
                 )
         if rotated:
             for uid, rotated_df in rotated_data.groupby("id"):
+                color_choice = gender_colors[rotated_df["gender"].iloc[0]]
+                gender = gender_map[rotated_df["gender"].iloc[0]]
                 fig.add_trace(
                     go.Scatter(
                         x=rotated_df["x"][::framerate],
                         y=rotated_df["y"][::framerate],
-                        line=dict(color=color_choice, dash="dash"),
+                        line=dict(color=color_choice),
                         marker=dict(color=color_choice),
                         mode="lines",
-                        name=f"ID {uid}",
+                        name=f"ID {uid}, {gender}",
                     )
                 )
 
-    fig.add_trace(
-        go.Scatter(
-            x=x_exterior,
-            y=y_exterior,
-            mode="lines",
-            line=dict(color="black"),
-            name="exterior",
+    if plot_parcour:
+        fig.add_trace(
+            go.Scatter(
+                x=x_exterior,
+                y=y_exterior,
+                mode="lines",
+                line=dict(color="red"),
+                name="exterior",
+            )
         )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=x_interior,
-            y=y_interior,
-            mode="lines",
-            line=dict(color="black"),
-            name="interior",
+        fig.add_trace(
+            go.Scatter(
+                x=x_interior,
+                y=y_interior,
+                mode="lines",
+                line=dict(color="red"),
+                name="interior",
+            )
         )
-    )
+    xmin = np.min(x_exterior)
+    xmax = np.max(x_exterior)
+    ymin = np.min(y_exterior) - 0.5
+    ymax = np.max(y_exterior) + 0.5
+
     fig.update_layout(
-        title="Trajectories",
+        title=f" Trajectories: {num_agents} | M: {num_unique_males} | F: {num_unique_females} | N: {num_unique_unknowns}",
         xaxis_title="X",
         yaxis_title="Y",
-        xaxis=dict(scaleanchor="y"),
-        yaxis=dict(scaleratio=1),
+        xaxis=dict(scaleanchor="y", range=[xmin, xmax]),
+        yaxis=dict(scaleratio=1, range=[ymin, ymax]),
         showlegend=False,
     )
     return fig
@@ -365,7 +389,6 @@ def set_rotation_variables(country):
             st.session_state.center_x = 3.1
             st.session_state.center_y = 3
             st.session_state.angle_degrees = 90
-
         else:
             st.session_state.center_x = 3.1
             st.session_state.center_y = -3
@@ -374,27 +397,52 @@ def set_rotation_variables(country):
     if country == "aus":
         if "female" in selected_file:
             st.session_state.center_x = 1.7
-            st.session_state.center_y = 0
-            st.session_state.angle_degrees = 90
+            st.session_state.center_y = -0.2
+            st.session_state.angle_degrees = 85
         else:
-            st.session_state.center_x = 1.7
+            st.session_state.center_x = 1.8
             st.session_state.center_y = -6.3
-            st.session_state.angle_degrees = 90
+            st.session_state.angle_degrees = 89
 
     if country == "chn":
         if "female" in selected_file:
             st.session_state.center_x = 0.1
             st.session_state.center_y = 0
-            st.session_state.angle_degrees = 90
+            st.session_state.angle_degrees = 87
         else:
-            st.session_state.center_x = 0.1
+            st.session_state.center_x = 0.3
             st.session_state.center_y = 0
             st.session_state.angle_degrees = 90
+
+    if country == "jap":
+        st.session_state.center_x = 0
+        st.session_state.center_y = 0
+        st.session_state.angle_degrees = 0
 
     if country == "pal":
         st.session_state.center_x = -1.5
         st.session_state.center_y = 0
         st.session_state.angle_degrees = 0
+
+
+def generate_parcour():
+    _, exterior = generate_oval_shape_points(
+        num_points=50,
+        radius=1.65 + 0.4,
+        # start=(0.0, -2 + 1.6),
+        start=(-1, -2),
+        threshold=0.2,
+    )
+    _, interior = generate_oval_shape_points(
+        num_points=50,
+        radius=1.65 - 0.4,
+        length=2,
+        # start=(0, -1.2 + 1.6),
+        start=(-1, -1.2),
+        threshold=0.2,
+    )
+
+    return exterior, interior
 
 
 # Main
@@ -403,73 +451,62 @@ if __name__ == "__main__":
     init_session_state(msg)
     load_data(msg)
     st.title("Trajectory Visualization")
+    exterior, interior = generate_parcour()
     c1, c2 = st.columns((1, 1))
     country = c1.selectbox("Select a country:", st.session_state.config.countries)
     msg.write("")
-if country:
-    files = st.session_state.config.files[country]
-    st.write(f"{country} has {len(files)}")
-    selected_file = c2.selectbox("Select a file:", files)
-    if selected_file:
-        file_index = files.index(selected_file)
-        # default values
-        set_rotation_variables(country)
-        trajectory_data = st.session_state.loaded_data[country][file_index]
-        data = trajectory_data  # .data
-        start_time = time.time()
-        #        if selected_file not in st.session_state.figures.keys():
-        framerate = st.slider("Every nth frame", 1, 100, 80, 10)
-        ids = data["id"].unique()
-        uid = st.number_input(
-            "Insert id of pedestrian",
-            value=None,
-            min_value=int(min(ids)),
-            max_value=int(max(ids)),
-            placeholder=f"Type a number in [{int(min(ids))}, {int(max(ids))}]",
-            format="%d",
-        )
-        rc1, rc2, rc3 = st.columns((1, 1, 1))
-        center_x = rc1.number_input(
-            "Shift X:",
-            value=float(st.session_state["center_x"]),
-            step=0.1,
-            help="AF=1.7, AM=1.7, CN=0.1, G=3, P=-1.5",
-        )
-        center_y = rc2.number_input(
-            "Shift Y:",
-            value=float(st.session_state["center_y"]),
-            step=0.1,
-            help="AF=0, AM=6.3, CN=0",
-        )
-        angle_degrees = rc3.number_input(
-            "Angle in Degrees:",
-            value=st.session_state["angle_degrees"],
-            help="A=90, CN=90, G=3",
-        )
-        if center_x != st.session_state.center_x:
-            st.session_state.center_x = center_x
+    if country:
+        files = st.session_state.config.files[country]
 
-        if center_y != st.session_state.center_y:
-            st.session_state.center_y = center_y
+        selected_file = c2.selectbox("Select a file:", files)
+        if selected_file:
+            file_index = files.index(selected_file)
+            # default values
+            set_rotation_variables(country)
+            trajectory_data = st.session_state.loaded_data[country][file_index]
+            data = trajectory_data  # .data
+            start_time = time.time()
+            #        if selected_file not in st.session_state.figures.keys():
+            c1, c2 = st.columns((1, 1))
+            framerate = c1.slider("Every nth frame", 1, 100, 80, 10)
+            ids = data["id"].unique()
+            uid = c2.number_input(
+                "Insert id of pedestrian",
+                value=None,
+                min_value=int(min(ids)),
+                max_value=int(max(ids)),
+                placeholder=f"Type a number in [{int(min(ids))}, {int(max(ids))}]",
+                format="%d",
+            )
+            rc1, rc2, rc3 = st.columns((1, 1, 1))
+            center_x = rc1.number_input(
+                "Shift X:",
+                value=float(st.session_state["center_x"]),
+                step=0.1,
+                help="AF=1.7, AM=1.7, CN=0.1, G=3, P=-1.5",
+            )
+            center_y = rc2.number_input(
+                "Shift Y:",
+                value=float(st.session_state["center_y"]),
+                step=0.1,
+                help="AF=0, AM=6.3, CN=0",
+            )
+            angle_degrees = rc3.number_input(
+                "Angle in Degrees:",
+                value=st.session_state["angle_degrees"],
+                help="A=90, CN=90, G=3",
+            )
+            if center_x != st.session_state.center_x:
+                st.session_state.center_x = center_x
 
-        if angle_degrees != st.session_state.angle_degrees:
-            st.session_state.angle_degrees = angle_degrees
+            if center_y != st.session_state.center_y:
+                st.session_state.center_y = center_y
 
-        _, exterior = generate_oval_shape_points(
-            num_points=50, radius=1.65 + 0.4, start=(-1.0, -2), threshold=0.2
-        )
-        _, interior = generate_oval_shape_points(
-            num_points=50, radius=1.65 - 0.4, start=(-1, -1.2), threshold=0.2
-        )
-        fig = plot_trajectories(data, framerate, uid, exterior, interior)
-        st.plotly_chart(fig)
-        # if st.session_state['rotate']:
-        #    # Rotate and display the dataframe
-        #    rotated_df = rotate_trajectories(data, center_x, center_y, angle_degrees)
+            if angle_degrees != st.session_state.angle_degrees:
+                st.session_state.angle_degrees = angle_degrees
 
-        # fig2 = plot_trajectories(rotated_df, framerate, uid, exterior, interior)
-        # st.plotly_chart(fig2)
-
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        st.write(f"Time taken to plot trajectories: {elapsed_time:.2f} seconds")
+            fig = plot_trajectories(data, framerate, uid, exterior, interior)
+            st.plotly_chart(fig)
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            st.write(f"Time taken to plot trajectories: {elapsed_time:.2f} seconds")
