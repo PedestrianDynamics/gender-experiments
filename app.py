@@ -11,7 +11,9 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from shapely import Polygon
+from shapely import Polygon, difference
+import pedpy
+from anim import animate
 
 
 @dataclass
@@ -175,7 +177,7 @@ def plot_trajectories(
     data: pd.DataFrame, framerate: int, uid: int, exterior, interior
 ) -> go.Figure:
     fig = go.Figure()
-    c1, c2 = st.columns((1, 1))
+    c1, c2, c3 = st.columns((1, 1, 1))
     num_agents = len(np.unique(data["id"]))
     male_agents = data[data["gender"] == 2]
     female_agents = data[data["gender"] == 1]
@@ -188,6 +190,7 @@ def plot_trajectories(
 
     rotated = c1.checkbox("Rotated", value=True)
     plot_parcour = c2.checkbox("Parcour", value=True)
+    do_animate = c3.checkbox("Animate", value=False)
     gender_map = {1: "F", 2: "M", 0: "N", -1: "E"}
     gender_colors = {
         1: "blue",  # Assuming 1 is for female
@@ -299,7 +302,7 @@ def plot_trajectories(
         yaxis=dict(scaleratio=1, range=[ymin, ymax]),
         showlegend=False,
     )
-    return fig
+    return fig, do_animate
 
 
 def init_session_state(msg):
@@ -358,7 +361,7 @@ def load_data(msg, country):
             if file == files[0]:
                 fps = calculate_fps(data)
 
-            trajectory_data = data  # pedpy.TrajectoryData(data=data, frame_rate=fps)
+            trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
             st.session_state.loaded_data[country].append(trajectory_data)
 
             # Update the progress bar
@@ -468,6 +471,8 @@ if __name__ == "__main__":
     init_session_state(msg)
     st.sidebar.title("Trajectory Visualization")
     exterior, interior = generate_parcour()
+    walkable_area = pedpy.WalkableArea(difference(Polygon(exterior), Polygon(interior)))
+
     c1, c2 = st.columns((1, 1))
     country = st.sidebar.selectbox(
         "Select a country:", st.session_state.config.countries
@@ -490,7 +495,7 @@ if __name__ == "__main__":
             # default values
             set_rotation_variables(country)
             trajectory_data = st.session_state.loaded_data[country][file_index]
-            data = trajectory_data  # .data
+            data = trajectory_data.data
             start_time = time.time()
             #        if selected_file not in st.session_state.figures.keys():
             c1, c2 = st.columns((1, 1))
@@ -531,8 +536,29 @@ if __name__ == "__main__":
             if angle_degrees != st.session_state.angle_degrees:
                 st.session_state.angle_degrees = angle_degrees
 
-            fig = plot_trajectories(data, framerate, uid, exterior, interior)
+            fig, do_animate = plot_trajectories(
+                data, framerate, uid, exterior, interior
+            )
             st.plotly_chart(fig)
             end_time = time.time()
             elapsed_time = end_time - start_time
             st.write(f"Time taken to plot trajectories: {elapsed_time:.2f} seconds")
+
+            if do_animate:
+                rotated_data = rotate_trajectories(
+                    data,
+                    st.session_state.center_x,
+                    st.session_state.center_y,
+                    st.session_state.angle_degrees,
+                )
+                rotated_trajectory_data = pedpy.TrajectoryData(
+                    rotated_data, trajectory_data.frame_rate
+                )
+                anm = animate(
+                    rotated_trajectory_data,
+                    walkable_area,
+                    width=500,
+                    height=500,
+                    # every_nth_frame=20,
+                )
+                st.plotly_chart(anm)
