@@ -333,7 +333,7 @@ def init_session_state(msg):
                 "y": float,
             },
             # countries=["aus", "chn", "ger", "jap", "pal"],
-            countries=["aus", "ger"],
+            countries=["aus", "ger", "jap", "pal"],
         )
 
     if not hasattr(st.session_state, "figures"):
@@ -468,7 +468,7 @@ if __name__ == "__main__":
             start_time = time.time()
             #        if selected_file not in st.session_state.figures.keys():
             c1, c2 = st.columns((1, 1))
-            framerate = c1.slider("Every nth frame", 1, 100, 80, 10)
+            framerate = c1.slider("Every nth frame", 1, 100, 40, 10)
             ids = data["id"].unique()
             uid = c2.number_input(
                 "Insert id of pedestrian",
