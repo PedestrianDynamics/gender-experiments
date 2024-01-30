@@ -1,7 +1,8 @@
+pedpy
 plotly
 streamlit
 pandas
 numpy
 scipy
 shapely
-pedpy
+
