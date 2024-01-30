@@ -382,7 +382,12 @@ def set_rotation_variables(country):
         "8_16",
         "8_17",
         "32_11",
+        "36_11",
         "4_11",
+        "4_12",
+        "4_13",
+        "4_15",
+        "4_14",
     ]
     if country == "ger":
         if any(substring in selected_file for substring in substrings_to_check):
@@ -445,6 +450,19 @@ def generate_parcour():
     return exterior, interior
 
 
+def sorting_key(filename):
+    if filename.startswith("female"):
+        return (0, filename)
+    elif filename.startswith("male"):
+        return (1, filename)
+    elif filename.startswith("mix_sorted"):
+        return (2, filename)
+    elif filename.startswith("mix_random"):
+        return (3, filename)
+    else:
+        return (4, filename)  # For filenames that don't match any category
+
+
 # Main
 if __name__ == "__main__":
     msg = st.empty()
@@ -453,13 +471,22 @@ if __name__ == "__main__":
     st.title("Trajectory Visualization")
     exterior, interior = generate_parcour()
     c1, c2 = st.columns((1, 1))
-    country = c1.selectbox("Select a country:", st.session_state.config.countries)
+    country = st.sidebar.selectbox(
+        "Select a country:", st.session_state.config.countries
+    )
     msg.write("")
     if country:
         files = st.session_state.config.files[country]
+        st.sidebar.info(f" files: {len(files)}")
+        # selected_file = c2.selectbox("Select a file:", files)
 
-        selected_file = c2.selectbox("Select a file:", files)
+        file_names = [f.split("/")[-1] for f in files]
+        sorted_file_names = sorted(file_names, key=sorting_key)
+        selected_file = st.sidebar.radio(
+            "Select a file", sorted_file_names, horizontal=True
+        )
         if selected_file:
+            selected_file = country + "/" + selected_file
             file_index = files.index(selected_file)
             # default values
             set_rotation_variables(country)
