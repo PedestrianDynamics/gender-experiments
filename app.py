@@ -282,68 +282,130 @@ def plot_trajectories(
     return fig
 
 
+def init_session_state(msg):
+    if not hasattr(st.session_state, "loaded_data"):
+        st.session_state.loaded_data = {}
+
+    if "rotate" not in st.session_state:
+        st.session_state["rotate"] = False
+        st.session_state["center_x"] = 0.0
+        st.session_state["center_y"] = 0.0
+        st.session_state["angle_degrees"] = 90.0
+
+    if not hasattr(st.session_state, "config"):
+        msg.info("init config")
+        st.session_state.config = DataConfig(
+            rename_mapping={
+                "ID": "id",
+                "t(s)": "time",
+                "x(m)": "x",
+                "y(m)": "y",
+            },
+            column_types={
+                "id": int,
+                "gender": int,
+                "time": float,
+                "x": float,
+                "y": float,
+            },
+            countries=["aus", "chn", "ger", "jap", "pal"],
+            # countries = ["ger"]
+        )
+
+    if not hasattr(st.session_state, "figures"):
+        st.session_state.figures = {}
+
+
+def load_data(msg):
+    for country in st.session_state.config.countries:
+        if country not in st.session_state.loaded_data:
+            files = st.session_state.config.files[country]
+
+            if not files:
+                msg.warning(f"{country}: data missing")
+                continue
+
+            st.write(f"Processing data for <{country}>")
+            progress_text = st.empty()
+            progress = st.progress(0)
+            num_files = len(files)
+            st.session_state.loaded_data[country] = []
+
+            for idx, file in enumerate(files):
+                data = pd.read_csv(file)
+                rename_columns(data, st.session_state.config.rename_mapping)
+                set_column_types(data, st.session_state.config.column_types)
+                if file == files[0]:
+                    fps = calculate_fps(data)
+
+                trajectory_data = (
+                    data  # pedpy.TrajectoryData(data=data, frame_rate=fps)
+                )
+                st.session_state.loaded_data[country].append(trajectory_data)
+
+                # Update the progress bar
+                progress_value = (idx + 1) / num_files
+                progress.progress(progress_value)
+                progress_text.text(f"File {idx + 1} of {num_files}")
+
+
+def set_rotation_variables(country):
+    substrings_to_check = [
+        "female",
+        "20_19",
+        "16_18",
+        "40_11",
+        "8_16",
+        "8_17",
+        "32_11",
+        "4_11",
+    ]
+    if country == "ger":
+        if any(substring in selected_file for substring in substrings_to_check):
+            st.session_state.center_x = 3.1
+            st.session_state.center_y = 3
+            st.session_state.angle_degrees = 90
+
+        else:
+            st.session_state.center_x = 3.1
+            st.session_state.center_y = -3
+            st.session_state.angle_degrees = 90
+
+    if country == "aus":
+        if "female" in selected_file:
+            st.session_state.center_x = 1.7
+            st.session_state.center_y = 0
+            st.session_state.angle_degrees = 90
+        else:
+            st.session_state.center_x = 1.7
+            st.session_state.center_y = -6.3
+            st.session_state.angle_degrees = 90
+
+    if country == "chn":
+        if "female" in selected_file:
+            st.session_state.center_x = 0.1
+            st.session_state.center_y = 0
+            st.session_state.angle_degrees = 90
+        else:
+            st.session_state.center_x = 0.1
+            st.session_state.center_y = 0
+            st.session_state.angle_degrees = 90
+
+    if country == "pal":
+        st.session_state.center_x = -1.5
+        st.session_state.center_y = 0
+        st.session_state.angle_degrees = 0
+
+
 # Main
-msg = st.empty()
-if not hasattr(st.session_state, "loaded_data"):
-    st.session_state.loaded_data = {}
-
-if "rotate" not in st.session_state:
-    st.session_state["rotate"] = False
-    st.session_state["center_x"] = 0.0
-    st.session_state["center_y"] = 0.0
-    st.session_state["angle_degrees"] = 90.0
-
-if not hasattr(st.session_state, "config"):
-    msg.info("init config")
-    st.session_state.config = DataConfig(
-        rename_mapping={
-            "ID": "id",
-            "t(s)": "time",
-            "x(m)": "x",
-            "y(m)": "y",
-        },
-        column_types={"id": int, "gender": int, "time": float, "x": float, "y": float},
-        countries=["aus", "chn", "ger", "jap", "pal"],
-        # countries = ["ger"]
-    )
-
-if not hasattr(st.session_state, "figures"):
-    st.session_state.figures = {}
-
-for country in st.session_state.config.countries:
-    if country not in st.session_state.loaded_data:
-        files = st.session_state.config.files[country]
-
-        if not files:
-            msg.warning(f"{country}: data missing")
-            continue
-
-        st.write(f"Processing data for <{country}>")
-        progress_text = st.empty()
-        progress = st.progress(0)
-        num_files = len(files)
-        st.session_state.loaded_data[country] = []
-
-        for idx, file in enumerate(files):
-            data = pd.read_csv(file)
-            rename_columns(data, st.session_state.config.rename_mapping)
-            set_column_types(data, st.session_state.config.column_types)
-            if file == files[0]:
-                fps = calculate_fps(data)
-
-            trajectory_data = data  # pedpy.TrajectoryData(data=data, frame_rate=fps)
-            st.session_state.loaded_data[country].append(trajectory_data)
-
-            # Update the progress bar
-            progress_value = (idx + 1) / num_files
-            progress.progress(progress_value)
-            progress_text.text(f"File {idx + 1} of {num_files}")
-
-
-st.title("Trajectory Visualization")
-c1, c2 = st.columns((1, 1))
-country = c1.selectbox("Select a country:", st.session_state.config.countries)
-msg.write("")
+if __name__ == "__main__":
+    msg = st.empty()
+    init_session_state(msg)
+    load_data(msg)
+    st.title("Trajectory Visualization")
+    c1, c2 = st.columns((1, 1))
+    country = c1.selectbox("Select a country:", st.session_state.config.countries)
+    msg.write("")
 if country:
     files = st.session_state.config.files[country]
     st.write(f"{country} has {len(files)}")
@@ -351,52 +413,7 @@ if country:
     if selected_file:
         file_index = files.index(selected_file)
         # default values
-        substrings_to_check = [
-            "female",
-            "20_19",
-            "16_18",
-            "40_11",
-            "8_16",
-            "8_17",
-            "32_11",
-            "4_11",
-        ]
-        if country == "ger":
-            if any(substring in selected_file for substring in substrings_to_check):
-                st.session_state.center_x = 3.1
-                st.session_state.center_y = 3
-                st.session_state.angle_degrees = 90
-
-            else:
-                st.session_state.center_x = 3.1
-                st.session_state.center_y = -3
-                st.session_state.angle_degrees = 90
-
-        if country == "aus":
-            if "female" in selected_file:
-                st.session_state.center_x = 1.7
-                st.session_state.center_y = 0
-                st.session_state.angle_degrees = 90
-            else:
-                st.session_state.center_x = 1.7
-                st.session_state.center_y = -6.3
-                st.session_state.angle_degrees = 90
-
-        if country == "chn":
-            if "female" in selected_file:
-                st.session_state.center_x = 0.1
-                st.session_state.center_y = 0
-                st.session_state.angle_degrees = 90
-            else:
-                st.session_state.center_x = 0.1
-                st.session_state.center_y = 0
-                st.session_state.angle_degrees = 90
-
-        if country == "pal":
-            st.session_state.center_x = -1.5
-            st.session_state.center_y = 0
-            st.session_state.angle_degrees = 0
-
+        set_rotation_variables(country)
         trajectory_data = st.session_state.loaded_data[country][file_index]
         data = trajectory_data  # .data
         start_time = time.time()
