@@ -329,44 +329,42 @@ def init_session_state(msg):
                 "y": float,
             },
             # countries=["aus", "chn", "ger", "jap", "pal"],
-            countries=["aus", "ger", "jap", "pal"],
+            countries=["aus", "ger", "jap", "pal", "chn"],
         )
 
     if not hasattr(st.session_state, "figures"):
         st.session_state.figures = {}
 
 
-def load_data(msg):
-    for country in st.session_state.config.countries:
-        if country not in st.session_state.loaded_data:
-            files = st.session_state.config.files[country]
+def load_data(msg, country):
+    #    for country in st.session_state.config.countries:
+    if country not in st.session_state.loaded_data:
+        files = st.session_state.config.files[country]
 
-            if not files:
-                msg.warning(f"{country}: data missing")
-                continue
+        if not files:
+            msg.warning(f"{country}: data missing")
+            # continue
 
-            st.write(f"Processing data for <{country}>")
-            progress_text = st.empty()
-            progress = st.progress(0)
-            num_files = len(files)
-            st.session_state.loaded_data[country] = []
+        st.write(f"Processing data for <{country}>")
+        progress_text = st.empty()
+        progress = st.progress(0)
+        num_files = len(files)
+        st.session_state.loaded_data[country] = []
 
-            for idx, file in enumerate(files):
-                data = pd.read_csv(file)
-                rename_columns(data, st.session_state.config.rename_mapping)
-                set_column_types(data, st.session_state.config.column_types)
-                if file == files[0]:
-                    fps = calculate_fps(data)
+        for idx, file in enumerate(files):
+            data = pd.read_csv(file)
+            rename_columns(data, st.session_state.config.rename_mapping)
+            set_column_types(data, st.session_state.config.column_types)
+            if file == files[0]:
+                fps = calculate_fps(data)
 
-                trajectory_data = (
-                    data  # pedpy.TrajectoryData(data=data, frame_rate=fps)
-                )
-                st.session_state.loaded_data[country].append(trajectory_data)
+            trajectory_data = data  # pedpy.TrajectoryData(data=data, frame_rate=fps)
+            st.session_state.loaded_data[country].append(trajectory_data)
 
-                # Update the progress bar
-                progress_value = (idx + 1) / num_files
-                progress.progress(progress_value)
-                progress_text.text(f"File {idx + 1} of {num_files}")
+            # Update the progress bar
+            progress_value = (idx + 1) / num_files
+            progress.progress(progress_value)
+            progress_text.text(f"File {idx + 1} of {num_files}")
 
 
 def set_rotation_variables(country):
@@ -468,13 +466,13 @@ def sorting_key(filename):
 if __name__ == "__main__":
     msg = st.empty()
     init_session_state(msg)
-    load_data(msg)
-    st.title("Trajectory Visualization")
+    st.sidebar.title("Trajectory Visualization")
     exterior, interior = generate_parcour()
     c1, c2 = st.columns((1, 1))
     country = st.sidebar.selectbox(
         "Select a country:", st.session_state.config.countries
     )
+    load_data(msg, country)
     msg.write("")
     if country:
         files = st.session_state.config.files[country]
