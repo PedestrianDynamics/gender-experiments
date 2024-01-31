@@ -3,7 +3,8 @@ import numpy as np
 from pandas import DataFrame
 from shapely.geometry import Point
 from shapely.ops import unary_union
-from memory_profiler import profile
+
+# from memory_profiler import profile
 import streamlit as st
 
 
