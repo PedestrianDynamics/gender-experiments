@@ -10,6 +10,7 @@ from typing import Any, Tuple
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 from shapely import Polygon, difference
 import pedpy
@@ -317,26 +318,53 @@ def plot_trajectories(
     return fig, do_animate
 
 
-def plot_density_time_Series(data: pd.DataFrame, fps: int) -> go.Figure:
-    fig = go.Figure()
+def plot_time_series(
+    data: pd.DataFrame, speed: pd.DataFrame, fps: int, ss_index: int
+) -> go.Figure:
+    density = data["instantaneous_density"]
+    fig = make_subplots(
+        rows=1,
+        cols=2,
+        subplot_titles=(
+            f"Mean density: {np.mean(density):.2f} (+- {np.std(density):.2f}) 1/m/m",
+            f"Mean speed: {np.mean(speed['speed']):.2f} (+- {np.std(speed['speed']):.2f}) / m/s",
+        ),
+    )
+
     fig.add_trace(
         go.Scatter(
             x=data["frame"] / fps,
-            y=data["instantaneous_density"],
+            y=density,
             line=dict(color="blue"),
             marker=dict(color="blue"),
             mode="lines",
-        )
+        ),
+        row=1,
+        col=1,
     )
-    ymin = np.min(data["instantaneous_density"]) - 0.5
-    ymax = np.max(data["instantaneous_density"]) + 0.5
+
+    fig.add_trace(
+        go.Scatter(
+            x=speed["time"].loc[ss_index:],
+            y=speed["speed"].loc[ss_index:],
+            line=dict(color="blue"),
+            marker=dict(color="blue"),
+            mode="lines",
+        ),
+        row=1,
+        col=2,
+    )
+
+    rmin = 0  # np.min(data["instantaneous_density"]) - 0.5
+    rmax = 3  # np.max(data["instantaneous_density"]) + 0.5
+    vmax = np.max(speed["speed"]) + 0.5
     fig.update_layout(
-        title="Density",
         xaxis_title="Time / s",
-        yaxis_title="Density / 1/m/m",
-        yaxis=dict(range=[ymin, ymax]),
         showlegend=False,
     )
+    fig.update_yaxes(range=[rmin, rmax], title_text="Density / 1/m/m", row=1, col=1)
+    fig.update_yaxes(range=[rmin, vmax], title_text="Speed / m/s", row=1, col=2)
+    fig.update_xaxes(title_text="Time / s", row=1, col=2)
     return fig
 
 
@@ -586,6 +614,7 @@ def original(country, selected_file):
                     width=500,
                     height=500,
                     every_nth_frame=100,
+                    radius=0.1,  # 0.75
                     title_note="(<span style='color:green;'>Male</span>, <span style='color:blue;'>Female</span>)",
                 )
                 st.plotly_chart(anm)
@@ -608,7 +637,15 @@ def original(country, selected_file):
 #             al.calculate_instantaneous_density_per_frame(rotated_data)
 
 
-def density_time_series(country, file):
+def density_speed_time_series(country, file):
+    c1, c2 = st.columns((1, 1))
+    fps = c1.slider(
+        "fps", 1, 100, 25, 5, help="jump every fps frame for density calculation"
+    )
+    dv = c2.slider(
+        "steps", 1, 100, 10, 5, help="number of frames to jump for diff speed"
+    )
+
     set_rotation_variables(file, country)
     trajectory_data = load_file(file)
     data = trajectory_data.data
@@ -618,13 +655,22 @@ def density_time_series(country, file):
         st.session_state.center_y,
         st.session_state.angle_degrees,
     )
+    diff_const = c1.slider("window", 1, 500, 5, 1, help="window steady state")
+
     with st.spinner("Calculating ..."):
         start_time = time.time()
-        density = al.calculate_instantaneous_density_per_frame(rotated_data)
+        density = al.calculate_instantaneous_density_per_frame(rotated_data, fps)
+        speed = al.calculate_speed(rotated_data, dv)
+        steady_state_index = al.calculate_steady_state(
+            speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
+        )
+
         end_time = time.time()
         elapsed_time = end_time - start_time
         st.info(f"Time taken to calculate density: {elapsed_time:.2f} seconds")
-        fig = plot_density_time_Series(density, trajectory_data.frame_rate)
+        fig = plot_time_series(
+            density, speed, trajectory_data.frame_rate, steady_state_index
+        )
         st.plotly_chart(fig)
 
 
@@ -657,4 +703,4 @@ if __name__ == "__main__":
     with tab2:
         do_calculate_density = st.checkbox("Calculate density vs time", value=False)
         if do_calculate_density:
-            density_time_series(country, selected_file)
+            density_speed_time_series(country, selected_file)

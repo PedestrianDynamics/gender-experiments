@@ -8,7 +8,7 @@ from shapely.ops import unary_union
 import streamlit as st
 
 
-def calculate_speed(data: DataFrame) -> DataFrame:
+def calculate_speed(data: DataFrame, dv: int) -> DataFrame:
     """
     Calculate the speed of each individual in the dataset.
 
@@ -22,9 +22,9 @@ def calculate_speed(data: DataFrame) -> DataFrame:
     data = data.sort_values(by=["id", "time"])
 
     # Calculate the difference in position and time for each row
-    data["delta_x"] = data.groupby("id")["x"].diff()
-    data["delta_y"] = data.groupby("id")["y"].diff()
-    data["delta_t"] = data.groupby("id")["time"].diff()
+    data["delta_x"] = data.groupby("id")["x"].diff(dv)
+    data["delta_y"] = data.groupby("id")["y"].diff(dv)
+    data["delta_t"] = data.groupby("id")["time"].diff(dv)
 
     # Calculate the distance traveled between frames
     data["distance"] = np.sqrt(data["delta_x"] ** 2 + data["delta_y"] ** 2)
@@ -33,7 +33,7 @@ def calculate_speed(data: DataFrame) -> DataFrame:
     data["speed"] = data["distance"] / data["delta_t"]
 
     # Handle any NaN values that might arise (e.g., the first frame for each ID)
-    data["speed"] = data["speed"].fillna(0)
+    # data["speed"] = data["speed"].fillna(0)
 
     return data
 
@@ -109,7 +109,7 @@ def calculate_union_area_shapely(data: DataFrame, R: float = 0.75) -> float:
     return union_of_circles.area
 
 
-def calculate_instantaneous_density_per_frame(data: DataFrame) -> DataFrame:
+def calculate_instantaneous_density_per_frame(data: DataFrame, fps: int) -> DataFrame:
     """
     Calculate the instantaneous density per frame based on the personal space of each pedestrian.
 
@@ -123,7 +123,6 @@ def calculate_instantaneous_density_per_frame(data: DataFrame) -> DataFrame:
     DataFrame: DataFrame with an additional column 'instantaneous_density' for each frame.
     """
     density_results = []
-    fps = st.slider("fps", 1, 100, 25, 5)
     for frame, frame_data in data.groupby("frame"):
         if frame % fps != 0:
             continue
@@ -141,3 +140,20 @@ def calculate_instantaneous_density_per_frame(data: DataFrame) -> DataFrame:
         )
 
     return pd.DataFrame(density_results)
+
+
+def calculate_steady_state(data, window_size, threshold, diff_const):
+    # Calculate the rate of change (first derivative)
+
+    data = data.fillna(method="ffill")
+    rate_of_change = data.diff(diff_const)
+
+    # Calculate the rolling variance or average change
+    rolling_variance = rate_of_change.rolling(window=window_size).var()
+
+    # Find where the variance falls below the threshold
+    steady_state_index = rolling_variance[
+        rolling_variance < threshold
+    ].first_valid_index()
+
+    return steady_state_index
