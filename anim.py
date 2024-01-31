@@ -314,7 +314,7 @@ def animate(
         shapes, hover_traces, arrows = _get_shapes_for_frame(
             frame_data, min_speed, max_speed
         )
-        title = f"<b>{title_note + '  |  ' if title_note else ''}Number of Agents: {agent_count}</b>"
+        title = f"<b>{title_note + '  |  ' if title_note else ''}N: {agent_count}</b>"
         frame_name = str(int(frame_num))
         frame = go.Frame(
             data=geometry_traces + hover_traces,

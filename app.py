@@ -14,6 +14,7 @@ import streamlit as st
 from shapely import Polygon, difference
 import pedpy
 from anim import animate
+import analysis as al
 
 # from memory_profiler import profile
 # from memory_profiler import memory_usage
@@ -303,7 +304,40 @@ def plot_trajectories(
         yaxis=dict(scaleratio=1, range=[ymin, ymax]),
         showlegend=False,
     )
+    fig.add_annotation(
+        x=0.5,
+        y=1.1,
+        xref="paper",
+        yref="paper",
+        showarrow=False,
+        text="<span style='color:green;'>Green: Male</span>, <span style='color:blue;'>Blue: Female</span>",
+        font=dict(size=12),
+        align="center",
+    )
     return fig, do_animate
+
+
+def plot_density_time_Series(data: pd.DataFrame, fps: int) -> go.Figure:
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=data["frame"] / fps,
+            y=data["instantaneous_density"],
+            line=dict(color="blue"),
+            marker=dict(color="blue"),
+            mode="lines",
+        )
+    )
+    ymin = np.min(data["instantaneous_density"]) - 0.5
+    ymax = np.max(data["instantaneous_density"]) + 0.5
+    fig.update_layout(
+        title="Density",
+        xaxis_title="Time / s",
+        yaxis_title="Density / 1/m/m",
+        yaxis=dict(range=[ymin, ymax]),
+        showlegend=False,
+    )
+    return fig
 
 
 def init_session_state(msg):
@@ -475,26 +509,13 @@ def sorting_key(filename):
         return (4, filename)  # For filenames that don't match any category
 
 
-def original():
+def original(country, selected_file):
     """Plot original data"""
     c1, c2 = st.columns((1, 1))
-    country = st.sidebar.selectbox(
-        "Select a country:", st.session_state.config.countries
-    )
     # load_data(msg, country)
     msg.write("")
     if country:
-        files = st.session_state.config.files[country]
-        st.sidebar.info(f" files: {len(files)}")
-        # selected_file = c2.selectbox("Select a file:", files)
-
-        file_names = [f.split("/")[-1] for f in files]
-        sorted_file_names = sorted(file_names, key=sorting_key)
-        selected_file = st.sidebar.radio(
-            "Select a file", sorted_file_names, horizontal=True
-        )
         if selected_file:
-            selected_file = country + "/" + selected_file
             # file_index = files.index(selected_file)
             # default values
             set_rotation_variables(selected_file, country)
@@ -565,25 +586,46 @@ def original():
                     width=500,
                     height=500,
                     every_nth_frame=100,
+                    title_note="(<span style='color:green;'>Male</span>, <span style='color:blue;'>Female</span>)",
                 )
                 st.plotly_chart(anm)
 
 
-def analysis():
-    for country in st.session_state.config.countries:
-        st.info(country)
-        files = st.session_state.config.files[country]
-        for file in files:
-            set_rotation_variables(file, country)
-            trajectory_data = load_file(file)
-            data = trajectory_data.data
-            rotated_data = rotate_trajectories(
-                data,
-                st.session_state.center_x,
-                st.session_state.center_y,
-                st.session_state.angle_degrees,
-            )
-            pass
+# def analysis():
+#     for country in st.session_state.config.countries:
+#         st.info(country)
+#         files = st.session_state.config.files[country]
+#         for file in files:
+#             set_rotation_variables(file, country)
+#             trajectory_data = load_file(file)
+#             data = trajectory_data.data
+#             rotated_data = rotate_trajectories(
+#                 data,
+#                 st.session_state.center_x,
+#                 st.session_state.center_y,
+#                 st.session_state.angle_degrees,
+#             )
+#             al.calculate_instantaneous_density_per_frame(rotated_data)
+
+
+def density_time_series(country, file):
+    set_rotation_variables(file, country)
+    trajectory_data = load_file(file)
+    data = trajectory_data.data
+    rotated_data = rotate_trajectories(
+        data,
+        st.session_state.center_x,
+        st.session_state.center_y,
+        st.session_state.angle_degrees,
+    )
+    with st.spinner("Calculating ..."):
+        start_time = time.time()
+        density = al.calculate_instantaneous_density_per_frame(rotated_data)
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        st.info(f"Time taken to calculate density: {elapsed_time:.2f} seconds")
+        fig = plot_density_time_Series(density, trajectory_data.frame_rate)
+        st.plotly_chart(fig)
 
 
 # Main
@@ -594,11 +636,25 @@ if __name__ == "__main__":
     walkable_area = pedpy.WalkableArea(difference(Polygon(exterior), Polygon(interior)))
     tab1, tab2 = st.tabs(["View trajectories", "Analysis"])
     init_session_state(msg)
+    country = st.sidebar.selectbox(
+        "Select a country:", st.session_state.config.countries
+    )
+    files = st.session_state.config.files[country]
+    st.sidebar.info(f" files: {len(files)}")
+    file_names = [f.split("/")[-1] for f in files]
+    sorted_file_names = sorted(file_names, key=sorting_key)
+    selected_file = st.sidebar.radio(
+        "Select a file", sorted_file_names, horizontal=True
+    )
+    selected_file = country + "/" + selected_file
+
     with tab1:
         #    mem_usage_before = memory_usage()[0]
-        original()
+        original(country, selected_file)
         #   mem_usage_after = memory_usage()[0]
         #  st.info(f"Memory usage: {mem_usage_after - mem_usage_before:.2f} MiB")
 
     with tab2:
-        analysis()
+        do_calculate_density = st.checkbox("Calculate density vs time", value=False)
+        if do_calculate_density:
+            density_time_series(country, selected_file)
