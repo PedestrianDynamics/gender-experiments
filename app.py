@@ -33,9 +33,7 @@ class DataConfig:
     def retrieve_files(self):
         for country in self.countries:
             self.files[country] = glob.glob(f"{country}/*.csv")
-            # + glob.glob(
-            #    f"../{country}/*.txt"
-            # )
+            # +glob.glob(f"../{country}/*.txt")
 
 
 def generate_oval_shape_points(
@@ -350,26 +348,26 @@ def load_data(msg, country):
             msg.warning(f"{country}: data missing")
             # continue
 
-        # st.write(f"Processing data for <{country}>")
-        # progress_text = st.empty()
-        # progress = st.progress(0)
-        # num_files = len(files)
-        # st.session_state.loaded_data[country] = []
+        st.write(f"Processing data for <{country}>")
+        progress_text = st.empty()
+        progress = st.progress(0)
+        num_files = len(files)
+        st.session_state.loaded_data[country] = []
 
-        # for idx, file in enumerate(files):
-        #     data = pd.read_csv(file)
-        #     rename_columns(data, st.session_state.config.rename_mapping)
-        #     set_column_types(data, st.session_state.config.column_types)
-        #     if file == files[0]:
-        #         fps = calculate_fps(data)
+        for idx, file in enumerate(files):
+            data = pd.read_csv(file)
+            rename_columns(data, st.session_state.config.rename_mapping)
+            set_column_types(data, st.session_state.config.column_types)
+            if file == files[0]:
+                fps = calculate_fps(data)
 
-        #     trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
-        #     st.session_state.loaded_data[country].append(trajectory_data)
+            trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
+            st.session_state.loaded_data[country].append(trajectory_data)
 
-        #     # Update the progress bar
-        #     progress_value = (idx + 1) / num_files
-        #     progress.progress(progress_value)
-        #     progress_text.text(f"File {idx + 1} of {num_files}")
+            # Update the progress bar
+            progress_value = (idx + 1) / num_files
+            progress.progress(progress_value)
+            progress_text.text(f"File {idx + 1} of {num_files}")
 
 
 # @st.cache_data
@@ -483,7 +481,7 @@ def original():
     country = st.sidebar.selectbox(
         "Select a country:", st.session_state.config.countries
     )
-    load_data(msg, country)
+    # load_data(msg, country)
     msg.write("")
     if country:
         files = st.session_state.config.files[country]
@@ -571,16 +569,36 @@ def original():
                 st.plotly_chart(anm)
 
 
+def analysis():
+    for country in st.session_state.config.countries:
+        st.info(country)
+        files = st.session_state.config.files[country]
+        for file in files:
+            set_rotation_variables(file, country)
+            trajectory_data = load_file(file)
+            data = trajectory_data.data
+            rotated_data = rotate_trajectories(
+                data,
+                st.session_state.center_x,
+                st.session_state.center_y,
+                st.session_state.angle_degrees,
+            )
+            pass
+
+
 # Main
 if __name__ == "__main__":
     msg = st.empty()
     st.sidebar.title("Trajectory Visualization")
     exterior, interior = generate_parcour()
     walkable_area = pedpy.WalkableArea(difference(Polygon(exterior), Polygon(interior)))
-    # tab1, tab2 = st.tabs(["original", "linear"])
-    # with tab1:
+    tab1, tab2 = st.tabs(["View trajectories", "Analysis"])
     init_session_state(msg)
-    #    mem_usage_before = memory_usage()[0]
-    original()
-#   mem_usage_after = memory_usage()[0]
-#  st.info(f"Memory usage: {mem_usage_after - mem_usage_before:.2f} MiB")
+    with tab1:
+        #    mem_usage_before = memory_usage()[0]
+        original()
+        #   mem_usage_after = memory_usage()[0]
+        #  st.info(f"Memory usage: {mem_usage_after - mem_usage_before:.2f} MiB")
+
+    with tab2:
+        analysis()
