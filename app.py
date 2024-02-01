@@ -1,21 +1,24 @@
-# import numpy as np
+import concurrent.futures
 import glob
 import time
 from collections import defaultdict
 
-# from tqdm import tqdm
 from dataclasses import dataclass, field
-from typing import Any, Tuple
-
+import itertools
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import streamlit as st
-from shapely import Polygon, difference
 import pedpy
-from anim import animate
+import plotly.express as px
+import streamlit as st
+from joblib import Parallel, delayed
+from scipy import stats
+from tqdm import tqdm
+
 import analysis as al
+import helper as hp
+import plots as pl
+from anim import animate
+from shapely import Polygon, difference
 
 # from memory_profiler import profile
 # from memory_profiler import memory_usage
@@ -35,337 +38,6 @@ class DataConfig:
     def retrieve_files(self):
         for country in self.countries:
             self.files[country] = glob.glob(f"{country}/*.csv")
-            # +glob.glob(f"../{country}/*.txt")
-
-
-def generate_oval_shape_points(
-    num_points: int,
-    length: float = 2.3,
-    radius: float = 1.65,
-    start: Tuple[float, float] = (0.0, 0.0),
-    dx: float = 0.2,
-    threshold: float = 0.5,
-):
-    """Generate points on a closed setup with two segments and two half circles."""
-    points = [start]
-    selected_points = [start]
-    last_selected = start  # keep track of the last selected point
-
-    # Define the points' generating functions
-    def dist(p1, p2):
-        return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
-
-    # Calculate dphi based on the dx and radius
-    dphi = dx / radius
-
-    center2 = (start[0] + length, start[1] + radius)
-    center1 = (start[0], start[1] + radius)
-
-    npoint_on_segment = int(length / dx)
-
-    # first segment
-    for i in range(1, npoint_on_segment + 1):
-        tmp_point = (start[0] + i * dx, start[1])
-        points.append(tmp_point)
-        if dist(tmp_point, last_selected) >= threshold:
-            selected_points.append(tmp_point)
-            last_selected = tmp_point
-
-    # first half circle
-    for phi in np.arange(-np.pi / 2, np.pi / 2, dphi):
-        x = center2[0] + radius * np.cos(phi)
-        y = center2[1] + radius * np.sin(phi)
-        tmp_point = (x, y)
-        points.append(tmp_point)
-        if dist(tmp_point, last_selected) >= threshold:
-            selected_points.append(tmp_point)
-            last_selected = tmp_point
-
-    # second segment
-    for i in range(1, npoint_on_segment + 1):
-        tmp_point = (
-            start[0] + (npoint_on_segment + 1) * dx - i * dx,
-            start[1] + 2 * radius,
-        )
-        points.append(tmp_point)
-        if dist(tmp_point, last_selected) >= threshold:
-            selected_points.append(tmp_point)
-            last_selected = tmp_point
-
-    # second half circle
-    for phi in np.arange(np.pi / 2, 3 * np.pi / 2 - dphi, dphi):
-        x = center1[0] + radius * np.cos(phi)
-        y = center1[1] + radius * np.sin(phi)
-        tmp_point = (x, y)
-        points.append(tmp_point)
-        if dist(tmp_point, last_selected) >= threshold:
-            selected_points.append(tmp_point)
-            last_selected = tmp_point
-
-    if dist(selected_points[-1], start) < threshold:
-        selected_points.pop()
-    if num_points > len(selected_points):
-        print(f"warning: {num_points} > Allowed: {len(selected_points)}")
-
-    selected_points = selected_points[:num_points]
-    return points, selected_points
-
-
-def rename_columns(data: pd.DataFrame, mapping: dict[str, str]) -> pd.DataFrame:
-    """
-    Rename columns of the dataframe based on the given mapping.
-    """
-    return data.rename(columns=mapping, inplace=True)
-
-
-def set_column_types(data: pd.DataFrame, col_types: dict[str, Any]) -> pd.DataFrame:
-    """
-    Set the types of the dataframe columns based on the given column types.
-    """
-    # Ensure columns are in data before type casting
-    valid_types = {
-        col: dtype for col, dtype in col_types.items() if col in data.columns
-    }
-    return data.astype(valid_types)
-
-
-def calculate_fps(data: pd.DataFrame) -> int:
-    """
-    Calculate fps based on the mean difference of the 'time' column.
-    """
-    mean_diff = data.groupby("id")["time"].diff().dropna().mean()
-    return int(round(1 / mean_diff))
-
-
-def rotate_trajectories(df, shift_x, shift_y, angle_degrees):
-    """
-    Rotates the x and y coordinates in the dataframe around a center point by a specified angle.
-
-    Parameters:
-    df (pd.DataFrame): Dataframe containing the trajectories with columns 'x' and 'y'.
-    center_x (float): x-coordinate of the center of rotation.
-    center_y (float): y-coordinate of the center of rotation.
-    angle_degrees (float): Angle in degrees by which to rotate the trajectories.
-
-    Returns:
-    pd.DataFrame: A new dataframe with rotated coordinates.
-    """
-    angle_radians = np.radians(angle_degrees)
-
-    center_x = 0
-    center_y = 0
-    x_shifted = df["x"] - center_x
-    y_shifted = df["y"] - center_y
-
-    df_rotated = df.copy()
-
-    df_rotated["x"] = (
-        shift_x
-        + center_x
-        + x_shifted * np.cos(angle_radians)
-        - y_shifted * np.sin(angle_radians)
-    )
-    df_rotated["y"] = (
-        shift_y
-        + center_y
-        + x_shifted * np.sin(angle_radians)
-        + y_shifted * np.cos(angle_radians)
-    )
-
-    return df_rotated
-
-
-# @st.cache_data
-def plot_trajectories(
-    data: pd.DataFrame, framerate: int, uid: int, exterior, interior
-) -> go.Figure:
-    fig = go.Figure()
-    c1, c2, c3 = st.columns((1, 1, 1))
-    num_agents = len(np.unique(data["id"]))
-    male_agents = data[data["gender"] == 2]
-    female_agents = data[data["gender"] == 1]
-    unknown_agents = data[data["gender"].isin([0, -1])]
-
-    # Count unique IDs in each subset
-    num_unique_males = male_agents["id"].nunique()
-    num_unique_females = female_agents["id"].nunique()
-    num_unique_unknowns = unknown_agents["id"].nunique()
-
-    rotated = c1.checkbox("Rotated", value=True)
-    plot_parcour = c2.checkbox("Parcour", value=True)
-    do_animate = c3.checkbox("Animate", value=False)
-    gender_map = {1: "F", 2: "M", 0: "N", -1: "E"}
-    gender_colors = {
-        1: "blue",  # Assuming 1 is for female
-        2: "green",  # Assuming 2 is for male
-        0: "black",  # non binary
-        -1: "yellow",
-    }
-    x_exterior, y_exterior = Polygon(exterior).exterior.xy
-    x_exterior = list(x_exterior)
-    y_exterior = list(y_exterior)
-    x_interior, y_interior = Polygon(interior).exterior.xy
-    x_interior = list(x_interior)
-    y_interior = list(y_interior)
-
-    rotated_data = rotate_trajectories(
-        data,
-        st.session_state.center_x,
-        st.session_state.center_y,
-        st.session_state.angle_degrees,
-    )
-    # For each unique id, plot a trajectory
-    if uid is not None:
-        df = data[data["id"] == uid]
-        gender = gender_map[df["gender"].iloc[0]]
-        color_choice = gender_colors[df["gender"].iloc[0]]
-        if not rotated:
-            fig.add_trace(
-                go.Scatter(
-                    x=df["x"][::framerate],
-                    y=df["y"][::framerate],
-                    line=dict(color=color_choice),
-                    marker=dict(color=color_choice),
-                    mode="lines",
-                    name=f"ID {uid}, {gender}",
-                )
-            )
-        rotated_df = rotated_data[rotated_data["id"] == uid]
-        if rotated:
-            color_choice = gender_colors[rotated_df["gender"].iloc[0]]
-            fig.add_trace(
-                go.Scatter(
-                    x=rotated_df["x"][::framerate],
-                    y=rotated_df["y"][::framerate],
-                    line=dict(color=color_choice),
-                    marker=dict(color=color_choice),
-                    mode="lines",
-                    name=f"ID {uid}, {gender}",
-                )
-            )
-    else:
-        for uid, df in data.groupby("id"):
-            color_choice = gender_colors[df["gender"].iloc[0]]
-            gender = gender_map[df["gender"].iloc[0]]
-            if not rotated:
-                fig.add_trace(
-                    go.Scatter(
-                        x=df["x"][::framerate],
-                        y=df["y"][::framerate],
-                        line=dict(color=color_choice),
-                        marker=dict(color=color_choice),
-                        mode="lines",
-                        name=f"ID {uid}, {gender}",
-                    )
-                )
-        if rotated:
-            for uid, rotated_df in rotated_data.groupby("id"):
-                color_choice = gender_colors[rotated_df["gender"].iloc[0]]
-                gender = gender_map[rotated_df["gender"].iloc[0]]
-                fig.add_trace(
-                    go.Scatter(
-                        x=rotated_df["x"][::framerate],
-                        y=rotated_df["y"][::framerate],
-                        line=dict(color=color_choice),
-                        marker=dict(color=color_choice),
-                        mode="lines",
-                        name=f"ID {uid}, {gender}",
-                    )
-                )
-
-    if plot_parcour:
-        fig.add_trace(
-            go.Scatter(
-                x=x_exterior,
-                y=y_exterior,
-                mode="lines",
-                line=dict(color="red"),
-                name="exterior",
-            )
-        )
-        fig.add_trace(
-            go.Scatter(
-                x=x_interior,
-                y=y_interior,
-                mode="lines",
-                line=dict(color="red"),
-                name="interior",
-            )
-        )
-    xmin = np.min(x_exterior)
-    xmax = np.max(x_exterior)
-    ymin = np.min(y_exterior) - 0.5
-    ymax = np.max(y_exterior) + 0.5
-
-    fig.update_layout(
-        title=f" Trajectories: {num_agents} | M: {num_unique_males} | F: {num_unique_females} | N: {num_unique_unknowns}",
-        xaxis_title="X",
-        yaxis_title="Y",
-        xaxis=dict(scaleanchor="y", range=[xmin, xmax]),
-        yaxis=dict(scaleratio=1, range=[ymin, ymax]),
-        showlegend=False,
-    )
-    fig.add_annotation(
-        x=0.5,
-        y=1.1,
-        xref="paper",
-        yref="paper",
-        showarrow=False,
-        text="<span style='color:green;'>Green: Male</span>, <span style='color:blue;'>Blue: Female</span>",
-        font=dict(size=12),
-        align="center",
-    )
-    return fig, do_animate
-
-
-def plot_time_series(
-    data: pd.DataFrame, speed: pd.DataFrame, fps: int, ss_index: int
-) -> go.Figure:
-    density = data["instantaneous_density"]
-    fig = make_subplots(
-        rows=1,
-        cols=2,
-        subplot_titles=(
-            f"Mean density: {np.mean(density):.2f} (+- {np.std(density):.2f}) 1/m/m",
-            f"Mean speed: {np.mean(speed['speed']):.2f} (+- {np.std(speed['speed']):.2f}) / m/s",
-        ),
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=data["frame"] / fps,
-            y=density,
-            line=dict(color="blue"),
-            marker=dict(color="blue"),
-            mode="lines",
-        ),
-        row=1,
-        col=1,
-    )
-
-    fig.add_trace(
-        go.Scatter(
-            x=speed["time"].loc[ss_index:],
-            y=speed["speed"].loc[ss_index:],
-            line=dict(color="blue"),
-            marker=dict(color="blue"),
-            mode="lines",
-        ),
-        row=1,
-        col=2,
-    )
-
-    rmin = 0  # np.min(data["instantaneous_density"]) - 0.5
-    rmax = 3  # np.max(data["instantaneous_density"]) + 0.5
-    vmax = np.max(speed["speed"]) + 0.5
-    fig.update_layout(
-        xaxis_title="Time / s",
-        showlegend=False,
-    )
-    fig.update_yaxes(range=[rmin, rmax], title_text="Density / 1/m/m", row=1, col=1)
-    fig.update_yaxes(range=[rmin, vmax], title_text="Speed / m/s", row=1, col=2)
-    fig.update_xaxes(title_text="Time / s", row=1, col=2)
-    return fig
 
 
 def init_session_state(msg):
@@ -433,13 +105,6 @@ def load_data(msg, country):
 
 
 # @st.cache_data
-def load_file(file):
-    data = pd.read_csv(file)
-    rename_columns(data, st.session_state.config.rename_mapping)
-    set_column_types(data, st.session_state.config.column_types)
-    fps = calculate_fps(data)
-    trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
-    return trajectory_data
 
 
 def set_rotation_variables(selected_file, country):
@@ -504,39 +169,6 @@ def set_rotation_variables(selected_file, country):
         st.session_state.angle_degrees = 0
 
 
-def generate_parcour():
-    _, exterior = generate_oval_shape_points(
-        num_points=50,
-        radius=1.65 + 0.4,
-        # start=(0.0, -2 + 1.6),
-        start=(-1, -2),
-        threshold=0.2,
-    )
-    _, interior = generate_oval_shape_points(
-        num_points=50,
-        radius=1.65 - 0.4,
-        length=2,
-        # start=(0, -1.2 + 1.6),
-        start=(-1, -1.2),
-        threshold=0.2,
-    )
-
-    return exterior, interior
-
-
-def sorting_key(filename):
-    if filename.startswith("female"):
-        return (0, filename)
-    elif filename.startswith("male"):
-        return (1, filename)
-    elif filename.startswith("mix_sorted"):
-        return (2, filename)
-    elif filename.startswith("mix_random"):
-        return (3, filename)
-    else:
-        return (4, filename)  # For filenames that don't match any category
-
-
 def original(country, selected_file):
     """Plot original data"""
     c1, c2 = st.columns((1, 1))
@@ -548,7 +180,7 @@ def original(country, selected_file):
             # default values
             set_rotation_variables(selected_file, country)
             # trajectory_data = st.session_state.loaded_data[country][file_index]
-            trajectory_data = load_file(selected_file)
+            trajectory_data = hp.load_file(selected_file)
             data = trajectory_data.data
             start_time = time.time()
             #        if selected_file not in st.session_state.figures.keys():
@@ -590,7 +222,7 @@ def original(country, selected_file):
             if angle_degrees != st.session_state.angle_degrees:
                 st.session_state.angle_degrees = angle_degrees
 
-            fig, do_animate = plot_trajectories(
+            fig, do_animate = pl.plot_trajectories(
                 data, framerate, uid, exterior, interior
             )
             st.plotly_chart(fig)
@@ -599,7 +231,7 @@ def original(country, selected_file):
             print(f"Time taken to plot trajectories: {elapsed_time:.2f} seconds")
 
             if do_animate:
-                rotated_data = rotate_trajectories(
+                rotated_data = hp.rotate_trajectories(
                     data,
                     st.session_state.center_x,
                     st.session_state.center_y,
@@ -620,44 +252,18 @@ def original(country, selected_file):
                 st.plotly_chart(anm)
 
 
-# def analysis():
-#     for country in st.session_state.config.countries:
-#         st.info(country)
-#         files = st.session_state.config.files[country]
-#         for file in files:
-#             set_rotation_variables(file, country)
-#             trajectory_data = load_file(file)
-#             data = trajectory_data.data
-#             rotated_data = rotate_trajectories(
-#                 data,
-#                 st.session_state.center_x,
-#                 st.session_state.center_y,
-#                 st.session_state.angle_degrees,
-#             )
-#             al.calculate_instantaneous_density_per_frame(rotated_data)
-
-
-def density_speed_time_series(country, file):
-    c1, c2 = st.columns((1, 1))
-    fps = c1.slider(
-        "fps", 1, 100, 25, 5, help="jump every fps frame for density calculation"
-    )
-    dv = c2.slider(
-        "steps", 1, 100, 10, 5, help="number of frames to jump for diff speed"
-    )
-
+def density_speed_time_series(country, file, fps, dv, diff_const):
     set_rotation_variables(file, country)
-    trajectory_data = load_file(file)
+    trajectory_data = hp.load_file(file)
     data = trajectory_data.data
-    rotated_data = rotate_trajectories(
+    rotated_data = hp.rotate_trajectories(
         data,
         st.session_state.center_x,
         st.session_state.center_y,
         st.session_state.angle_degrees,
     )
-    diff_const = c1.slider("window", 1, 500, 5, 1, help="window steady state")
 
-    with st.spinner("Calculating ..."):
+    with st.spinner(f"Calculating {country} ..."):
         start_time = time.time()
         density = al.calculate_instantaneous_density_per_frame(rotated_data, fps)
         speed = al.calculate_speed(rotated_data, dv)
@@ -668,19 +274,201 @@ def density_speed_time_series(country, file):
         end_time = time.time()
         elapsed_time = end_time - start_time
         st.info(f"Time taken to calculate density: {elapsed_time:.2f} seconds")
-        fig = plot_time_series(
+        fig = pl.plot_time_series(
             density, speed, trajectory_data.frame_rate, steady_state_index
         )
         st.plotly_chart(fig)
+
+
+def fundamental_diagram(country, fps, dv, diff_const):
+    with st.spinner(f"Calculating {country} ..."):
+        start_time = time.time()
+        mean_density = []
+        mean_speed = []
+        for file in st.session_state.config.files[country]:
+            set_rotation_variables(file, country)
+            trajectory_data = hp.load_file(file)
+            data = trajectory_data.data
+            rotated_data = hp.rotate_trajectories(
+                data,
+                st.session_state.center_x,
+                st.session_state.center_y,
+                st.session_state.angle_degrees,
+            )
+
+            density = al.calculate_instantaneous_density_per_frame(rotated_data, fps)
+
+            speed = al.calculate_speed(rotated_data, dv)
+            steady_state_index = al.calculate_steady_state(
+                speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
+            )
+            mean_speed.append(np.mean(speed["speed"].iloc[steady_state_index:]))
+            mean_density.append(np.mean(density["instantaneous_density"]))
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        st.info(f"Time taken to calculate density: {elapsed_time:.2f} seconds")
+        mean_density = np.array(mean_density)
+        mean_speed = np.array(mean_speed)
+        return mean_speed, mean_density
+
+
+def calculate_proximity_analysis(country, rotated_data):
+    processed_data = al.calculate_circular_distance_and_gender(rotated_data)
+    proximity_analysis_res = []
+    fps = 25
+    frames_to_include = set(range(0, processed_data["frame"].max(), fps))
+
+    # Filter the DataFrame to only include the desired frames
+    filtered_data = processed_data[processed_data["frame"].isin(frames_to_include)]
+
+    # Now iterate over the filtered DataFrame
+    for i, row in filtered_data.iterrows():
+        # for i, row in processed_data.iterrows():
+        # Check proximity with the next neighbor
+        if row["gender"] == row["gender_of_next_neighbor"]:
+            same_gender_proximity_next = row["distance_to_next_neighbor"]
+        else:
+            same_gender_proximity_next = np.nan
+
+        if row["gender"] != row["gender_of_next_neighbor"]:
+            diff_gender_proximity_next = row["distance_to_next_neighbor"]
+        else:
+            diff_gender_proximity_next = np.nan
+
+        # Check proximity with the previous neighbor
+        if row["gender"] == row["gender_of_prev_neighbor"]:
+            same_gender_proximity_prev = row["distance_to_prev_neighbor"]
+        else:
+            same_gender_proximity_prev = np.nan
+
+        if row["gender"] != row["gender_of_prev_neighbor"]:
+            diff_gender_proximity_prev = row["distance_to_prev_neighbor"]
+        else:
+            diff_gender_proximity_prev = np.nan
+
+        proximity_analysis_res.append(
+            {
+                "country": country,
+                "id": row["id"],
+                "frame": row["frame"],
+                "same_gender_proximity_next": same_gender_proximity_next,
+                "diff_gender_proximity_next": diff_gender_proximity_next,
+                "same_gender_proximity_prev": same_gender_proximity_prev,
+                "diff_gender_proximity_prev": diff_gender_proximity_prev,
+            }
+        )
+
+    return proximity_analysis_res
+
+
+def unpack_and_process(args):
+    return calculate_proximity_analysis(*args)
+
+
+def prepare_data(country, selected_file):
+    set_rotation_variables(selected_file, country)
+    trajectory_data = hp.load_file(selected_file)
+    data = trajectory_data.data
+    rotated_data = hp.rotate_trajectories(
+        data,
+        st.session_state.center_x,
+        st.session_state.center_y,
+        st.session_state.angle_degrees,
+    )
+    return country, rotated_data
+
+
+def calculate_with_progress():
+    # Prepare tasks
+    tasks = []
+    for country in st.session_state.config.countries:
+        with st.spinner(f"Preparing tasks for {country}"):
+            for file in st.session_state.config.files[country]:
+                tasks.append(prepare_data(country, file))
+
+    with st.spinner("Running..."):
+        # Create a progress bar
+        progress_bar = st.progress(0)
+
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            # Submit all tasks to the executor
+            future_to_task = {
+                executor.submit(unpack_and_process, task): task for task in tasks
+            }
+
+            results = []
+            for i, future in enumerate(
+                concurrent.futures.as_completed(future_to_task), 1
+            ):
+                # Result from the completed task
+                result = future.result()
+                results.append(result)
+
+                # Update progress bar
+                progress_bar.progress(i / len(tasks))
+
+    # Return the final results
+    return results
+
+
+def calculate_with_singular():
+    # Prepare tasks
+    tasks = []
+    for country in st.session_state.config.countries:
+        with st.spinner(f"Preparing tasks for {country}"):
+            for file in st.session_state.config.files[country][0:2]:
+                tasks.append(prepare_data(country, file))
+
+    # tasks = [
+    #     prepare_data(country, file)
+    #     for country in st.session_state.config.countries
+    #     for file in st.session_state.config.files[country]
+    # ]
+
+    with st.spinner("Running..."):
+        # Create a progress bar
+        progress_bar = st.progress(0)
+        results = []
+        for i, task in enumerate(tasks):
+            result = unpack_and_process(task)
+            results.append(result)
+            # Update progress bar
+            progress_bar.progress(i / len(tasks))
+
+    # Return the final results
+    return results
+
+
+def calculate_with_joblib():
+    # Prepare tasks
+    tasks = []
+    for country in st.session_state.config.countries:
+        with st.spinner(f"Preparing tasks for {country}"):
+            for file in st.session_state.config.files[country][0:1]:
+                tasks.append(prepare_data(country, file))
+
+    # Define a function to be executed in parallel
+    def process_task(task):
+        return unpack_and_process(task)
+
+    st.info(f"Running tasks in parallel {len(tasks)} ...")
+    results = Parallel(n_jobs=-1)(
+        delayed(process_task)(task) for task in tqdm(tasks, desc="Processing")
+    )
+
+    return results
 
 
 # Main
 if __name__ == "__main__":
     msg = st.empty()
     st.sidebar.title("Trajectory Visualization")
-    exterior, interior = generate_parcour()
+    exterior, interior = hp.generate_parcour()
     walkable_area = pedpy.WalkableArea(difference(Polygon(exterior), Polygon(interior)))
-    tab1, tab2 = st.tabs(["View trajectories", "Analysis"])
+    tab1, tab2, tab3 = st.tabs(
+        ["View trajectories", "Fundamental diagram", "Proximity analysis"]
+    )
     init_session_state(msg)
     country = st.sidebar.selectbox(
         "Select a country:", st.session_state.config.countries
@@ -688,7 +476,7 @@ if __name__ == "__main__":
     files = st.session_state.config.files[country]
     st.sidebar.info(f" files: {len(files)}")
     file_names = [f.split("/")[-1] for f in files]
-    sorted_file_names = sorted(file_names, key=sorting_key)
+    sorted_file_names = sorted(file_names, key=hp.sorting_key)
     selected_file = st.sidebar.radio(
         "Select a file", sorted_file_names, horizontal=True
     )
@@ -701,6 +489,123 @@ if __name__ == "__main__":
         #  st.info(f"Memory usage: {mem_usage_after - mem_usage_before:.2f} MiB")
 
     with tab2:
-        do_calculate_density = st.checkbox("Calculate density vs time", value=False)
-        if do_calculate_density:
-            density_speed_time_series(country, selected_file)
+        do_calculations = st.checkbox(
+            "Calculate density vs time, fundamental diagram, ...", value=False
+        )
+        c0, c1, c2 = st.columns((1, 1, 1))
+        if do_calculations:
+            calculations = c0.radio(
+                "Choose calculation", ["time_series", "fundamental_diagram"]
+            )
+
+            fps = c1.slider(
+                "fps",
+                1,
+                100,
+                25,
+                5,
+                help="jump every fps frame for density calculation",
+            )
+            dv = c2.slider(
+                "steps", 1, 100, 10, 5, help="number of frames to jump for diff speed"
+            )
+            diff_const = c1.slider(
+                "diff_const", 1, 500, 5, 1, help="window steady state"
+            )
+
+            if calculations == "time_series":
+                density_speed_time_series(country, selected_file, fps, dv, diff_const)
+
+            if calculations == "fundamental_diagram":
+                all_data = {}
+                for country in st.session_state.config.countries:
+                    mean_speed, mean_density = fundamental_diagram(
+                        country, fps, dv, diff_const
+                    )
+                    fig = pl.plot_fundamental_diagram(country, mean_density, mean_speed)
+                    st.plotly_chart(fig)
+                    all_data[country] = (mean_speed, mean_density)
+
+                fig = pl.plot_fundamental_diagram_all(all_data)
+                st.plotly_chart(fig)
+
+    with tab3:
+        # do_analysis = st.checkbox("Perform gender analysis", value=False)
+        do_analysis = st.radio(
+            "Choose option",
+            ["dummy", "calculate_gender_analysis", "plot_existing_data"],
+        )
+        st.info(do_analysis)
+        if do_analysis == "calculate_gender_analysis":
+            start_time = time.time()
+            proximity_analysis_results = calculate_with_progress()
+            # proximity_analysis_results = calculate_with_joblib()
+            # proximity_analysis_results = calculate_with_singular()
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            st.info(f"Time taken: {elapsed_time:.2f} seconds")
+            flattened_results = list(
+                itertools.chain.from_iterable(proximity_analysis_results)
+            )
+            proximity_df = pd.DataFrame(flattened_results)
+            proximity_df.to_csv("proximity_analysis_results.csv", index=False)
+
+            st.dataframe(proximity_df)
+            with st.spinner("Calculating T-tests ..."):
+                same_gender_distances_next = proximity_df[
+                    "same_gender_proximity_next"
+                ].dropna()
+                diff_gender_distances_next = proximity_df[
+                    "diff_gender_proximity_next"
+                ].dropna()
+                same_gender_distances_prev = proximity_df[
+                    "same_gender_proximity_prev"
+                ].dropna()
+                diff_gender_distances_prev = proximity_df[
+                    "diff_gender_proximity_prev"
+                ].dropna()
+
+                # Perform a T-test
+                t_stat_next, p_val_next = stats.ttest_ind(
+                    same_gender_distances_next, diff_gender_distances_next
+                )
+                t_stat_prev, p_val_prev = stats.ttest_ind(
+                    same_gender_distances_prev, diff_gender_distances_prev
+                )
+
+                st.info(
+                    f"T-Test results proximity_next: T-Statistic = {t_stat_next:.03f}, P-Value = {p_val_next:.03f}"
+                )
+                st.info(
+                    f"T-Test results proximity_prev: T-Statistic = {t_stat_next:.03f}, P-Value = {p_val_prev:.03f}"
+                )
+
+            proximity_melted = proximity_df.melt(
+                id_vars=["id", "frame", "country"],
+                value_vars=[
+                    "same_gender_proximity_next",
+                    "diff_gender_proximity_next",
+                    "same_gender_proximity_prev",
+                    "diff_gender_proximity_prev",
+                ],
+                var_name="category",
+                value_name="distance",
+            )
+
+            # Creating a box plot
+            fig = px.box(
+                proximity_melted,
+                x="category",
+                y="distance",
+                color="country",
+                title="Proximity Analysis Based on Gender and Country",
+                labels={"distance": "Proximity Distance", "category": "Category"},
+            )
+
+            fig.update_layout(
+                yaxis_title="Distance",
+                xaxis_title="Gender Proximity Category",
+                showlegend=True,
+            )
+
+            st.plotly_chart(fig)

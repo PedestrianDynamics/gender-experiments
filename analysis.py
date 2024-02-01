@@ -4,9 +4,6 @@ from pandas import DataFrame
 from shapely.geometry import Point
 from shapely.ops import unary_union
 
-# from memory_profiler import profile
-import streamlit as st
-
 
 def calculate_speed(data: DataFrame, dv: int) -> DataFrame:
     """
@@ -38,16 +35,14 @@ def calculate_speed(data: DataFrame, dv: int) -> DataFrame:
     return data
 
 
-def calculate_circular_distance_and_gender(
-    data: DataFrame, total_agents: int
-) -> DataFrame:
+def calculate_circular_distance_and_gender(data: DataFrame) -> DataFrame:
     """
-    Calculate the distance to the nearest neighbors considering IDs as circular,
-    and also include the gender of these neighbors.
+    Calculate the distance to the nearest neighbors.
+
+    considering IDs as circular, and also include the gender of these neighbors.
 
     Parameters:
-    data (DataFrame): A pandas DataFrame containing the columns 'ID', 'gender', 'frame', 'x', and 'y'.
-    total_agents (int): Total number of agents.
+    data (DataFrame): A pandas DataFrame containing the columns 'id', 'gender', 'frame', 'x', and 'y'.
 
     Returns:
     DataFrame: The input DataFrame with additional columns for distances and gender of neighbors.
@@ -143,9 +138,10 @@ def calculate_instantaneous_density_per_frame(data: DataFrame, fps: int) -> Data
 
 
 def calculate_steady_state(data, window_size, threshold, diff_const):
-    # Calculate the rate of change (first derivative)
+    """Calculate the rate of change (first derivative)"""
 
-    data = data.fillna(method="ffill")
+    # data = data.fillna(method="ffill") # depcretated
+    data.ffill()
     rate_of_change = data.diff(diff_const)
 
     # Calculate the rolling variance or average change
