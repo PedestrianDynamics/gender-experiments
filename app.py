@@ -2,8 +2,9 @@ import concurrent.futures
 import glob
 import time
 from collections import defaultdict
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
+
+# from plotly.subplots import make_subplots
+# import plotly.graph_objects as go
 
 from dataclasses import dataclass, field
 import itertools
@@ -12,7 +13,8 @@ import pandas as pd
 import pedpy
 import plotly.express as px
 import streamlit as st
-from joblib import Parallel, delayed
+
+# from joblib import Parallel, delayed
 from scipy import stats
 from tqdm import tqdm
 
@@ -452,24 +454,24 @@ def calculate_with_singular():
     return results
 
 
-def calculate_with_joblib():
-    # Prepare tasks
-    tasks = []
-    for country in st.session_state.config.countries:
-        with st.spinner(f"Preparing tasks for {country}"):
-            for file in st.session_state.config.files[country][0:1]:
-                tasks.append(prepare_data(country, file))
+# def calculate_with_joblib():
+#     # Prepare tasks
+#     tasks = []
+#     for country in st.session_state.config.countries:
+#         with st.spinner(f"Preparing tasks for {country}"):
+#             for file in st.session_state.config.files[country][0:1]:
+#                 tasks.append(prepare_data(country, file))
 
-    # Define a function to be executed in parallel
-    def process_task(task):
-        return unpack_and_process(task)
+#     # Define a function to be executed in parallel
+#     def process_task(task):
+#         return unpack_and_process(task)
 
-    st.info(f"Running tasks in parallel {len(tasks)} ...")
-    results = Parallel(n_jobs=-1)(
-        delayed(process_task)(task) for task in tqdm(tasks, desc="Processing")
-    )
+#     st.info(f"Running tasks in parallel {len(tasks)} ...")
+#     results = Parallel(n_jobs=-1)(
+#         delayed(process_task)(task) for task in tqdm(tasks, desc="Processing")
+#     )
 
-    return results
+#     return results
 
 
 # Main
