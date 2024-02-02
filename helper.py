@@ -232,8 +232,6 @@ def get_neighbors_special_agent_data(
     # Filter DataFrame for the specified fram
     frames = df["frame"].to_numpy()
     first_frame = frames[0]
-    st.info(f"{first_frame=}")
-
     at_frame = df[(df["frame"] == frame)]
 
     # Extract points, speeds, and ids
@@ -326,10 +324,6 @@ def plot_neighbors_analysis(data, ids, exterior, interior):
     ) = get_neighbors_special_agent_data(
         agent, frame, rotated_data, nearest_dist, nearest_ind
     )
-    # st.info(agent)
-    # st.info(neighbors_ids[0])
-    # st.info(neighbor_type)
-
     fig = pl.plot_agent_and_neighbors(
         agent,
         frame,
