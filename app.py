@@ -26,8 +26,13 @@ import plots as pl
 from anim import animate
 from shapely import Polygon, difference
 
+from pathlib import Path
+
 # from memory_profiler import profile
 # from memory_profiler import memory_usage
+
+path = Path(__file__)
+ROOT_DIR = path.parent.absolute()
 
 
 @dataclass
@@ -479,23 +484,44 @@ def calculate_with_singular():
 
 # Main
 if __name__ == "__main__":
+    gh = "https://badgen.net/badge/icon/GitHub?icon=github&label"
+    repo = "https://github.com/PedestrianDynamics/gender-experiments"
+    repo_name = f"[![Repo]({gh})]({repo})"
+    c1, c2 = st.sidebar.columns((1.2, 0.5))
+    c2.markdown(repo_name, unsafe_allow_html=True)
+    c1.write(
+        "[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7697604.svg)](https://doi.org/10.5281/zenodo.7697604)"
+    )
+    st.sidebar.image(f"{ROOT_DIR}/logo.png", use_column_width=True)
+
     msg = st.empty()
-    st.sidebar.title("Trajectory Visualization")
+    # st.sidebar.title("Trajectory Visualization")
+    c1, c2 = st.sidebar.columns((1, 1))
+    flag = c2.empty()
     exterior, interior = hp.generate_parcour()
     walkable_area = pedpy.WalkableArea(difference(Polygon(exterior), Polygon(interior)))
     tab1, tab2, tab3, tab4 = st.tabs(
         [
-            "View trajectories",
-            "Fundamental diagram",
-            "Proximity analysis",
-            "write enhanced data",
+            "👫🏻 View trajectories",
+            "📉 Fundamental diagram",
+            "📍 Proximity analysis",
+            "📂 write enhanced data",
         ]
     )
 
     init_session_state(msg)
-    country = st.sidebar.selectbox(
-        "Select a country:", st.session_state.config.countries
-    )
+    country = c1.selectbox("Select a country:", st.session_state.config.countries)
+    if country == "jap":
+        flag.write(":flag-jp:")
+    if country == "aus":
+        flag.write(":flag-ac:")
+    if country == "chn":
+        flag.write(":flag-cn:")
+    if country == "ger":
+        flag.write(":flag-de:")
+    if country == "pal":
+        flag.write(":flag-ae:")
+
     files = st.session_state.config.files[country]
     n_female, n_male, n_mixed_random, n_mixed_sorted = hp.get_numbers_country(country)
     st.sidebar.info(

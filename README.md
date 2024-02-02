@@ -1,4 +1,6 @@
-# gender-experiments
+# Gender-experiments
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gender-experiments.streamlit.app/)
+
 
 ## FILENAME LOGIC ####
 
