@@ -153,3 +153,23 @@ def calculate_steady_state(data, window_size, threshold, diff_const):
     ].first_valid_index()
 
     return steady_state_index
+
+
+# def kde():
+#         filtered_data = proximity_df[(proximity_df['country'] == country) &
+#                                      (proximity_df['category'] == category)]
+
+#         # Perform KDE to estimate the PDF
+#         data = filtered_data['value'].dropna()  # Ensure no NaN values
+#         kde = gaussian_kde(data)
+#         x_range = np.linspace(data.min(), data.max(), 500)
+#         pdf = kde(x_range)
+
+#         # Plotting with Plotly
+#         fig = go.Figure(data=[go.Scatter(x=x_range, y=pdf, mode='lines')])
+#         fig.update_layout(
+#             title=f'Probability Density Function of {category} in {country}',
+#             xaxis_title='Value',
+#             yaxis_title='Density'
+#         )
+#         fig.show()

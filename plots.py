@@ -6,6 +6,8 @@ import streamlit as st
 import helper as hp
 
 from shapely import Polygon
+import glob
+from scipy import spatial
 
 
 def plot_trajectories(
@@ -128,7 +130,6 @@ def plot_trajectories(
     xmax = np.max(x_exterior)
     ymin = np.min(y_exterior) - 0.5
     ymax = np.max(y_exterior) + 0.5
-
     fig.update_layout(
         title=f" Trajectories: {num_agents} | M: {num_unique_males} | F: {num_unique_females} | N: {num_unique_unknowns}",
         xaxis_title="X",
@@ -137,6 +138,7 @@ def plot_trajectories(
         yaxis=dict(scaleratio=1, range=[ymin, ymax]),
         showlegend=False,
     )
+
     fig.add_annotation(
         x=0.5,
         y=1.1,
@@ -299,4 +301,230 @@ def plot_fundamental_diagram_all(country_data) -> go.Figure:
     fig.update_yaxes(title_text="Speed * Density / 1/m/s", row=1, col=2)
     fig.update_xaxes(range=[0, rmax], title_text="Density / 1/m/m", row=1, col=1)
     fig.update_xaxes(range=[0, rmax], title_text="Density / 1/m/m", row=1, col=2)
+    return fig
+
+
+def plot_rudina_fd(countries, fps=100):
+    fig = make_subplots(
+        rows=1,
+        cols=1,
+        subplot_titles=("Density - Speed"),
+    )
+    rmax = -1
+    vmax = -1
+    rmin = 100
+    vmin = 100
+
+    colors_const = ["blue", "red", "green", "magenta", "black"]
+    colors = {}
+    for country, color in zip(st.session_state.config.countries, colors_const):
+        colors[country] = color
+
+    combined_df = {}
+    for country in countries:
+        files = glob.glob(f"./rho_speed/{country}/2ColData/*.txt")
+        df_list = []
+        with st.spinner(f"loading files of {country}"):
+            for file_path in files:
+                df = pd.read_csv(
+                    file_path,
+                    sep="\s+",
+                    comment="#",
+                    names=["rho", "velocity"],
+                )
+                df_list.append(df)
+
+        combined_df[country] = pd.concat(df_list, ignore_index=True)
+
+        fig.add_trace(
+            go.Scatter(
+                x=combined_df[country]["rho"][::fps],
+                y=combined_df[country]["velocity"][::fps],
+                marker=dict(color=colors[country]),
+                mode="markers",
+                name=f"{country}",
+                showlegend=True,
+                opacity=0.5,
+            ),
+            row=1,
+            col=1,
+        )
+        rmax = max(rmax, np.max(combined_df[country]["rho"]))
+        vmax = max(vmax, np.max(combined_df[country]["velocity"]))
+        rmin = min(rmin, np.min(combined_df[country]["rho"]))
+        vmin = min(vmin, np.min(combined_df[country]["velocity"]))
+        rmax = 8
+    fig.update_yaxes(
+        range=[vmin - 0.5, vmax + 0.5], title_text="Speed / m/s", row=1, col=1
+    )
+    fig.update_xaxes(
+        range=[rmin - 0.5, rmax + 0.5], title_text="Density / 1/m/m", row=1, col=1
+    )
+    return fig
+
+
+def plot_agent_and_neighbors(
+    agent,
+    frame,
+    rdata,
+    neighbors,
+    neighbors_ids,
+    exterior,
+    interior,
+):
+    fig = make_subplots(
+        rows=1,
+        cols=1,
+        subplot_titles=[
+            f"<b>Agent {agent} at Frame {frame} has {len(neighbors)} neighbors: {neighbors_ids}</b>"
+        ],
+        x_title="X",
+        y_title=r"Y",
+    )
+    x_exterior, y_exterior = Polygon(exterior).exterior.xy
+    x_exterior = list(x_exterior)
+    y_exterior = list(y_exterior)
+    x_interior, y_interior = Polygon(interior).exterior.xy
+    x_interior = list(x_interior)
+    y_interior = list(y_interior)
+    xmin = np.min(x_exterior)
+    xmax = np.max(x_exterior)
+    ymin = np.min(y_exterior) - 0.5
+    ymax = np.max(y_exterior) + 0.5
+    fig.add_trace(
+        go.Scatter(
+            x=x_exterior,
+            y=y_exterior,
+            mode="lines",
+            line=dict(color="red"),
+            name="exterior",
+            showlegend=False,
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=x_interior,
+            y=y_interior,
+            mode="lines",
+            line=dict(color="red"),
+            name="interior",
+            showlegend=False,
+        )
+    )
+
+    rped = 0.1
+
+    data0 = rdata[rdata["frame"] == frame]
+    agent_data = rdata[(rdata["id"] == agent) & (rdata["frame"] == frame)]
+
+    x_agent = agent_data.iloc[0]["x"]
+    y_agent = agent_data.iloc[0]["y"]
+
+    X = data0["x"]
+    Y = data0["y"]
+    X0 = neighbors[:, 0]
+    Y0 = neighbors[:, 1]
+
+    for x, y in zip(X, Y):
+        fig.add_trace(
+            go.Scatter(
+                x=[x],
+                y=[y],
+                marker=dict(size=20),
+                line_color="lightgray",
+                showlegend=False,
+            )
+        )
+    #     fig.add_shape(
+    #         type="circle",
+    #         xref="x",
+    #         yref="y",
+    #         x0=x - rped,
+    #         y0=y - rped,
+    #         x1=x + rped,
+    #         y1=y + rped,
+    #         fillcolor="Gray",
+    #         line_color="lightgray",
+    #     )
+
+    if len(neighbors) > 2:
+        hull = spatial.ConvexHull(neighbors)
+        X00 = neighbors[hull.vertices, 0]
+        Y00 = neighbors[hull.vertices, 1]
+    else:
+        X00 = X0
+        Y00 = Y0
+
+    polygon = go.Scatter(
+        x=X00,
+        y=Y00,
+        showlegend=False,
+        mode="lines",
+        fill="toself",
+        name=f"ConvexHull for pedestrian {agent}",
+        line=dict(color="LightSeaGreen", width=2),
+    )
+
+    fig.append_trace(polygon, row=1, col=1)
+    # plot neighbors
+    for x, y, ni in zip(X0, Y0, neighbors_ids):
+        fig.add_trace(
+            go.Scatter(
+                x=[x],
+                y=[y],
+                name=f"Neighbor: {ni:0.0f}",
+                marker=dict(size=20),
+                line_color="blue",
+                showlegend=True,
+            )
+        )
+    #     fig.add_shape(
+    #         type="circle",
+    #         xref="x",
+    #         yref="y",
+    #         x0=x - rped,
+    #         y0=y - rped,
+    #         x1=x + rped,
+    #         y1=y + rped,
+    #         fillcolor="PaleTurquoise",
+    #         line_color="LightSeaGreen",
+    #     )
+
+    # plot agent
+    fig.add_trace(
+        go.Scatter(
+            x=[x_agent],
+            y=[y_agent],
+            fillcolor="red",
+            name=f"Agent: {agent:0.0f}",
+            marker=dict(size=20),
+            line_color="firebrick",
+            showlegend=True,
+        )
+    )
+    # fig.add_shape(
+    #     type="circle",
+    #     xref="x",
+    #     yref="y",
+    #     x0=x_agent - rped,
+    #     y0=y_agent - rped,
+    #     x1=x_agent + rped,
+    #     y1=y_agent + rped,
+    #     fillcolor="red",
+    #     name=f"Agent: {agent:0.0f}",
+    #     line_color="firebrick",
+    # )
+
+    eps = 0.2
+    fig.update_yaxes(
+        range=[ymin - eps, ymax + eps],
+    )
+    fig.update_xaxes(
+        range=[xmin - eps, xmax + eps],
+    )
+
+    fig.update_yaxes(
+        scaleanchor="x",
+        scaleratio=1,
+    )
     return fig

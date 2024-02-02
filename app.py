@@ -2,6 +2,8 @@ import concurrent.futures
 import glob
 import time
 from collections import defaultdict
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 
 from dataclasses import dataclass, field
 import itertools
@@ -72,6 +74,9 @@ def init_session_state(msg):
     if not hasattr(st.session_state, "figures"):
         st.session_state.figures = {}
 
+    if not hasattr(st.session_state, "load_fd_data"):
+        st.session_state.load_fd_data = {}
+
 
 def load_data(msg, country):
     #    for country in st.session_state.config.countries:
@@ -90,10 +95,10 @@ def load_data(msg, country):
 
         for idx, file in enumerate(files):
             data = pd.read_csv(file)
-            rename_columns(data, st.session_state.config.rename_mapping)
+            hp.rename_columns(data, st.session_state.config.rename_mapping)
             set_column_types(data, st.session_state.config.column_types)
             if file == files[0]:
-                fps = calculate_fps(data)
+                fps = hp.calculate_fps(data)
 
             trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
             st.session_state.loaded_data[country].append(trajectory_data)
@@ -182,6 +187,7 @@ def original(country, selected_file):
             # trajectory_data = st.session_state.loaded_data[country][file_index]
             trajectory_data = hp.load_file(selected_file)
             data = trajectory_data.data
+            # st.dataframe(data)
             start_time = time.time()
             #        if selected_file not in st.session_state.figures.keys():
             c1, c2 = st.columns((1, 1))
@@ -226,6 +232,11 @@ def original(country, selected_file):
                 data, framerate, uid, exterior, interior
             )
             st.plotly_chart(fig)
+            # neighborhood
+            if len(ids) > 4:
+                fig = hp.plot_neighbors_analysis(data, ids, exterior, interior)
+                st.plotly_chart(fig)
+
             end_time = time.time()
             elapsed_time = end_time - start_time
             print(f"Time taken to plot trajectories: {elapsed_time:.2f} seconds")
@@ -474,13 +485,29 @@ if __name__ == "__main__":
         "Select a country:", st.session_state.config.countries
     )
     files = st.session_state.config.files[country]
-    st.sidebar.info(f" files: {len(files)}")
+    n_female, n_male, n_mixed_random, n_mixed_sorted = hp.get_numbers_country(country)
+    st.sidebar.info(
+        f" Number files: {len(files)}\n- Female files: {n_female}\n- Male files: {n_male}\n- Mix_sorted files: {n_mixed_sorted}\n- Mix random files: {n_mixed_random}"
+    )
+
     file_names = [f.split("/")[-1] for f in files]
     sorted_file_names = sorted(file_names, key=hp.sorting_key)
     selected_file = st.sidebar.radio(
         "Select a file", sorted_file_names, horizontal=True
     )
     selected_file = country + "/" + selected_file
+
+    # with tab0:
+    #     st.header("Summary of the data")
+    #     generate = st.checkbox("Generate statistics", value=False)
+    #     if generate:
+    #         st.markdown(
+    #             f"Number of countries: {len(st.session_state.config.countries)}"
+    #         )
+    #         for country in st.session_state.config.countries:
+    #             st.info(f"Country: {country}")
+    #             files = st.session_state.config.files[country]
+    #             st.markdown(f"- Number of files {len(files)}")
 
     with tab1:
         #    mem_usage_before = memory_usage()[0]
@@ -495,23 +522,34 @@ if __name__ == "__main__":
         c0, c1, c2 = st.columns((1, 1, 1))
         if do_calculations:
             calculations = c0.radio(
-                "Choose calculation", ["time_series", "fundamental_diagram"]
+                "Choose calculation",
+                ["micro_fd_rudina", "time_series", "fundamental_diagram"],
             )
-
-            fps = c1.slider(
-                "fps",
-                1,
-                100,
-                25,
-                5,
-                help="jump every fps frame for density calculation",
-            )
-            dv = c2.slider(
-                "steps", 1, 100, 10, 5, help="number of frames to jump for diff speed"
-            )
-            diff_const = c1.slider(
-                "diff_const", 1, 500, 5, 1, help="window steady state"
-            )
+            if calculations == "micro_fd_rudina":
+                countries = c1.multiselect("Country", st.session_state.config.countries)
+                fps = c2.slider("fps", 25, 500, 100, 25, help="skip so many points")
+                fig = pl.plot_rudina_fd(countries, fps)
+                st.plotly_chart(fig)
+            else:
+                fps = c1.slider(
+                    "fps",
+                    1,
+                    100,
+                    25,
+                    5,
+                    help="jump every fps frame for density calculation",
+                )
+                dv = c2.slider(
+                    "steps",
+                    1,
+                    100,
+                    10,
+                    5,
+                    help="number of frames to jump for diff speed",
+                )
+                diff_const = c1.slider(
+                    "diff_const", 1, 500, 5, 1, help="window steady state"
+                )
 
             if calculations == "time_series":
                 density_speed_time_series(country, selected_file, fps, dv, diff_const)
@@ -533,9 +571,10 @@ if __name__ == "__main__":
         # do_analysis = st.checkbox("Perform gender analysis", value=False)
         do_analysis = st.radio(
             "Choose option",
-            ["dummy", "calculate_gender_analysis", "plot_existing_data"],
+            ["voronoi", "calculate_gender_analysis", "plot_existing_data"],
         )
-        st.info(do_analysis)
+        if do_analysis == "voronoi":
+            pass
         if do_analysis == "calculate_gender_analysis":
             start_time = time.time()
             proximity_analysis_results = calculate_with_progress()
