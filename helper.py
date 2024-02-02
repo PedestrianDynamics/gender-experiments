@@ -229,13 +229,24 @@ def get_neighbors_special_agent_data(
     nearest_dist: np.ndarray,
     nearest_ind: np.ndarray,
 ) -> Tuple[np.ndarray, np.ndarray, float, np.ndarray, np.ndarray]:
-    # Filter DataFrame for the specified frame
-    at_frame = df[df["frame"] == frame]
+    # Filter DataFrame for the specified fram
+    frames = df["frame"].to_numpy()
+    first_frame = frames[0]
+    st.info(f"{first_frame=}")
+
+    at_frame = df[(df["frame"] == frame)]
 
     # Extract points, speeds, and ids
     points = at_frame[["x", "y"]].to_numpy()
-    Ids = at_frame["id"].to_numpy()
+    point_agent = df[(df["frame"] == frame) & (df["id"] == agent)][
+        ["x", "y"]
+    ].to_numpy()
+    point_agent_future = df[(df["frame"] == frame + 50) & (df["id"] == agent)][
+        ["x", "y"]
+    ].to_numpy()
 
+    Ids = at_frame["id"].to_numpy()
+    neighbor_type = ["next", "prev"]
     # Check if the agent is in the current frame
     if agent in Ids:
         agent_index = np.where(Ids == agent)[0][0]
@@ -247,6 +258,19 @@ def get_neighbors_special_agent_data(
     else:
         return np.array([]), np.array([]), 0, np.array([]), np.array([])
 
+    if frame == first_frame:
+        distance_now = (neighbors[0][0] - point_agent[0][0]) ** 2 + (
+            neighbors[0][1] - point_agent[0][1]
+        ) ** 2
+        distance_future = (neighbors[0][0] - point_agent_future[0][0]) ** 2 + (
+            neighbors[0][1] - point_agent_future[0][1]
+        ) ** 2
+
+        if distance_future > distance_now:
+            # neighbors = neighbors[::-1]
+            # neighbors_ids = neighbors_ids[::-1]
+            neighbor_type = ["prev", "next"]
+
     # Calculate area if there are enough neighbors
     if len(neighbors) > 2:
         my_polygon = Polygon(neighbors)
@@ -255,11 +279,11 @@ def get_neighbors_special_agent_data(
     else:
         area = 0
 
-    return neighbors, neighbors_ids, area, neighbors_dist
+    return neighbors, neighbors_ids, area, neighbors_dist, neighbor_type
 
 
 def plot_neighbors_analysis(data, ids, exterior, interior):
-    n1, n2 = st.columns((1, 1))
+    n0, n1, n2 = st.columns((1, 1, 1))
     agent = n1.number_input(
         "Agent",
         min_value=int(min(ids)),
@@ -268,18 +292,24 @@ def plot_neighbors_analysis(data, ids, exterior, interior):
         placeholder=f"Type a number in [{int(min(ids))}, {int(max(ids))}]",
         format="%d",
     )
-    dd = data[data["id"] == agent]["frame"]
+    frames = data["frame"].to_numpy()
 
     frame = n2.number_input(
         "Frame",
-        int(np.min(dd)),
-        int(np.max(dd)),
-        int(np.min(dd)),
+        int(frames[0]),
+        int(frames[-1]),
+        int(frames[0]),
         step=1,
         help="Frame at which to display a snapshot of the neighbors",
     )
 
-    k = 3
+    k = n0.number_input(
+        "k neighbors",
+        2,
+        4,
+        3,
+        format="%d",
+    )
     rotated_data = rotate_trajectories(
         data,
         st.session_state.center_x,
@@ -292,9 +322,13 @@ def plot_neighbors_analysis(data, ids, exterior, interior):
         neighbors_ids,
         area,
         agent_distances,
+        neighbor_type,
     ) = get_neighbors_special_agent_data(
         agent, frame, rotated_data, nearest_dist, nearest_ind
     )
+    # st.info(agent)
+    # st.info(neighbors_ids[0])
+    # st.info(neighbor_type)
 
     fig = pl.plot_agent_and_neighbors(
         agent,
@@ -304,6 +338,7 @@ def plot_neighbors_analysis(data, ids, exterior, interior):
         neighbors_ids,
         exterior,
         interior,
+        neighbor_type,
     )
 
     return fig

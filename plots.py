@@ -364,13 +364,7 @@ def plot_rudina_fd(countries, fps=100):
 
 
 def plot_agent_and_neighbors(
-    agent,
-    frame,
-    rdata,
-    neighbors,
-    neighbors_ids,
-    exterior,
-    interior,
+    agent, frame, rdata, neighbors, neighbors_ids, exterior, interior, neighbor_type
 ):
     fig = make_subplots(
         rows=1,
@@ -467,29 +461,18 @@ def plot_agent_and_neighbors(
 
     fig.append_trace(polygon, row=1, col=1)
     # plot neighbors
-    for x, y, ni in zip(X0, Y0, neighbors_ids):
+    color = {"prev": "blue", "next": "green"}
+    for x, y, ni, nt in zip(X0, Y0, neighbors_ids, neighbor_type):
         fig.add_trace(
             go.Scatter(
                 x=[x],
                 y=[y],
-                name=f"Neighbor: {ni:0.0f}",
+                name=f"{nt}: {ni:0.0f}",
                 marker=dict(size=20),
-                line_color="blue",
+                line_color=color[nt],
                 showlegend=True,
             )
         )
-    #     fig.add_shape(
-    #         type="circle",
-    #         xref="x",
-    #         yref="y",
-    #         x0=x - rped,
-    #         y0=y - rped,
-    #         x1=x + rped,
-    #         y1=y + rped,
-    #         fillcolor="PaleTurquoise",
-    #         line_color="LightSeaGreen",
-    #     )
-
     # plot agent
     fig.add_trace(
         go.Scatter(

@@ -233,7 +233,7 @@ def original(country, selected_file):
             )
             st.plotly_chart(fig)
             # neighborhood
-            if len(ids) > 4:
+            if len(ids) > 2 and country != "pal":
                 fig = hp.plot_neighbors_analysis(data, ids, exterior, interior)
                 st.plotly_chart(fig)
 
@@ -258,9 +258,10 @@ def original(country, selected_file):
                     height=500,
                     every_nth_frame=100,
                     radius=0.1,  # 0.75
-                    title_note="(<span style='color:green;'>Male</span>, <span style='color:blue;'>Female</span>)",
+                    title_note="(<span style='color:green;'>M</span>, <span style='color:blue;'>F</span>)",
                 )
                 st.plotly_chart(anm)
+                st.dataframe(rotated_trajectory_data.data)
 
 
 def density_speed_time_series(country, file, fps, dv, diff_const):
@@ -477,9 +478,15 @@ if __name__ == "__main__":
     st.sidebar.title("Trajectory Visualization")
     exterior, interior = hp.generate_parcour()
     walkable_area = pedpy.WalkableArea(difference(Polygon(exterior), Polygon(interior)))
-    tab1, tab2, tab3 = st.tabs(
-        ["View trajectories", "Fundamental diagram", "Proximity analysis"]
+    tab1, tab2, tab3, tab4 = st.tabs(
+        [
+            "View trajectories",
+            "Fundamental diagram",
+            "Proximity analysis",
+            "write enhanced data",
+        ]
     )
+
     init_session_state(msg)
     country = st.sidebar.selectbox(
         "Select a country:", st.session_state.config.countries
@@ -648,3 +655,48 @@ if __name__ == "__main__":
             )
 
             st.plotly_chart(fig)
+
+    with tab4:
+        convert = st.checkbox("Convert data", value=False)
+        if convert:
+            k = 3
+            for country in st.session_state.config.countries:
+                if country == "pal":
+                    continue
+                files = st.session_state.config.files[country]
+                with st.spinner(f"Converting files for {country} ..."):
+                    for selected_file in files:
+                        st.info(f"{country}, {selected_file}")
+                        trajectory_data = hp.load_file(selected_file)
+                        data = trajectory_data.data
+                        rotated_data = hp.rotate_trajectories(
+                            data,
+                            st.session_state.center_x,
+                            st.session_state.center_y,
+                            st.session_state.angle_degrees,
+                        )
+                        first_frame = rotated_data["frame"].to_numpy()[0]
+                        # st.info(first_frame)
+                        nearest_dist, nearest_ind = hp.get_neighbors_at_frame(
+                            first_frame, rotated_data, k
+                        )
+                        agents = np.unique(rotated_data["id"])
+                        st.info(agents)
+                        for agent in agents:
+                            (
+                                neighbors,
+                                neighbors_ids,
+                                area,
+                                agent_distances,
+                                neighbor_type,
+                            ) = hp.get_neighbors_special_agent_data(
+                                agent,
+                                first_frame,
+                                rotated_data,
+                                nearest_dist,
+                                nearest_ind,
+                            )
+                            st.info(
+                                f"{agent=}, neighbor {neighbors_ids[0]}, type {neighbor_type}"
+                            )
+                        break
