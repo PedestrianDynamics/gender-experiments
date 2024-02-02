@@ -1,14 +1,12 @@
 """Main entry point to the app."""
 import concurrent.futures
 import glob
+import itertools
 import time
 from collections import defaultdict
-
-# from plotly.subplots import make_subplots
-# import plotly.graph_objects as go
-
 from dataclasses import dataclass, field
-import itertools
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pedpy
@@ -17,16 +15,19 @@ import streamlit as st
 
 # from joblib import Parallel, delayed
 from scipy import stats
-
-# from tqdm import tqdm
+from shapely import Polygon, difference
 
 import analysis as al
 import helper as hp
 import plots as pl
 from anim import animate
-from shapely import Polygon, difference
 
-from pathlib import Path
+# from plotly.subplots import make_subplots
+# import plotly.graph_objects as go
+
+
+# from tqdm import tqdm
+
 
 # from memory_profiler import profile
 # from memory_profiler import memory_usage
@@ -77,7 +78,17 @@ def init_session_state(msg):
                 "x": float,
                 "y": float,
             },
-            countries=["aus", "ger", "jap", "pal", "chn"],
+            countries=[
+                # "enhanced_aus",
+                # "enhanced_ger",
+                # "enhanced_jap",
+                # "enhanced_chn",
+                "aus",
+                "ger",
+                "jap",
+                "chn",
+                "pal",
+            ],
         )
 
     if not hasattr(st.session_state, "figures"):
@@ -237,14 +248,16 @@ def original(country, selected_file):
             if angle_degrees != st.session_state.angle_degrees:
                 st.session_state.angle_degrees = angle_degrees
 
-            fig, do_animate = pl.plot_trajectories(
+            fig, do_animate, do_rotate = pl.plot_trajectories(
                 data, framerate, uid, exterior, interior
             )
             st.plotly_chart(fig)
             # neighborhood
             get_neighborhood = st.checkbox("Calculate neighbors", value=True)
             if get_neighborhood and len(ids) > 2 and country != "pal":
-                fig = hp.plot_neighbors_analysis(data, ids, exterior, interior)
+                fig = hp.plot_neighbors_analysis(
+                    data, ids, exterior, interior, do_rotate
+                )
                 st.plotly_chart(fig)
 
             end_time = time.time()
@@ -252,15 +265,20 @@ def original(country, selected_file):
             print(f"Time taken to plot trajectories: {elapsed_time:.2f} seconds")
 
             if do_animate:
-                rotated_data = hp.rotate_trajectories(
-                    data,
-                    st.session_state.center_x,
-                    st.session_state.center_y,
-                    st.session_state.angle_degrees,
-                )
-                rotated_trajectory_data = pedpy.TrajectoryData(
-                    rotated_data, trajectory_data.frame_rate
-                )
+                if do_rotate:
+                    rotated_data = hp.rotate_trajectories(
+                        data,
+                        st.session_state.center_x,
+                        st.session_state.center_y,
+                        st.session_state.angle_degrees,
+                    )
+                    rotated_trajectory_data = pedpy.TrajectoryData(
+                        rotated_data, trajectory_data.frame_rate
+                    )
+                else:
+                    rotated_trajectory_data = pedpy.TrajectoryData(
+                        data, trajectory_data.frame_rate
+                    )
                 anm = animate(
                     rotated_trajectory_data,
                     walkable_area,
@@ -272,18 +290,22 @@ def original(country, selected_file):
                 )
                 st.plotly_chart(anm)
                 st.dataframe(rotated_trajectory_data.data)
+    return do_rotate
 
 
-def density_speed_time_series(country, file, fps, dv, diff_const):
+def density_speed_time_series(country, file, fps, dv, diff_const, do_rotate):
     set_rotation_variables(file, country)
     trajectory_data = hp.load_file(file)
     data = trajectory_data.data
-    rotated_data = hp.rotate_trajectories(
-        data,
-        st.session_state.center_x,
-        st.session_state.center_y,
-        st.session_state.angle_degrees,
-    )
+    if do_rotate:
+        rotated_data = hp.rotate_trajectories(
+            data,
+            st.session_state.center_x,
+            st.session_state.center_y,
+            st.session_state.angle_degrees,
+        )
+    else:
+        rotated_data = data
 
     with st.spinner(f"Calculating {country} ..."):
         start_time = time.time()
@@ -302,7 +324,7 @@ def density_speed_time_series(country, file, fps, dv, diff_const):
         st.plotly_chart(fig)
 
 
-def fundamental_diagram(country, fps, dv, diff_const):
+def fundamental_diagram(country, fps, dv, diff_const, do_rotate):
     with st.spinner(f"Calculating {country} ..."):
         start_time = time.time()
         mean_density = []
@@ -311,12 +333,15 @@ def fundamental_diagram(country, fps, dv, diff_const):
             set_rotation_variables(file, country)
             trajectory_data = hp.load_file(file)
             data = trajectory_data.data
-            rotated_data = hp.rotate_trajectories(
-                data,
-                st.session_state.center_x,
-                st.session_state.center_y,
-                st.session_state.angle_degrees,
-            )
+            if do_rotate:
+                rotated_data = hp.rotate_trajectories(
+                    data,
+                    st.session_state.center_x,
+                    st.session_state.center_y,
+                    st.session_state.angle_degrees,
+                )
+            else:
+                rotated_data = data
 
             density = al.calculate_instantaneous_density_per_frame(rotated_data, fps)
 
@@ -388,17 +413,20 @@ def unpack_and_process(args):
     return calculate_proximity_analysis(*args)
 
 
-def prepare_data(country, selected_file):
+def prepare_data(country, selected_file, do_rotate):
     set_rotation_variables(selected_file, country)
     trajectory_data = hp.load_file(selected_file)
     data = trajectory_data.data
-    rotated_data = hp.rotate_trajectories(
-        data,
-        st.session_state.center_x,
-        st.session_state.center_y,
-        st.session_state.angle_degrees,
-    )
-    return country, rotated_data
+    if do_rotate:
+        rotated_data = hp.rotate_trajectories(
+            data,
+            st.session_state.center_x,
+            st.session_state.center_y,
+            st.session_state.angle_degrees,
+        )
+        return country, rotated_data
+    else:
+        return country, data
 
 
 def calculate_with_progress():
@@ -407,7 +435,7 @@ def calculate_with_progress():
     for country in st.session_state.config.countries:
         with st.spinner(f"Preparing tasks for {country}"):
             for file in st.session_state.config.files[country]:
-                tasks.append(prepare_data(country, file))
+                tasks.append(prepare_data(country, file, do_rotate))
 
     with st.spinner("Running..."):
         # Create a progress bar
@@ -496,7 +524,7 @@ if __name__ == "__main__":
 
     msg = st.empty()
     # st.sidebar.title("Trajectory Visualization")
-    c1, c2 = st.sidebar.columns((1, 1))
+    c1, c2 = st.sidebar.columns((1.8, 0.2))
     flag = c2.empty()
     exterior, interior = hp.generate_parcour()
     walkable_area = pedpy.WalkableArea(difference(Polygon(exterior), Polygon(interior)))
@@ -511,15 +539,15 @@ if __name__ == "__main__":
 
     init_session_state(msg)
     country = c1.selectbox("Select a country:", st.session_state.config.countries)
-    if country == "jap":
+    if "jap" in country:
         flag.write(":flag-jp:")
-    if country == "aus":
+    if "aus" in country:
         flag.write(":flag-ac:")
-    if country == "chn":
+    if "chn" in country:
         flag.write(":flag-cn:")
-    if country == "ger":
+    if "ger" in country:
         flag.write(":flag-de:")
-    if country == "pal":
+    if "pal" in country:
         flag.write(":flag-ae:")
 
     files = st.session_state.config.files[country]
@@ -549,7 +577,7 @@ if __name__ == "__main__":
 
     with tab1:
         #    mem_usage_before = memory_usage()[0]
-        original(country, selected_file)
+        do_rotate = original(country, selected_file)
         #   mem_usage_after = memory_usage()[0]
         #  st.info(f"Memory usage: {mem_usage_after - mem_usage_before:.2f} MiB")
 
@@ -590,13 +618,15 @@ if __name__ == "__main__":
                 )
 
             if calculations == "time_series":
-                density_speed_time_series(country, selected_file, fps, dv, diff_const)
+                density_speed_time_series(
+                    country, selected_file, fps, dv, diff_const, do_rotate
+                )
 
             if calculations == "fundamental_diagram":
                 all_data = {}
                 for country in st.session_state.config.countries:
                     mean_speed, mean_density = fundamental_diagram(
-                        country, fps, dv, diff_const
+                        country, fps, dv, diff_const, do_rotate
                     )
                     fig = pl.plot_fundamental_diagram(country, mean_density, mean_speed)
                     st.plotly_chart(fig)
@@ -696,18 +726,27 @@ if __name__ == "__main__":
                 if country == "pal":
                     continue
                 files = st.session_state.config.files[country]
+                directory_path = Path(f"enhanced_{country}")
+                if not directory_path.is_dir():
+                    directory_path.mkdir()
+
                 with st.spinner(f"Converting files for {country} ..."):
                     for selected_file in files:
                         log.info(f"{country}, {selected_file}")
 
                         trajectory_data = hp.load_file(selected_file)
                         data = trajectory_data.data
-                        rotated_data = hp.rotate_trajectories(
-                            data,
-                            st.session_state.center_x,
-                            st.session_state.center_y,
-                            st.session_state.angle_degrees,
-                        )
+                        if do_rotate:
+                            set_rotation_variables(selected_file, country)
+                            rotated_data = hp.rotate_trajectories(
+                                data,
+                                st.session_state.center_x,
+                                st.session_state.center_y,
+                                st.session_state.angle_degrees,
+                            )
+                        else:
+                            rotated_data = data
+
                         first_frame = rotated_data["frame"].to_numpy()[0]
                         # special initial conditions that make neighborhood detection difficult
                         # uppon visualisation these conditions were chosen
@@ -771,6 +810,7 @@ if __name__ == "__main__":
                             "next",
                             "prev",
                             "gender",
+                            "frame",
                             "t(s)",
                             "x(m)",
                             "y(m)",

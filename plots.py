@@ -25,7 +25,7 @@ def plot_trajectories(
     num_unique_females = female_agents["id"].nunique()
     num_unique_unknowns = unknown_agents["id"].nunique()
 
-    rotated = c1.checkbox("Rotated", value=True)
+    rotated = c1.checkbox("Rotate and shift", value=False)
     plot_parcour = c2.checkbox("Parcour", value=True)
     do_animate = c3.checkbox("Animate", value=False)
     gender_map = {1: "F", 2: "M", 0: "N", -1: "E"}
@@ -149,7 +149,7 @@ def plot_trajectories(
         font=dict(size=12),
         align="center",
     )
-    return fig, do_animate
+    return fig, do_animate, rotated
 
 
 def plot_time_series(

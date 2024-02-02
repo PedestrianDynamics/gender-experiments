@@ -280,7 +280,7 @@ def get_neighbors_special_agent_data(
     return neighbors, neighbors_ids, area, neighbors_dist, neighbor_type
 
 
-def plot_neighbors_analysis(data, ids, exterior, interior):
+def plot_neighbors_analysis(data, ids, exterior, interior, do_rotate):
     n0, n1, n2 = st.columns((1, 1, 1))
     agent = n1.number_input(
         "Agent",
@@ -308,12 +308,15 @@ def plot_neighbors_analysis(data, ids, exterior, interior):
         3,
         format="%d",
     )
-    rotated_data = rotate_trajectories(
-        data,
-        st.session_state.center_x,
-        st.session_state.center_y,
-        st.session_state.angle_degrees,
-    )
+    if do_rotate:
+        rotated_data = rotate_trajectories(
+            data,
+            st.session_state.center_x,
+            st.session_state.center_y,
+            st.session_state.angle_degrees,
+        )
+    else:
+        rotated_data = data
     nearest_dist, nearest_ind = get_neighbors_at_frame(frame, rotated_data, k)
     (
         neighbors,
