@@ -1,12 +1,13 @@
+"""Collection of some helpful functions."""
 import numpy as np
 from typing import Tuple, Any
 import pandas as pd
 import streamlit as st
 import pedpy
-import pandas as pd
+
 from shapely.geometry import Polygon
 from scipy.spatial import KDTree
-from typing import Tuple
+
 
 import plots as pl
 
@@ -88,7 +89,6 @@ def generate_parcour():
     _, exterior = generate_oval_shape_points(
         num_points=50,
         radius=1.65 + 0.4,
-        # start=(0.0, -2 + 1.6),
         start=(-1, -2),
         threshold=0.2,
     )
@@ -96,7 +96,6 @@ def generate_parcour():
         num_points=50,
         radius=1.65 - 0.4,
         length=2,
-        # start=(0, -1.2 + 1.6),
         start=(-1, -1.2),
         threshold=0.2,
     )
@@ -104,7 +103,25 @@ def generate_parcour():
     return exterior, interior
 
 
-def sorting_key(filename):
+def sorting_key(filename: str) -> Tuple[int, str]:
+    """
+    Determine the sorting order of filenames based on their prefixes.
+
+    The function assigns a tuple as a sorting key, where the first element is an integer
+    representing the category of the file and the second element is the filename itself.
+    The sorting categories are defined as follows:
+    - Filenames starting with "female" are placed first (category 0).
+    - Filenames starting with "male" are placed second (category 1).
+    - Filenames starting with "mix_sorted" are placed third (category 2).
+    - Filenames starting with "mix_random" are placed fourth (category 3).
+    - Filenames that don't match any of the above categories are placed last (category 4).
+
+    Parameters:
+    - filename (str): The name of the file to be sorted.
+
+    Returns:
+    - Tuple[int, str]: A tuple containing the category and the filename, used for sorting.
+    """
     if filename.startswith("female"):
         return (0, filename)
     elif filename.startswith("male"):
@@ -118,16 +135,12 @@ def sorting_key(filename):
 
 
 def rename_columns(data: pd.DataFrame, mapping: dict[str, str]) -> pd.DataFrame:
-    """
-    Rename columns of the dataframe based on the given mapping.
-    """
+    """Rename columns of the dataframe based on the given mapping."""
     return data.rename(columns=mapping, inplace=True)
 
 
 def set_column_types(data: pd.DataFrame, col_types: dict[str, Any]) -> pd.DataFrame:
-    """
-    Set the types of the dataframe columns based on the given column types.
-    """
+    """Set the types of the dataframe columns based on the given column types."""
     # Ensure columns are in data before type casting
     valid_types = {
         col: dtype for col, dtype in col_types.items() if col in data.columns
@@ -136,14 +149,34 @@ def set_column_types(data: pd.DataFrame, col_types: dict[str, Any]) -> pd.DataFr
 
 
 def calculate_fps(data: pd.DataFrame) -> int:
-    """
-    Calculate fps based on the mean difference of the 'time' column.
-    """
+    """Calculate fps based on the mean difference of the 'time' column."""
     mean_diff = data.groupby("id")["time"].diff().dropna().mean()
     return int(round(1 / mean_diff))
 
 
-def load_file(file):
+def load_file(file: str) -> pedpy.TrajectoryData:
+    """Loads and processes a file to create a TrajectoryData object.
+
+    This function reads a CSV file into a pandas DataFrame, renames columns according
+    to a mapping provided in the session state, sets data types for the columns based
+    on another mapping in the session state, calculates the frames per second (fps)
+    from the data, and finally creates a TrajectoryData object with the processed data
+    and the calculated fps.
+
+    Parameters:
+    - file (str): The path to the CSV file to be loaded.
+
+    Returns:
+    - An instance of TrajectoryData containing the processed data and frame rate.
+
+    Note:
+    - This function relies on global state (`st.session_state`) for configuration,
+      which includes `rename_mapping` and `column_types`.
+    - The `calculate_fps` function is assumed to calculate frames per second from the DataFrame.
+    - The `TrajectoryData` class is assumed to be part of the `pedpy` module and requires
+      the data DataFrame and the frame rate (fps) for initialization.
+    """
+
     data = pd.read_csv(file)
     rename_columns(data, st.session_state.config.rename_mapping)
     set_column_types(data, st.session_state.config.column_types)
@@ -152,7 +185,9 @@ def load_file(file):
     return trajectory_data
 
 
-def rotate_trajectories(df, shift_x, shift_y, angle_degrees):
+def rotate_trajectories(
+    df: pd.DataFrame, shift_x: float, shift_y: float, angle_degrees: float
+) -> pd.DataFrame:
     """
     Rotates the x and y coordinates in the dataframe around a center point by a specified angle.
 
@@ -341,7 +376,30 @@ def plot_neighbors_analysis(data, ids, exterior, interior, do_rotate):
     return fig
 
 
-def get_numbers_country(country):
+def get_numbers_country(country: str) -> Tuple[int, int, int, int]:
+    """
+    Count the number of files by category for a specified country within the session state configuration.
+
+    This function iterates over a list of files configured in the session state for the given country.
+    It categorizes the files based on their naming conventions into four categories: female, male,
+    mix_sorted, and mix_random. The function then counts the number of files in each category.
+
+    Parameters:
+    - country (str): The name of the country for which to count the files.
+
+    Returns:
+    - Tuple[int, int, int, int]: A tuple containing the counts of files in the following order:
+        n_female: Number of files prefixed with "female".
+        n_male: Number of files prefixed with "male".
+        n_mixed_random: Number of files prefixed with "mix_random".
+        n_mixed_sorted: Number of files prefixed with "mix_sorted".
+
+    Note:
+    - The function assumes that `st.session_state.config.files` is a dictionary where each key is a country name,
+      and the corresponding value is a list of file paths.
+    - Files are categorized based on prefixes in their names.
+    """
+
     n_female = 0
     n_male = 0
     n_mixed_random = 0
@@ -359,3 +417,65 @@ def get_numbers_country(country):
             n_mixed_random += 1
 
     return n_female, n_male, n_mixed_random, n_mixed_sorted
+
+
+def set_rotation_variables(selected_file, country):
+    ger_substrings_to_check = [
+        "female",
+        "20_19",
+        "16_18",
+        "40_11",
+        "8_16",
+        "8_17",
+        "32_11",
+        "36_11",
+        "4_11",
+        "4_12",
+        "4_13",
+        "4_15",
+        "4_14",
+    ]
+    aus_substrings_to_check = ["female", "mix_sorted_40_01", "mix_random_41_01"]
+    if country == "ger":
+        if any(substring in selected_file for substring in ger_substrings_to_check):
+            st.session_state.center_x = 3.1
+            st.session_state.center_y = 3
+            st.session_state.angle_degrees = 90
+        else:
+            st.session_state.center_x = 3.1
+            st.session_state.center_y = -3
+            st.session_state.angle_degrees = 90
+
+    if country == "aus":
+        if any(substring in selected_file for substring in aus_substrings_to_check):
+            st.session_state.center_x = 1.7
+            st.session_state.center_y = -0.2
+            st.session_state.angle_degrees = 85
+        else:
+            st.session_state.center_x = 1.8
+            st.session_state.center_y = -6.3
+            st.session_state.angle_degrees = 89
+
+    if country == "chn":
+        if "female" in selected_file:
+            st.session_state.center_x = 0.1
+            st.session_state.center_y = 0
+            st.session_state.angle_degrees = 87
+        elif "mix_random" in selected_file:
+            st.session_state.center_x = 0.1
+            st.session_state.center_y = 0
+            st.session_state.angle_degrees = 85
+        else:
+            st.session_state.center_x = 0.3
+            st.session_state.center_y = 0
+            st.session_state.angle_degrees = 90
+
+    if country == "jap":
+        st.session_state.center_x = 0
+        st.session_state.center_y = 0
+        st.session_state.angle_degrees = 0
+
+    if country == "pal":
+        st.session_state.center_x = -1.5
+        st.session_state.center_y = 0
+        st.session_state.angle_degrees = 0

@@ -43,6 +43,24 @@ The columns are defined as follows:
 | y(m)     | Specifies the Y-coordinate in meters.                        |
 
 
+
+##  RUNNING 
+
+You can run the hosted version of this app by clicking the streamlit badge above.
+Alternatively, you can also run it locally:
+
+1. Install requirements
+
+```bash
+pip installl -r requirements
+```
+
+2. Run the app
+
+```
+streamlit run app.py
+```
+
 ## ACKNOWLEDGMENT
 
 Acknowledgments are greatly appreciated. 

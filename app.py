@@ -45,9 +45,17 @@ class DataConfig:
     data: dict = field(default_factory=lambda: defaultdict(list))
 
     def __post_init__(self):
+        """Initialize the DataConfig instance by retrieving files for each country."""
         self.retrieve_files()
 
-    def retrieve_files(self):
+    def retrieve_files(self) -> None:
+        """Retrieve the files for each country specified in the countries list.
+
+        The files are expected to be CSV files located in directories named after the countries.
+
+        This method updates the `files` dictionary with country names as keys and lists
+        of file paths as values.
+        """
         for country in self.countries:
             self.files[country] = glob.glob(f"{country}/*.csv")
 
