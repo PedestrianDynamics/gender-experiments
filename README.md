@@ -3,8 +3,8 @@
 
 The file naming convention is structured as follows:
 
-bash
-```
+
+```bash
 country/type_people_repetition
 ```
 
