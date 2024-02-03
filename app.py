@@ -301,7 +301,7 @@ def original(country, selected_file):
     return do_rotate
 
 
-def density_speed_time_series(country, file, fps, dv, diff_const, do_rotate):
+def density_speed_time_series_macro(country, file, fps, dv, diff_const, do_rotate):
     set_rotation_variables(file, country)
     trajectory_data = hp.load_file(file)
     data = trajectory_data.data
@@ -325,7 +325,38 @@ def density_speed_time_series(country, file, fps, dv, diff_const, do_rotate):
 
         end_time = time.time()
         elapsed_time = end_time - start_time
-        st.info(f"Time taken to calculate density: {elapsed_time:.2f} seconds")
+        st.info(f"Time taken to calculate density macro: {elapsed_time:.2f} seconds")
+        fig = pl.plot_time_series(
+            density, speed, trajectory_data.frame_rate, steady_state_index
+        )
+        st.plotly_chart(fig)
+
+
+def density_speed_time_series_micro(country, file, fps, dv, diff_const, do_rotate):
+    set_rotation_variables(file, country)
+    trajectory_data = hp.load_file(file)
+    data = trajectory_data.data
+    if do_rotate:
+        rotated_data = hp.rotate_trajectories(
+            data,
+            st.session_state.center_x,
+            st.session_state.center_y,
+            st.session_state.angle_degrees,
+        )
+    else:
+        rotated_data = data
+
+    with st.spinner(f"Calculating {country} ..."):
+        start_time = time.time()
+        density = al.calculate_individual_density(rotated_data)
+        speed = al.calculate_speed(rotated_data, dv)
+        steady_state_index = al.calculate_steady_state(
+            speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
+        )
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        st.info(f"Time taken to calculate density micro: {elapsed_time:.2f} seconds")
         fig = pl.plot_time_series(
             density, speed, trajectory_data.frame_rate, steady_state_index
         )
@@ -626,7 +657,10 @@ if __name__ == "__main__":
                 )
 
             if calculations == "time_series":
-                density_speed_time_series(
+                density_speed_time_series_macro(
+                    country, selected_file, fps, dv, diff_const, do_rotate
+                )
+                density_speed_time_series_micro(
                     country, selected_file, fps, dv, diff_const, do_rotate
                 )
 

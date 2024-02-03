@@ -4,6 +4,8 @@ from pandas import DataFrame
 from shapely.geometry import Point
 from shapely.ops import unary_union
 
+import os
+
 
 def calculate_speed(data: DataFrame, dv: int) -> DataFrame:
     """
@@ -37,49 +39,89 @@ def calculate_speed(data: DataFrame, dv: int) -> DataFrame:
 
 def calculate_circular_distance_and_gender(data: DataFrame) -> DataFrame:
     """
-    Calculate the distance to the nearest neighbors.
-
-    considering IDs as circular, and also include the gender of these neighbors.
+    Calculate the distance to the nearest neighbors based on "prev" and "next" columns,
+    considering the spatial arrangement, and include the gender of these neighbors.
 
     Parameters:
-    data (DataFrame): A pandas DataFrame containing the columns 'id', 'gender', 'frame', 'x', and 'y'.
+    data (DataFrame): A pandas DataFrame containing the columns 'id', 'gender', 'frame', 'x', 'y', 'prev', 'next'.
 
     Returns:
-    DataFrame: The input DataFrame with additional columns for distances and gender of neighbors.
+    DataFrame: The input DataFrame with additional columns for distances to the previous and next neighbors
+               and the gender of these neighbors.
     """
-    # Sort the data by frame and then by ID
-    data = data.sort_values(by=["frame", "id"])
-
     # Initialize columns for distances to neighbors and their genders
     data["distance_to_prev_neighbor"] = np.nan
     data["gender_of_prev_neighbor"] = None
     data["distance_to_next_neighbor"] = np.nan
     data["gender_of_next_neighbor"] = None
 
-    # Group by frame and calculate distances and genders for each group
-    for frame, group in data.groupby("frame"):
-        ids = group["id"].to_numpy()
-        positions = group[["x", "y"]].to_numpy()
-        genders = group["gender"].to_numpy()
+    #    data["prev"] = data["prev"].astype(int)
+    #    data["next"] = data["next"].astype(int)
 
-        for i, (agent_id, position, gender) in enumerate(zip(ids, positions, genders)):
-            # Find the ID of the previous and next neighbors (circular)
-            prev_index = i - 1 if i > 0 else -1
-            next_index = i + 1 if i < len(ids) - 1 else 0
-
-            # Calculate distances to neighbors
-            data.at[group.index[i], "distance_to_prev_neighbor"] = np.linalg.norm(
-                position - positions[prev_index]
+    # Calculate distances and gender information based on "prev" and "next" neighbors
+    for index, row in data.iterrows():
+        # Handle the case where there are no previous or next neighbors
+        if row["prev"] != -1:
+            prev_row = data.loc[data["id"] == row["prev"]].iloc[0]
+            data.at[index, "distance_to_prev_neighbor"] = np.linalg.norm(
+                [row["x"] - prev_row["x"], row["y"] - prev_row["y"]]
             )
-            data.at[group.index[i], "distance_to_next_neighbor"] = np.linalg.norm(
-                position - positions[next_index]
-            )
+            data.at[index, "gender_of_prev_neighbor"] = prev_row["gender"]
 
-            # Record the genders of the neighbors
-            data.at[group.index[i], "gender_of_prev_neighbor"] = genders[prev_index]
-            data.at[group.index[i], "gender_of_next_neighbor"] = genders[next_index]
+        if row["next"] != -1:
+            next_row = data.loc[data["id"] == row["next"]].iloc[0]
+            data.at[index, "distance_to_next_neighbor"] = np.linalg.norm(
+                [row["x"] - next_row["x"], row["y"] - next_row["y"]]
+            )
+            data.at[index, "gender_of_next_neighbor"] = next_row["gender"]
 
     return data
+
+
+def calculate_individual_density(data: DataFrame) -> DataFrame:
+    """
+    Calculates the individual density for each entity per frame in the dataset. The individual density
+    is defined as the inverse of the sum of half the distance to the previous neighbor and half the distance
+    to the next neighbor.
+
+    Parameters:
+    - data (DataFrame): A pandas DataFrame containing the columns 'frame', 'x', 'y', 'prev', 'next',
+                        along with 'distance_to_prev_neighbor' and 'distance_to_next_neighbor' if not already calculated.
+    - fps (int): The frames per second of the dataset, used for time-based calculations if necessary.
+
+    Returns:
+    - DataFrame: The input DataFrame with an additional column 'individual_density' representing the
+                 calculated individual density for each row/entity.
+    """
+
+    data = calculate_circular_distance_and_gender(data)
+
+    # Calculate half the sum of distances to previous and next neighbors
+    half_sum_distances = 0.5 * (
+        data["distance_to_prev_neighbor"] + data["distance_to_next_neighbor"]
+    )
+
+    # Avoid division by zero
+    half_sum_distances.replace(0, np.nan, inplace=True)
+
+    # Calculate individual density
+    data["individual_density"] = 1 / half_sum_distances
+
+    return data
+
+
+def load_or_calculate_individual_density(
+    data: pd.DataFrame, fps: int, filepath: str
+) -> pd.DataFrame:
+    if os.path.exists(filepath):
+        # Load the DataFrame if it exists
+        return pd.read_pickle(filepath)
+    else:
+        # Calculate the density
+        data = calculate_individual_density(data)
+        # Save the DataFrame for future use
+        data.to_pickle(filepath)
+        return data
 
 
 def calculate_union_area_shapely(data: DataFrame, R: float = 0.75) -> float:

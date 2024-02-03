@@ -8,7 +8,6 @@ import pedpy
 from shapely.geometry import Polygon
 from scipy.spatial import KDTree
 
-
 import plots as pl
 
 
