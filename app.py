@@ -469,6 +469,12 @@ def prepare_data(country, selected_file, do_rotate):
 
 
 def calculate_with_progress():
+    res_file = "proximity_results"
+    # res_file_path = Path(res_file)
+    # if res_file_path.exists():
+    #     st.info("Found ")
+    #     return pd.read_pickle(res_file)
+
     # Prepare tasks
     tasks = []
     for country in st.session_state.config.countries:
@@ -476,7 +482,7 @@ def calculate_with_progress():
             for file in st.session_state.config.files[country]:
                 tasks.append(prepare_data(country, file, do_rotate))
 
-    with st.spinner("Running..."):
+    with st.spinner("Running ..."):
         # Create a progress bar
         progress_bar = st.progress(0)
 
@@ -498,35 +504,39 @@ def calculate_with_progress():
                 progress_bar.progress(i / len(tasks))
 
     # Return the final results
-    return results
+    flattened_results = list(itertools.chain.from_iterable(results))
+    flattened_results = pd.DataFrame(flattened_results)
+    st.info(f"Wrote results  in {res_file}")
+    flattened_results.to_pickle(res_file)
+    return flattened_results
 
 
-def calculate_with_singular():
-    # Prepare tasks
-    tasks = []
-    for country in st.session_state.config.countries:
-        with st.spinner(f"Preparing tasks for {country}"):
-            for file in st.session_state.config.files[country][0:2]:
-                tasks.append(prepare_data(country, file))
+# def calculate_with_singular():
+#     # Prepare tasks
+#     tasks = []
+#     for country in st.session_state.config.countries:
+#         with st.spinner(f"Preparing tasks for {country}"):
+#             for file in st.session_state.config.files[country][0:2]:
+#                 tasks.append(prepare_data(country, file))
 
-    # tasks = [
-    #     prepare_data(country, file)
-    #     for country in st.session_state.config.countries
-    #     for file in st.session_state.config.files[country]
-    # ]
+# tasks = [
+#     prepare_data(country, file)
+#     for country in st.session_state.config.countries
+#     for file in st.session_state.config.files[country]
+# ]
 
-    with st.spinner("Running..."):
-        # Create a progress bar
-        progress_bar = st.progress(0)
-        results = []
-        for i, task in enumerate(tasks):
-            result = unpack_and_process(task)
-            results.append(result)
-            # Update progress bar
-            progress_bar.progress(i / len(tasks))
+# with st.spinner("Running..."):
+#     # Create a progress bar
+#     progress_bar = st.progress(0)
+#     results = []
+#     for i, task in enumerate(tasks):
+#         result = unpack_and_process(task)
+#         results.append(result)
+#         # Update progress bar
+#         progress_bar.progress(i / len(tasks))
 
-    # Return the final results
-    return results
+# # Return the final results
+# return results
 
 
 # def calculate_with_joblib():
@@ -681,25 +691,39 @@ if __name__ == "__main__":
         # do_analysis = st.checkbox("Perform gender analysis", value=False)
         do_analysis = st.radio(
             "Choose option",
-            ["voronoi", "calculate_gender_analysis", "plot_existing_data"],
+            [
+                "voronoi",
+                "calculate_gender_analysis",
+                "load_gender_analysis",
+                "plot_existing_data",
+            ],
         )
         if do_analysis == "voronoi":
             pass
-        if do_analysis == "calculate_gender_analysis":
-            start_time = time.time()
-            proximity_analysis_results = calculate_with_progress()
-            # proximity_analysis_results = calculate_with_joblib()
-            # proximity_analysis_results = calculate_with_singular()
-            end_time = time.time()
-            elapsed_time = end_time - start_time
-            st.info(f"Time taken: {elapsed_time:.2f} seconds")
-            flattened_results = list(
-                itertools.chain.from_iterable(proximity_analysis_results)
-            )
-            proximity_df = pd.DataFrame(flattened_results)
-            proximity_df.to_csv("proximity_analysis_results.csv", index=False)
 
-            st.dataframe(proximity_df)
+        if (
+            do_analysis == "calculate_gender_analysis"
+            or do_analysis == "load_gender_analysis"
+        ):
+            result_csv = Path("proximity_analysis_results.csv")
+            if do_analysis == "calculate_gender_analysis":
+                start_time = time.time()
+                proximity_df = calculate_with_progress()
+                end_time = time.time()
+                elapsed_time = end_time - start_time
+                st.info(f"Time taken: {elapsed_time:.2f} seconds")
+                proximity_df.to_csv(result_csv, index=False)
+                st.dataframe(proximity_df)
+            if do_analysis == "load_gender_analysis":
+                if result_csv.exists():
+                    proximity_df = pd.read_csv(result_csv)
+                    st.dataframe(proximity_df)
+                else:
+                    st.warning(
+                        f"{result_csv} does not exist yet! You should calculate it first."
+                    )
+                    st.stop()
+
             with st.spinner("Calculating T-tests ..."):
                 same_gender_distances_next = proximity_df[
                     "same_gender_proximity_next"
