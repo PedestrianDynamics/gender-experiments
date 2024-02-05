@@ -111,6 +111,9 @@ def calculate_with_progress(countries, files):
     tasks = []
 
     for country in countries:
+        if country == "pal":
+            continue
+        
         print(f"prepare tasks: {country}")
         for f in files[country]:
             tasks.append(prepare_data(country, f))
@@ -144,9 +147,12 @@ def calculate_with_joblib(countries, files):
     res_file = "proximity_results"
 
     tasks = []
-    for country in countries[0:2]:
+    for country in countries:
+        if country == "pal":
+            continue
+        
         print(f"prepare tasks: {country}")
-        for file in files[country][0:2]:
+        for file in files[country]:
             tasks.append(prepare_data(country, file))
 
     # Define a function to be executed in parallel
@@ -155,7 +161,7 @@ def calculate_with_joblib(countries, files):
 
     print(f"Running tasks in parallel {len(tasks)} ...")
     results = Parallel(n_jobs=-1)(
-        delayed(process_task)(task) for task in tqdm(tasks, desc="Processing")
+        delayed(process_task)(task) for task in tqdm(tasks, desc=f"Processing ...")
     )
 
     # Return the final results

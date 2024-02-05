@@ -223,7 +223,10 @@ def original(country, selected_file):
             columns_to_display = ["id", "frame", "time", "x", "y", "prev", "next"]
             display = rc0.checkbox("Data", value=True, help="Display data table")
             if display:
-                st.dataframe(trajectory_data.data.loc[:, columns_to_display])
+                if  country != "pal":
+                    st.dataframe(trajectory_data.data.loc[:, columns_to_display])
+                else:
+                    st.warning("For pal there are no neighbors.")
             do_plot_trajectories = rc1.checkbox(
                 "Plot", value=False, help="Plot trajectories"
             )
