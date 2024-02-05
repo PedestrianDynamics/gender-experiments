@@ -48,41 +48,44 @@ def calculate_proximity_analysis(country, rotated_data):
     filtered_data = processed_data[processed_data["frame"].isin(frames_to_include)]
 
     # Now iterate over the filtered DataFrame
-    for i, row in filtered_data.iterrows():
-        # for i, row in processed_data.iterrows():
-        # Check proximity with the next neighbor
-        if row["gender"] == row["gender_of_next_neighbor"]:
-            same_gender_proximity_next = row["distance_to_next_neighbor"]
-        else:
-            same_gender_proximity_next = np.nan
+    
+    with tqdm(total=len(filtered_data)) as pbar:
+        for i, row in filtered_data.iterrows():
+            # for i, row in processed_data.iterrows():
+            # Check proximity with the next neighbor
+            if row["gender"] == row["gender_of_next_neighbor"]:
+                same_gender_proximity_next = row["distance_to_next_neighbor"]
+            else:
+                same_gender_proximity_next = np.nan
 
-        if row["gender"] != row["gender_of_next_neighbor"]:
-            diff_gender_proximity_next = row["distance_to_next_neighbor"]
-        else:
-            diff_gender_proximity_next = np.nan
+            if row["gender"] != row["gender_of_next_neighbor"]:
+                diff_gender_proximity_next = row["distance_to_next_neighbor"]
+            else:
+                diff_gender_proximity_next = np.nan
 
-        # Check proximity with the previous neighbor
-        if row["gender"] == row["gender_of_prev_neighbor"]:
-            same_gender_proximity_prev = row["distance_to_prev_neighbor"]
-        else:
-            same_gender_proximity_prev = np.nan
+            # Check proximity with the previous neighbor
+            if row["gender"] == row["gender_of_prev_neighbor"]:
+                same_gender_proximity_prev = row["distance_to_prev_neighbor"]
+            else:
+                same_gender_proximity_prev = np.nan
 
-        if row["gender"] != row["gender_of_prev_neighbor"]:
-            diff_gender_proximity_prev = row["distance_to_prev_neighbor"]
-        else:
-            diff_gender_proximity_prev = np.nan
+            if row["gender"] != row["gender_of_prev_neighbor"]:
+                diff_gender_proximity_prev = row["distance_to_prev_neighbor"]
+            else:
+                diff_gender_proximity_prev = np.nan
 
-        proximity_analysis_res.append(
-            {
-                "country": country,
-                "id": row["id"],
-                "frame": row["frame"],
-                "same_gender_proximity_next": same_gender_proximity_next,
-                "diff_gender_proximity_next": diff_gender_proximity_next,
-                "same_gender_proximity_prev": same_gender_proximity_prev,
-                "diff_gender_proximity_prev": diff_gender_proximity_prev,
-            }
-        )
+            proximity_analysis_res.append(
+                {
+                    "country": country,
+                    "id": row["id"],
+                    "frame": row["frame"],
+                    "same_gender_proximity_next": same_gender_proximity_next,
+                    "diff_gender_proximity_next": diff_gender_proximity_next,
+                    "same_gender_proximity_prev": same_gender_proximity_prev,
+                    "diff_gender_proximity_prev": diff_gender_proximity_prev,
+                }
+            )
+            pbar.update(1)
 
     return proximity_analysis_res
 
@@ -141,9 +144,9 @@ def calculate_with_joblib(countries, files):
     res_file = "proximity_results"
 
     tasks = []
-    for country in countries:
+    for country in countries[0:2]:
         print(f"prepare tasks: {country}")
-        for file in files[country]:
+        for file in files[country][0:2]:
             tasks.append(prepare_data(country, file))
 
     # Define a function to be executed in parallel
@@ -160,7 +163,7 @@ def calculate_with_joblib(countries, files):
     flattened_results = pd.DataFrame(flattened_results)
     flattened_results.to_pickle(res_file)
 
-    return results
+    return flattened_results
 
 
 def init():

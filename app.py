@@ -203,7 +203,7 @@ def set_rotation_variables(selected_file, country):
 
 
 def original(country, selected_file):
-    """Plot original data"""
+    """First tab. Plot original data, animatoin, neighborhood."""
     c1, c2 = st.columns((1, 1))
     do_rotate = False
     # load_data(msg, country)
@@ -298,6 +298,7 @@ def original(country, selected_file):
                         st.session_state.center_y,
                         st.session_state.angle_degrees,
                     )
+
                     rotated_trajectory_data = pedpy.TrajectoryData(
                         rotated_data, trajectory_data.frame_rate
                     )
@@ -320,6 +321,7 @@ def original(country, selected_file):
 
 
 def density_speed_time_series_macro(country, file, fps, dv, diff_const, do_rotate):
+    """Calculate density and speed series using Corbetta's method for density."""
     set_rotation_variables(file, country)
     trajectory_data = hp.load_file(file)
     data = trajectory_data.data
@@ -351,9 +353,11 @@ def density_speed_time_series_macro(country, file, fps, dv, diff_const, do_rotat
 
 
 def density_speed_time_series_micro(country, file, fps, dv, diff_const, do_rotate):
+    """Calculate the individual density (Voronoi 1D)."""
     set_rotation_variables(file, country)
     trajectory_data = hp.load_file(file)
     data = trajectory_data.data
+    
     if do_rotate:
         rotated_data = hp.rotate_trajectories(
             data,
@@ -802,8 +806,8 @@ if __name__ == "__main__":
             st.plotly_chart(fig)
 
     with tab4:
-        convert = st.checkbox("Convert data (rotated, shifted, neighbors)", value=False)
-        if convert:
+        convert = st.checkbox("(Deactivated!) Convert data (rotated, shifted, neighbors)", value=False)
+        if False and convert:
             log = st.empty()
             k = 3
             for country in st.session_state.config.countries:
@@ -876,9 +880,6 @@ if __name__ == "__main__":
                             rotated_data.loc[
                                 rotated_data["id"] == agent, "next"
                             ] = next_neighbor
-                            # st.info(
-                            #     f"{agent=}, neighbor {neighbors_ids}, type {neighbor_types}"
-                            # )
                         newfile = f"enhanced_{selected_file}"
                         log.warning(newfile)
                         rename_mapping = {
@@ -900,4 +901,4 @@ if __name__ == "__main__":
                             "y(m)",
                         ]
                         rotated_data[selected_columns].to_csv(newfile, index=False)
-                        # st.dataframe(rotated_data)
+

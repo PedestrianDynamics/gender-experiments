@@ -49,6 +49,7 @@ def calculate_circular_distance_and_gender(data: DataFrame) -> DataFrame:
     DataFrame: The input DataFrame with additional columns for distances to the previous and next neighbors
                and the gender of these neighbors.
     """
+
     # Initialize columns for distances to neighbors and their genders
     data["distance_to_prev_neighbor"] = np.nan
     data["gender_of_prev_neighbor"] = None
