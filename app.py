@@ -205,63 +205,81 @@ def set_rotation_variables(selected_file, country):
 def original(country, selected_file):
     """Plot original data"""
     c1, c2 = st.columns((1, 1))
+    do_rotate = False
     # load_data(msg, country)
     msg.write("")
     if country:
         if selected_file:
             # file_index = files.index(selected_file)
             # default values
-            set_rotation_variables(selected_file, country)
+            # set_rotation_variables(selected_file, country)
             # trajectory_data = st.session_state.loaded_data[country][file_index]
             trajectory_data = hp.load_file(selected_file)
             data = trajectory_data.data
             # st.dataframe(data)
             start_time = time.time()
-            #        if selected_file not in st.session_state.figures.keys():
-            c1, c2 = st.columns((1, 1))
-            framerate = c1.slider("Every nth frame", 1, 100, 40, 10)
+            rc0, rc1, rc2, rc3 = st.columns((1, 1, 1, 1))
+            st.write("---------")
+            columns_to_display = ["id", "frame", "time", "x", "y", "prev", "next"]
+            display = rc0.checkbox("Data", value=True, help="Display data table")
+            if display:
+                st.dataframe(trajectory_data.data.loc[:, columns_to_display])
+            do_plot_trajectories = rc1.checkbox(
+                "Plot", value=False, help="Plot trajectories"
+            )
+
+            do_animate = rc2.checkbox(
+                "Animation", value=False, help="Visualise movement of trajecories"
+            )
+            get_neighborhood = rc3.checkbox(
+                "Neighbors", value=False, help="Calculate and visualize neighbors"
+            )
             ids = data["id"].unique()
-            uid = c2.number_input(
-                "Insert id of pedestrian",
-                value=None,
-                min_value=int(min(ids)),
-                max_value=int(max(ids)),
-                placeholder=f"Type a number in [{int(min(ids))}, {int(max(ids))}]",
-                format="%d",
-            )
-            rc1, rc2, rc3 = st.columns((1, 1, 1))
-            center_x = rc1.number_input(
-                "Shift X:",
-                value=float(st.session_state["center_x"]),
-                step=0.1,
-                help="AF=1.7, AM=1.7, CN=0.1, G=3, P=-1.5",
-            )
-            center_y = rc2.number_input(
-                "Shift Y:",
-                value=float(st.session_state["center_y"]),
-                step=0.1,
-                help="AF=0, AM=6.3, CN=0",
-            )
-            angle_degrees = rc3.number_input(
-                "Angle in Degrees:",
-                value=st.session_state["angle_degrees"],
-                help="A=90, CN=90, G=3",
-            )
-            if center_x != st.session_state.center_x:
-                st.session_state.center_x = center_x
+            if do_plot_trajectories:
+                c1, c2, c3 = st.columns((1, 1, 1))
+                plot_parcour = c1.checkbox("Parcour", value=True)
+                framerate = c2.slider("Every nth frame", 1, 100, 40, 10)
 
-            if center_y != st.session_state.center_y:
-                st.session_state.center_y = center_y
+                uid = c3.number_input(
+                    "Insert id of pedestrian",
+                    value=None,
+                    min_value=int(min(ids)),
+                    max_value=int(max(ids)),
+                    placeholder=f"Type a number in [{int(min(ids))}, {int(max(ids))}]",
+                    format="%d",
+                )
 
-            if angle_degrees != st.session_state.angle_degrees:
-                st.session_state.angle_degrees = angle_degrees
+                # center_x = rc1.number_input(
+                #     "Shift X:",
+                #     value=float(st.session_state["center_x"]),
+                #     step=0.1,
+                #     help="AF=1.7, AM=1.7, CN=0.1, G=3, P=-1.5",
+                # )
+                # center_y = rc2.number_input(
+                #     "Shift Y:",
+                #     value=float(st.session_state["center_y"]),
+                #     step=0.1,
+                #     help="AF=0, AM=6.3, CN=0",
+                # )
+                # angle_degrees = rc3.number_input(
+                #     "Angle in Degrees:",
+                #     value=st.session_state["angle_degrees"],
+                #     help="A=90, CN=90, G=3",
+                # )
+                # if center_x != st.session_state.center_x:
+                #     st.session_state.center_x = center_x
 
-            fig, do_animate, do_rotate = pl.plot_trajectories(
-                data, framerate, uid, exterior, interior
-            )
-            st.plotly_chart(fig)
+                # if center_y != st.session_state.center_y:
+                #     st.session_state.center_y = center_y
+
+                # if angle_degrees != st.session_state.angle_degrees:
+                #     st.session_state.angle_degrees = angle_degrees
+
+                fig = pl.plot_trajectories(
+                    data, framerate, uid, exterior, interior, plot_parcour
+                )
+                st.plotly_chart(fig)
             # neighborhood
-            get_neighborhood = st.checkbox("Calculate neighbors", value=True)
             if get_neighborhood and len(ids) > 2 and country != "pal":
                 fig = hp.plot_neighbors_analysis(
                     data, ids, exterior, interior, do_rotate
@@ -297,7 +315,7 @@ def original(country, selected_file):
                     title_note="(<span style='color:green;'>M</span>, <span style='color:blue;'>F</span>)",
                 )
                 st.plotly_chart(anm)
-                st.dataframe(rotated_trajectory_data.data)
+
     return do_rotate
 
 
@@ -602,7 +620,7 @@ if __name__ == "__main__":
     files = st.session_state.config.files[country]
     n_female, n_male, n_mixed_random, n_mixed_sorted = hp.get_numbers_country(country)
     st.sidebar.info(
-        f" Number files: {len(files)}\n- Female files: {n_female}\n- Male files: {n_male}\n- Mix_sorted files: {n_mixed_sorted}\n- Mix random files: {n_mixed_random}"
+        f" Number files: {len(files)}\n- Female files: {n_female}\n- Male files: {n_male}\n- Mix sorted files: {n_mixed_sorted}\n- Mix random files: {n_mixed_random}"
     )
 
     file_names = [f.split("/")[-1] for f in files]

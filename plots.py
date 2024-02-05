@@ -11,7 +11,7 @@ from scipy import spatial
 
 
 def plot_trajectories(
-    data: pd.DataFrame, framerate: int, uid: int, exterior, interior
+    data: pd.DataFrame, framerate: int, uid: int, exterior, interior, plot_parcour
 ) -> go.Figure:
     fig = go.Figure()
     c1, c2, c3 = st.columns((1, 1, 1))
@@ -25,9 +25,8 @@ def plot_trajectories(
     num_unique_females = female_agents["id"].nunique()
     num_unique_unknowns = unknown_agents["id"].nunique()
 
-    rotated = c1.checkbox("Rotate and shift", value=False)
-    plot_parcour = c2.checkbox("Parcour", value=True)
-    do_animate = c3.checkbox("Animate", value=False)
+    rotated = False  # c1.checkbox("Rotate and shift", value=False)
+
     gender_map = {1: "F", 2: "M", 0: "N", -1: "E"}
     gender_colors = {
         1: "blue",  # Assuming 1 is for female
@@ -149,7 +148,7 @@ def plot_trajectories(
         font=dict(size=12),
         align="center",
     )
-    return fig, do_animate, rotated
+    return fig
 
 
 def plot_time_series(
