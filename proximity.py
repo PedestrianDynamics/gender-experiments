@@ -157,7 +157,7 @@ def calculate_with_joblib(countries, files):
     res_file = "proximity_results"
 
     tasks = []
-    for country in countries[0:1]:
+    for country in countries:
         if country == "pal":
             continue
 
