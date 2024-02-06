@@ -1,4 +1,5 @@
 """Main entry point to the app."""
+
 import concurrent.futures
 import glob
 import itertools
@@ -6,6 +7,7 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
+from plotly.subplots import make_subplots
 
 import numpy as np
 import pandas as pd
@@ -223,7 +225,7 @@ def original(country, selected_file):
             columns_to_display = ["id", "frame", "time", "x", "y", "prev", "next"]
             display = rc0.checkbox("Data", value=True, help="Display data table")
             if display:
-                if  country != "pal":
+                if country != "pal":
                     st.dataframe(trajectory_data.data.loc[:, columns_to_display])
                 else:
                     st.warning("For pal there are no neighbors.")
@@ -341,6 +343,7 @@ def density_speed_time_series_macro(country, file, fps, dv, diff_const, do_rotat
     with st.spinner(f"Calculating {country} ..."):
         start_time = time.time()
         density = al.calculate_instantaneous_density_per_frame(rotated_data, fps)
+
         speed = al.calculate_speed(rotated_data, dv)
         steady_state_index = al.calculate_steady_state(
             speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
@@ -360,7 +363,7 @@ def density_speed_time_series_micro(country, file, fps, dv, diff_const, do_rotat
     set_rotation_variables(file, country)
     trajectory_data = hp.load_file(file)
     data = trajectory_data.data
-    
+
     if do_rotate:
         rotated_data = hp.rotate_trajectories(
             data,
@@ -424,7 +427,18 @@ def fundamental_diagram(country, fps, dv, diff_const, do_rotate):
         return mean_speed, mean_density
 
 
-def calculate_proximity_analysis(country, rotated_data):
+def calculate_proximity_analysis(country, file, rotated_data):
+    if "female" in file:
+        name = "female"
+    elif "male" in file:
+        name = "male"
+    elif "mix_sorted" in file:
+        name = "mix_sorted"
+    elif "mix_random" in file:
+        name = "mix_random"
+    else:
+        name = "unknown"
+        
     processed_data = al.calculate_circular_distance_and_gender(rotated_data)
     proximity_analysis_res = []
     fps = 25
@@ -461,6 +475,7 @@ def calculate_proximity_analysis(country, rotated_data):
         proximity_analysis_res.append(
             {
                 "country": country,
+                "file": name,
                 "id": row["id"],
                 "frame": row["frame"],
                 "same_gender_proximity_next": same_gender_proximity_next,
@@ -488,9 +503,9 @@ def prepare_data(country, selected_file, do_rotate):
             st.session_state.center_y,
             st.session_state.angle_degrees,
         )
-        return country, rotated_data
+        return country, selected_file, rotated_data
     else:
-        return country, data
+        return country, selected_file, data
 
 
 def calculate_with_progress():
@@ -783,33 +798,62 @@ if __name__ == "__main__":
                 value_vars=[
                     "same_gender_proximity_next",
                     "diff_gender_proximity_next",
-                    "same_gender_proximity_prev",
-                    "diff_gender_proximity_prev",
+                    # "same_gender_proximity_prev",
+                    # "diff_gender_proximity_prev",
                 ],
                 var_name="category",
                 value_name="distance",
             )
 
-            # Creating a box plot
-            fig = px.box(
-                proximity_melted,
-                x="category",
-                y="distance",
-                color="country",
-                title="Proximity Analysis Based on Gender and Country",
-                labels={"distance": "Proximity Distance", "category": "Category"},
-            )
+            proximity_melted["distance"] = proximity_melted["distance"].fillna(0)
+            st.info("proximity_melted")
+            st.dataframe(proximity_melted)
+            c1, _, c2 = st.columns((1, 0.5, 1))
 
-            fig.update_layout(
-                yaxis_title="Distance",
-                xaxis_title="Gender Proximity Category",
-                showlegend=True,
-            )
+            for country in ["aus", "ger", "jap", "chn"]:
 
-            st.plotly_chart(fig)
+                fig = make_subplots(
+                    rows=1,
+                    cols=1,
+                    subplot_titles=[f"<b>{country}</b>"],
+                )
+
+                for type, color in zip(
+                    ["same_gender_proximity_next", "diff_gender_proximity_next"],
+                    ["blue", "crimson"],
+                ):
+
+                    filtered_data = proximity_melted[
+                        (proximity_melted["country"] == country)
+                        & (proximity_melted["category"] == type)
+                    ]
+                    filtered_data = filtered_data[filtered_data["distance"] != 0]
+
+                    distances = np.unique(filtered_data["distance"])
+                    loc = distances.mean()
+                    scale = distances.std()
+                    distances = np.hstack(([0], distances))  # Exclude the value 0
+                    pdf = stats.norm.pdf(distances, loc=loc, scale=scale)
+
+                    # Create a DataFrame for the PDF data
+                    pdf_data = pd.DataFrame({"distance": distances, "PDF": pdf})
+                    trace = pl.plot_x_y_trace(
+                        distances,
+                        pdf,
+                        title=f"{country}: {type} | Mean: {loc:.2f}, Std: {scale:.2f}",
+                        xlabel="Distance / m",
+                        ylabel="PDF",
+                        color=color,
+                        name=type,
+                    )
+                    fig.append_trace(trace, row=1, col=1)
+
+                st.plotly_chart(fig)
 
     with tab4:
-        convert = st.checkbox("(Deactivated!) Convert data (rotated, shifted, neighbors)", value=False)
+        convert = st.checkbox(
+            "(Deactivated!) Convert data (rotated, shifted, neighbors)", value=False
+        )
         if False and convert:
             log = st.empty()
             k = 3
@@ -877,12 +921,12 @@ if __name__ == "__main__":
                                 if neighbor_type == "next":
                                     next_neighbor = neighbor_id
 
-                            rotated_data.loc[
-                                rotated_data["id"] == agent, "prev"
-                            ] = prev_neighbor
-                            rotated_data.loc[
-                                rotated_data["id"] == agent, "next"
-                            ] = next_neighbor
+                            rotated_data.loc[rotated_data["id"] == agent, "prev"] = (
+                                prev_neighbor
+                            )
+                            rotated_data.loc[rotated_data["id"] == agent, "next"] = (
+                                next_neighbor
+                            )
                         newfile = f"enhanced_{selected_file}"
                         log.warning(newfile)
                         rename_mapping = {
@@ -904,4 +948,3 @@ if __name__ == "__main__":
                             "y(m)",
                         ]
                         rotated_data[selected_columns].to_csv(newfile, index=False)
-

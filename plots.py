@@ -510,3 +510,64 @@ def plot_agent_and_neighbors(
         scaleratio=1,
     )
     return fig
+
+
+def plot_x_y_trace(x, y, title, xlabel, ylabel, color, name,threshold=0):
+
+    x = np.unique(x)
+    if threshold:
+        trace_threshold = go.Scatter(
+            x=[x[0], x[-1]],
+            y=[threshold, threshold],
+            mode="lines",
+            name="Social Distance = 1.5 m",
+            line=dict(width=4, dash="dash", color="gray"),
+
+            
+        )
+
+    trace = go.Scatter(
+        x=x,
+        y=y,
+        mode="lines",
+        line=dict(width=3, color=color),
+        fill="none",
+        showlegend=True,
+        name=name
+    )
+
+    return trace
+
+
+def plot_x_y(x, y, title, xlabel, ylabel, threshold=0):
+
+    x = np.unique(x)
+    fig = make_subplots(
+        rows=1,
+        cols=1,
+        subplot_titles=[f"<b>{title}</b>"],
+        x_title=xlabel,
+        y_title=ylabel,
+    )
+    if threshold:
+        trace_threshold = go.Scatter(
+            x=[x[0], x[-1]],
+            y=[threshold, threshold],
+            mode="lines",
+            showlegend=True,
+            name="Social Distance = 1.5 m",
+            line=dict(width=4, dash="dash", color="gray"),
+        )
+        fig.append_trace(trace_threshold, row=1, col=1)
+
+    trace = go.Scatter(
+        x=x,
+        y=y,
+        mode="lines",
+        showlegend=False,
+        line=dict(width=3, color="blue"),
+        fill="none",
+    )
+
+    fig.append_trace(trace, row=1, col=1)
+    return fig
