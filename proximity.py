@@ -59,7 +59,6 @@ def calculate_proximity_analysis(country, file, rotated_data):
     else:
         name = "unknown"
 
-
     for i, row in filtered_data.iterrows():
         # for i, row in processed_data.iterrows():
         # Check proximity with the next neighbor
@@ -87,7 +86,8 @@ def calculate_proximity_analysis(country, file, rotated_data):
         proximity_analysis_res.append(
             {
                 "country": country,
-                "file": name,
+                "file": file,
+                "type": name,
                 "id": row["id"],
                 "frame": row["frame"],
                 "same_gender_proximity_next": same_gender_proximity_next,
@@ -198,7 +198,6 @@ def init():
     return countries, files, result_csv
 
 
-
 if __name__ == "__main__":
     countries, files, result_csv = init()
     start_time = time.time()
@@ -207,4 +206,3 @@ if __name__ == "__main__":
     elapsed_time = end_time - start_time
     print(f"Time taken: {elapsed_time:.2f} seconds")
     proximity_df.to_csv(result_csv, index=False)
-    
