@@ -438,7 +438,7 @@ def calculate_proximity_analysis(country, file, rotated_data):
         name = "mix_random"
     else:
         name = "unknown"
-        
+
     processed_data = al.calculate_circular_distance_and_gender(rotated_data)
     proximity_analysis_res = []
     fps = 25
@@ -754,14 +754,21 @@ if __name__ == "__main__":
                 st.info(f"Time taken: {elapsed_time:.2f} seconds")
                 proximity_df.to_csv(result_csv, index=False)
                 st.dataframe(proximity_df)
+
             if do_analysis == "load_gender_analysis":
+                msg = st.empty()
+                if not result_csv.exists():
+                    msg.warning(f"{result_csv} does not exist yet!")
+                    csv_url = "https://fz-juelich.sciebo.de/s/U5rujIKIaZenIUg/download"
+                    with st.spinner("Downloading ..."):
+                        hp.download_csv(csv_url, result_csv)
+
                 if result_csv.exists():
+                    msg.info(f"Reading file {result_csv}")
                     proximity_df = pd.read_csv(result_csv)
                     st.dataframe(proximity_df)
                 else:
-                    st.warning(
-                        f"{result_csv} does not exist yet! You should calculate it first."
-                    )
+                    msg.warning(f"File {result_csv} not found.")
                     st.stop()
 
             with st.spinner("Calculating T-tests ..."):

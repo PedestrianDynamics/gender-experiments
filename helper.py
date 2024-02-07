@@ -1,4 +1,5 @@
 """Collection of some helpful functions."""
+
 import numpy as np
 from typing import Tuple, Any
 import pandas as pd
@@ -9,6 +10,14 @@ from shapely.geometry import Polygon
 from scipy.spatial import KDTree
 
 import plots as pl
+
+import requests
+
+
+def download_csv(url, destination):
+    response = requests.get(url)
+    with open(destination, "wb") as f:
+        f.write(response.content)
 
 
 def generate_oval_shape_points(
