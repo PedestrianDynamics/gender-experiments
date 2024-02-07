@@ -152,9 +152,9 @@ def plot_trajectories(
 
 
 def plot_time_series(
-    data: pd.DataFrame, speed: pd.DataFrame, fps: int, ss_index: int
+    data: pd.DataFrame, speed: pd.DataFrame, fps: int, ss_index: int, key_density
 ) -> go.Figure:
-    density = data["instantaneous_density"]
+    density = data[key_density]
     fig = make_subplots(
         rows=1,
         cols=2,
@@ -163,6 +163,9 @@ def plot_time_series(
             f"Mean speed: {np.mean(speed['speed']):.2f} (+- {np.std(speed['speed']):.2f}) / m/s",
         ),
     )
+    # st.dataframe(data)
+    if key_density == "individual_density":
+        data = data.sort_values(by="frame")
 
     fig.add_trace(
         go.Scatter(
@@ -206,8 +209,7 @@ def plot_fundamental_diagram(
 ) -> go.Figure:
     fig = make_subplots(
         rows=1,
-        cols=2,
-        subplot_titles=("Density - Speed", "Density - Speed*Density"),
+        cols=1,
     )
 
     fig.add_trace(
@@ -221,16 +223,16 @@ def plot_fundamental_diagram(
         col=1,
     )
 
-    fig.add_trace(
-        go.Scatter(
-            x=density,
-            y=speed * density,
-            marker=dict(color="blue"),
-            mode="markers",
-        ),
-        row=1,
-        col=2,
-    )
+    # fig.add_trace(
+    #     go.Scatter(
+    #         x=density,
+    #         y=speed * density,
+    #         marker=dict(color="blue"),
+    #         mode="markers",
+    #     ),
+    #     row=1,
+    #     col=2,
+    # )
 
     # rmin = 0  # np.min(data["instantaneous_density"]) - 0.5
     rmax = np.max(density) + 0.5
@@ -242,16 +244,16 @@ def plot_fundamental_diagram(
         showlegend=False,
     )
     fig.update_yaxes(range=[vmin, vmax], title_text="Speed / m/s", row=1, col=1)
-    fig.update_yaxes(title_text="Speed * Density / 1/m/s", row=1, col=2)
-    fig.update_xaxes(title_text="Density / 1/m/m", row=1, col=2)
+    # fig.update_yaxes(title_text="Speed * Density / 1/m/s", row=1, col=2)
+    # fig.update_xaxes(title_text="Density / 1/m/m", row=1, col=2)
     return fig
 
 
 def plot_fundamental_diagram_all(country_data) -> go.Figure:
     fig = make_subplots(
         rows=1,
-        cols=2,
-        subplot_titles=("Density - Speed", "Density - Speed*Density"),
+        cols=1,
+        subplot_titles=("Density - Speed"),
     )
     rmax = -1
     vmax = -1
@@ -274,18 +276,18 @@ def plot_fundamental_diagram_all(country_data) -> go.Figure:
             row=1,
             col=1,
         )
-        fig.add_trace(
-            go.Scatter(
-                x=density,
-                y=speed * density,
-                marker=dict(color=colors[country]),
-                mode="markers",
-                name=f"{country}",
-                showlegend=True,
-            ),
-            row=1,
-            col=2,
-        )
+        # fig.add_trace(
+        #     go.Scatter(
+        #         x=density,
+        #         y=speed * density,
+        #         marker=dict(color=colors[country]),
+        #         mode="markers",
+        #         name=f"{country}",
+        #         showlegend=True,
+        #     ),
+        #     row=1,
+        #     col=2,
+        # )
         rmax = max(rmax, np.max(density))
         vmax = max(vmax, np.max(speed))
 
@@ -297,9 +299,9 @@ def plot_fundamental_diagram_all(country_data) -> go.Figure:
         xaxis_title="Density / 1/m/m",
     )
     fig.update_yaxes(range=[vmin, vmax], title_text="Speed / m/s", row=1, col=1)
-    fig.update_yaxes(title_text="Speed * Density / 1/m/s", row=1, col=2)
+    # fig.update_yaxes(title_text="Speed * Density / 1/m/s", row=1, col=2)
     fig.update_xaxes(range=[0, rmax], title_text="Density / 1/m/m", row=1, col=1)
-    fig.update_xaxes(range=[0, rmax], title_text="Density / 1/m/m", row=1, col=2)
+    # fig.update_xaxes(range=[0, rmax], title_text="Density / 1/m/m", row=1, col=2)
     return fig
 
 
@@ -512,7 +514,7 @@ def plot_agent_and_neighbors(
     return fig
 
 
-def plot_x_y_trace(x, y, title, xlabel, ylabel, color, name,threshold=0):
+def plot_x_y_trace(x, y, title, xlabel, ylabel, color, name, threshold=0):
 
     x = np.unique(x)
     if threshold:
@@ -522,8 +524,6 @@ def plot_x_y_trace(x, y, title, xlabel, ylabel, color, name,threshold=0):
             mode="lines",
             name="Social Distance = 1.5 m",
             line=dict(width=4, dash="dash", color="gray"),
-
-            
         )
 
     trace = go.Scatter(
@@ -533,7 +533,7 @@ def plot_x_y_trace(x, y, title, xlabel, ylabel, color, name,threshold=0):
         line=dict(width=3, color=color),
         fill="none",
         showlegend=True,
-        name=name
+        name=name,
     )
 
     return trace
