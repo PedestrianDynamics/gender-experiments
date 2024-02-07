@@ -79,6 +79,50 @@ def calculate_circular_distance_and_gender(data: DataFrame) -> DataFrame:
     return data
 
 
+def calculate_individual_density_csv(data):
+    # Replace None values with NaN
+    data["same_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
+    data["same_gender_proximity_next"].replace({None: np.nan}, inplace=True)
+    data["diff_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
+    data["diff_gender_proximity_next"].replace({None: np.nan}, inplace=True)
+
+    # Calculate half sum distances
+    half_sum_distances = 0.5 * (
+        data["same_gender_proximity_prev"].fillna(0)
+        + data["diff_gender_proximity_prev"].fillna(0)
+        + data["same_gender_proximity_next"].fillna(0)
+        + data["diff_gender_proximity_next"].fillna(0)
+    )
+
+    # Avoid division by zero
+    half_sum_distances.replace(0, np.nan, inplace=True)
+
+    # Calculate individual density
+    individual_density = 1 / half_sum_distances
+
+    # Create a dataframe with frame and individual density
+
+    frame_density_data = pd.DataFrame(
+        {
+            "frame": data["frame"],
+            "id": data["id"],
+            "individual_density": individual_density,
+        }
+    )
+
+    return frame_density_data
+
+
+def enhance_data(data):
+    # Calculate speed
+    data = calculate_speed(data)
+
+    # Calculate density
+    data = calculate_individual_density_csv(data)
+
+    return data
+
+
 def calculate_individual_density(data: DataFrame) -> DataFrame:
     """
     Calculates the individual density for each entity per frame in the dataset. The individual density
@@ -95,7 +139,7 @@ def calculate_individual_density(data: DataFrame) -> DataFrame:
                  calculated individual density for each row/entity.
     """
 
-    data = calculate_circular_distance_and_gender(data)
+    data = calculate_circular_distance_and_gender(data)  #
 
     # Calculate half the sum of distances to previous and next neighbors
     half_sum_distances = 0.5 * (
@@ -107,8 +151,9 @@ def calculate_individual_density(data: DataFrame) -> DataFrame:
 
     # Calculate individual density
     data["individual_density"] = 1 / half_sum_distances
+    frame_density_data = data[["frame", "individual_density"]]
 
-    return data
+    return frame_density_data
 
 
 def load_or_calculate_individual_density(
