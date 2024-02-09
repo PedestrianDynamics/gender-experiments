@@ -14,6 +14,7 @@ import pandas as pd
 import pedpy
 import plotly.express as px
 import streamlit as st
+import plotly.graph_objects as go
 
 # from joblib import Parallel, delayed
 from scipy import stats
@@ -23,6 +24,12 @@ import analysis as al
 import helper as hp
 import plots as pl
 from anim import animate
+
+# global variables for csv proximity file
+proximity_results = {}
+proximity_results["path"] = Path("proximity_analysis_results.csv")
+proximity_results["url"] = "https://fz-juelich.sciebo.de/s/U5rujIKIaZenIUg/download"
+
 
 # from plotly.subplots import make_subplots
 # import plotly.graph_objects as go
@@ -214,7 +221,7 @@ def original(country, selected_file):
         if selected_file:
             # file_index = files.index(selected_file)
             # default values
-            # set_rotation_variables(selected_file, country)
+            set_rotation_variables(selected_file, country)
             # trajectory_data = st.session_state.loaded_data[country][file_index]
             trajectory_data = hp.load_file(selected_file)
             data = trajectory_data.data
@@ -241,6 +248,31 @@ def original(country, selected_file):
             )
             ids = data["id"].unique()
             if do_plot_trajectories:
+                # do_fix = c1.checkbox("Fix", value=False)
+                # if do_fix:
+                #     set_rotation_variables(selected_file, country)
+                #     shift_y = st.number_input(
+                #         "shift y",
+                #         value=-6.0,
+                #         min_value=-10.0,
+                #         max_value=10.0,
+                #     )
+                #     shift_x = st.number_input(
+                #         "shift x",
+                #         value=0.0,  # st.session_state.center_x,
+                #         min_value=-10.0,
+                #         max_value=10.0,
+                #     )
+
+                #     angle = st.number_input(
+                #         "angle",
+                #         value=0,  # st.session_state.angle_degrees,
+                #         min_value=-90,
+                #         max_value=90,
+                #     )
+                #     rotated_data = hp.rotate_trajectories(data, shift_x, shift_y, angle)
+                #     data = rotated_data
+
                 c1, c2, c3 = st.columns((1, 1, 1))
                 plot_parcour = c1.checkbox("Parcour", value=True)
                 framerate = c2.slider("Every nth frame", 1, 100, 40, 10)
@@ -254,35 +286,35 @@ def original(country, selected_file):
                     format="%d",
                 )
 
-                # center_x = rc1.number_input(
-                #     "Shift X:",
-                #     value=float(st.session_state["center_x"]),
-                #     step=0.1,
-                #     help="AF=1.7, AM=1.7, CN=0.1, G=3, P=-1.5",
-                # )
-                # center_y = rc2.number_input(
-                #     "Shift Y:",
-                #     value=float(st.session_state["center_y"]),
-                #     step=0.1,
-                #     help="AF=0, AM=6.3, CN=0",
-                # )
-                # angle_degrees = rc3.number_input(
-                #     "Angle in Degrees:",
-                #     value=st.session_state["angle_degrees"],
-                #     help="A=90, CN=90, G=3",
-                # )
-                # if center_x != st.session_state.center_x:
-                #     st.session_state.center_x = center_x
-
-                # if center_y != st.session_state.center_y:
-                #     st.session_state.center_y = center_y
-
-                # if angle_degrees != st.session_state.angle_degrees:
-                #     st.session_state.angle_degrees = angle_degrees
-
                 fig = pl.plot_trajectories(
                     data, framerate, uid, exterior, interior, plot_parcour
                 )
+                # if do_fix:
+                #     write_to_file = c1.checkbox("Write to file", value=False)
+                #     if write_to_file:
+                #         newfile = f"enhanced_{selected_file}"
+                #         st.warning(newfile)
+                #         rename_mapping = {
+                #             "id": "ID",
+                #             "time": "t(s)",
+                #             "x": "x(m)",
+                #             "y": "y(m)",
+                #         }
+
+                #         data.rename(columns=rename_mapping, inplace=True)
+                #         selected_columns = [
+                #             "ID",
+                #             "next",
+                #             "prev",
+                #             "gender",
+                #             "frame",
+                #             "t(s)",
+                #             "x(m)",
+                #             "y(m)",
+                #         ]
+                #         data[selected_columns].to_csv(newfile, index=False)
+                #         st.info("Done!")
+
                 st.plotly_chart(fig)
             # neighborhood
             if get_neighborhood and len(ids) > 2 and country != "pal":
@@ -325,25 +357,16 @@ def original(country, selected_file):
     return do_rotate
 
 
-def density_speed_time_series_macro(country, file, fps, dv, diff_const, do_rotate):
+def density_speed_time_series_macro(country, file, fps, dv, diff_const):
     """Calculate density and speed series using Corbetta's method for density."""
     set_rotation_variables(file, country)
     trajectory_data = hp.load_file(file)
     data = trajectory_data.data
-    if do_rotate:
-        rotated_data = hp.rotate_trajectories(
-            data,
-            st.session_state.center_x,
-            st.session_state.center_y,
-            st.session_state.angle_degrees,
-        )
-    else:
-        rotated_data = data
+    rotated_data = data
 
     with st.spinner(f"Calculating {country} ..."):
         start_time = time.time()
-        density = al.calculate_instantaneous_density_per_frame(rotated_data, fps)
-
+        density = al.calculate_instantaneous_density_per_frame(rotated_data, fps)  #
         speed = al.calculate_speed(rotated_data, dv)
         steady_state_index = al.calculate_steady_state(
             speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
@@ -352,52 +375,84 @@ def density_speed_time_series_macro(country, file, fps, dv, diff_const, do_rotat
         end_time = time.time()
         elapsed_time = end_time - start_time
         st.info(f"Time taken to calculate density macro: {elapsed_time:.2f} seconds")
-        fig = pl.plot_time_series(
-            density, speed, trajectory_data.frame_rate, steady_state_index
+        fig = pl.plot_time_series(  #
+            density,
+            speed,
+            trajectory_data.frame_rate,
+            steady_state_index,
+            "instantaneous_density",
         )
         st.plotly_chart(fig)
 
 
-def density_speed_time_series_micro(country, file, fps, dv, diff_const, do_rotate):
+def density_speed_time_series_micro(country, file, fps, dv, diff_const):
     """Calculate the individual density (Voronoi 1D)."""
-    set_rotation_variables(file, country)
+    msg = st.empty()
     trajectory_data = hp.load_file(file)
-    data = trajectory_data.data
+    rotated_data = trajectory_data.data
+    result_csv = proximity_results["path"]
 
-    if do_rotate:
-        rotated_data = hp.rotate_trajectories(
-            data,
-            st.session_state.center_x,
-            st.session_state.center_y,
-            st.session_state.angle_degrees,
-        )
-    else:
-        rotated_data = data
+    if not result_csv.exists():
+        msg.warning(f"{result_csv} does not exist yet!")
+        with st.spinner("Downloading ..."):
+            hp.download_csv(proximity_results["url"], proximity_results["path"])
+
+    if result_csv.exists():
+        msg.info(f"Reading file {result_csv}")
+        df = pd.read_csv(result_csv)
 
     with st.spinner(f"Calculating {country} ..."):
         start_time = time.time()
-        density = al.calculate_individual_density(rotated_data)
+        filter_df = df[(df["country"] == country) & (df["file"] == file)]
+        st.dataframe(filter_df)
+        density = al.calculate_individual_density_csv(filter_df)
+        st.dataframe(density)
+        msg.info("calculate speed")
         speed = al.calculate_speed(rotated_data, dv)
+        msg.info("calculate speed steady state")
         steady_state_index = al.calculate_steady_state(
             speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
         )
-
         end_time = time.time()
         elapsed_time = end_time - start_time
-        st.info(f"Time taken to calculate density micro: {elapsed_time:.2f} seconds")
+        msg.info(
+            f"Time taken to calculate speed and density micro: {elapsed_time:.2f} seconds"
+        )
         fig = pl.plot_time_series(
-            density, speed, trajectory_data.frame_rate, steady_state_index
+            density,
+            speed,
+            trajectory_data.frame_rate,
+            steady_state_index,
+            "individual_density",
         )
         st.plotly_chart(fig)
 
 
-def fundamental_diagram(country, fps, dv, diff_const, do_rotate):
+def fundamental_diagram(country, fps, dv, diff_const, do_rotate, method: str):
+    msg = st.empty()
+    result_csv = proximity_results["path"]
+    if not result_csv.exists():
+        msg.warning(f"{result_csv} does not exist yet!")
+        with st.spinner("Downloading ..."):
+            hp.download_csv(proximity_results["url"], proximity_results["path"])
+
+    if result_csv.exists():
+        msg.info(f"Reading file {result_csv}")
+        df = pd.read_csv(result_csv)
+
     with st.spinner(f"Calculating {country} ..."):
         start_time = time.time()
         mean_density = []
         mean_speed = []
+        density_columns = []
+        speed_columns = []
+        density_key = (
+            "instantaneous_density" if method == "macro" else "individual_density"
+        )
+
         for file in st.session_state.config.files[country]:
-            set_rotation_variables(file, country)
+            msg.info(f"{file}")
+            # set_rotation_variables(file, country)
             trajectory_data = hp.load_file(file)
             data = trajectory_data.data
             if do_rotate:
@@ -410,193 +465,52 @@ def fundamental_diagram(country, fps, dv, diff_const, do_rotate):
             else:
                 rotated_data = data
 
-            density = al.calculate_instantaneous_density_per_frame(rotated_data, fps)
+            if method == "macro":
+                density = al.calculate_instantaneous_density_per_frame(
+                    rotated_data, fps
+                )
 
-            speed = al.calculate_speed(rotated_data, dv)
+            elif method == "micro":
+                msg.info("start calculating")
+                filter_df = df[(df["country"] == country) & (df["file"] == file)]
+                density = al.calculate_individual_density_csv(filter_df)  #
+
+                start = time.time()
+                # density = al.calculate_individual_density(rotated_data)  #
+                end = time.time()
+                msg.info(f"Finished with {file} in {end-start} s")
+            else:
+                st.warning(
+                    f"Method {method} is not implemented. Choose between macro or micro"
+                )
+                st.stop()
+            speed = al.calculate_speed(rotated_data, dv)  #
             steady_state_index = al.calculate_steady_state(
                 speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
             )
-            mean_speed.append(np.mean(speed["speed"].iloc[steady_state_index:]))
-            mean_density.append(np.mean(density["instantaneous_density"]))
+            # mean_speed.append(np.mean(speed["speed"].iloc[steady_state_index:]))
+            # mean_density.append(np.mean(density[density_key]))
+            # mean_speed.append(speed["speed"].iloc[steady_state_index:])
+            # mean_density.append(density[density_key])
+            density_columns.append(density[density_key])
+            speed_columns.append(speed["speed"])
 
         end_time = time.time()
         elapsed_time = end_time - start_time
         st.info(f"Time taken to calculate density: {elapsed_time:.2f} seconds")
+
+        density_series = pd.concat(density_columns, ignore_index=True)
+        density_array = density_series.to_numpy()
+        speed_series = pd.concat(speed_columns, ignore_index=True)
+        speed_array = speed_series.to_numpy()
+
         mean_density = np.array(mean_density)
         mean_speed = np.array(mean_speed)
-        return mean_speed, mean_density
+        # return mean_speed, mean_density
+        np.save(f"density_array_{country}.npy", density_array)
+        np.save(f"speed_array_{country}.npy", speed_array)
 
-
-def calculate_proximity_analysis(country, file, rotated_data):
-    if "female" in file:
-        name = "female"
-    elif "male" in file:
-        name = "male"
-    elif "mix_sorted" in file:
-        name = "mix_sorted"
-    elif "mix_random" in file:
-        name = "mix_random"
-    else:
-        name = "unknown"
-
-    processed_data = al.calculate_circular_distance_and_gender(rotated_data)
-    proximity_analysis_res = []
-    fps = 25
-    frames_to_include = set(range(0, processed_data["frame"].max(), fps))
-
-    # Filter the DataFrame to only include the desired frames
-    filtered_data = processed_data[processed_data["frame"].isin(frames_to_include)]
-
-    # Now iterate over the filtered DataFrame
-    for i, row in filtered_data.iterrows():
-        # for i, row in processed_data.iterrows():
-        # Check proximity with the next neighbor
-        if row["gender"] == row["gender_of_next_neighbor"]:
-            same_gender_proximity_next = row["distance_to_next_neighbor"]
-        else:
-            same_gender_proximity_next = np.nan
-
-        if row["gender"] != row["gender_of_next_neighbor"]:
-            diff_gender_proximity_next = row["distance_to_next_neighbor"]
-        else:
-            diff_gender_proximity_next = np.nan
-
-        # Check proximity with the previous neighbor
-        if row["gender"] == row["gender_of_prev_neighbor"]:
-            same_gender_proximity_prev = row["distance_to_prev_neighbor"]
-        else:
-            same_gender_proximity_prev = np.nan
-
-        if row["gender"] != row["gender_of_prev_neighbor"]:
-            diff_gender_proximity_prev = row["distance_to_prev_neighbor"]
-        else:
-            diff_gender_proximity_prev = np.nan
-
-        proximity_analysis_res.append(
-            {
-                "country": country,
-                "file": name,
-                "id": row["id"],
-                "frame": row["frame"],
-                "same_gender_proximity_next": same_gender_proximity_next,
-                "diff_gender_proximity_next": diff_gender_proximity_next,
-                "same_gender_proximity_prev": same_gender_proximity_prev,
-                "diff_gender_proximity_prev": diff_gender_proximity_prev,
-            }
-        )
-
-    return proximity_analysis_res
-
-
-def unpack_and_process(args):
-    return calculate_proximity_analysis(*args)
-
-
-def prepare_data(country, selected_file, do_rotate):
-    set_rotation_variables(selected_file, country)
-    trajectory_data = hp.load_file(selected_file)
-    data = trajectory_data.data
-    if do_rotate:
-        rotated_data = hp.rotate_trajectories(
-            data,
-            st.session_state.center_x,
-            st.session_state.center_y,
-            st.session_state.angle_degrees,
-        )
-        return country, selected_file, rotated_data
-    else:
-        return country, selected_file, data
-
-
-def calculate_with_progress():
-    res_file = "proximity_results"
-    # res_file_path = Path(res_file)
-    # if res_file_path.exists():
-    #     st.info("Found ")
-    #     return pd.read_pickle(res_file)
-
-    # Prepare tasks
-    tasks = []
-    for country in st.session_state.config.countries:
-        with st.spinner(f"Preparing tasks for {country}"):
-            for file in st.session_state.config.files[country]:
-                tasks.append(prepare_data(country, file, do_rotate))
-
-    with st.spinner("Running ..."):
-        # Create a progress bar
-        progress_bar = st.progress(0)
-
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            # Submit all tasks to the executor
-            future_to_task = {
-                executor.submit(unpack_and_process, task): task for task in tasks
-            }
-
-            results = []
-            for i, future in enumerate(
-                concurrent.futures.as_completed(future_to_task), 1
-            ):
-                # Result from the completed task
-                result = future.result()
-                results.append(result)
-
-                # Update progress bar
-                progress_bar.progress(i / len(tasks))
-
-    # Return the final results
-    flattened_results = list(itertools.chain.from_iterable(results))
-    flattened_results = pd.DataFrame(flattened_results)
-    st.info(f"Wrote results  in {res_file}")
-    flattened_results.to_pickle(res_file)
-    return flattened_results
-
-
-# def calculate_with_singular():
-#     # Prepare tasks
-#     tasks = []
-#     for country in st.session_state.config.countries:
-#         with st.spinner(f"Preparing tasks for {country}"):
-#             for file in st.session_state.config.files[country][0:2]:
-#                 tasks.append(prepare_data(country, file))
-
-# tasks = [
-#     prepare_data(country, file)
-#     for country in st.session_state.config.countries
-#     for file in st.session_state.config.files[country]
-# ]
-
-# with st.spinner("Running..."):
-#     # Create a progress bar
-#     progress_bar = st.progress(0)
-#     results = []
-#     for i, task in enumerate(tasks):
-#         result = unpack_and_process(task)
-#         results.append(result)
-#         # Update progress bar
-#         progress_bar.progress(i / len(tasks))
-
-# # Return the final results
-# return results
-
-
-# def calculate_with_joblib():
-#     # Prepare tasks
-#     tasks = []
-#     for country in st.session_state.config.countries:
-#         with st.spinner(f"Preparing tasks for {country}"):
-#             for file in st.session_state.config.files[country][0:1]:
-#                 tasks.append(prepare_data(country, file))
-
-#     # Define a function to be executed in parallel
-#     def process_task(task):
-#         return unpack_and_process(task)
-
-#     st.info(f"Running tasks in parallel {len(tasks)} ...")
-#     results = Parallel(n_jobs=-1)(
-#         delayed(process_task)(task) for task in tqdm(tasks, desc="Processing")
-#     )
-
-#     return results
+        return speed_array, density_array
 
 
 # Main
@@ -678,7 +592,13 @@ if __name__ == "__main__":
         if do_calculations:
             calculations = c0.radio(
                 "Choose calculation",
-                ["micro_fd_rudina", "time_series", "fundamental_diagram"],
+                [
+                    "micro_fd_rudina",
+                    "time_series_macro",
+                    "FD_macro",
+                    "time_series_micro",
+                    "FD_micro",
+                ],
             )
             if calculations == "micro_fd_rudina":
                 countries = c1.multiselect("Country", st.session_state.config.countries)
@@ -706,20 +626,30 @@ if __name__ == "__main__":
                     "diff_const", 1, 500, 5, 1, help="window steady state"
                 )
 
-            if calculations == "time_series":
-                density_speed_time_series_macro(
-                    country, selected_file, fps, dv, diff_const, do_rotate
+            if calculations == "time_series_macro":
+                density_speed_time_series_macro(  #
+                    country, selected_file, fps, dv, diff_const
                 )
+            if calculations == "time_series_micro":
                 density_speed_time_series_micro(
-                    country, selected_file, fps, dv, diff_const, do_rotate
+                    country, selected_file, fps, dv, diff_const
                 )
 
-            if calculations == "fundamental_diagram":
+            if calculations == "FD_macro":
+                method = calculations.split("_")[-1]
+                st.info(method)
                 all_data = {}
                 for country in st.session_state.config.countries:
-                    mean_speed, mean_density = fundamental_diagram(
-                        country, fps, dv, diff_const, do_rotate
-                    )
+                    file_density = Path(f"density_array_{country}.npy")
+                    file_speed = Path(f"speed_array_{country}.npy")
+                    if file_density.exists() and file_speed.exists():
+                        mean_density = np.load(file_density)
+                        mean_speed = np.load(file_speed)
+                    else:
+                        mean_speed, mean_density = fundamental_diagram(  #
+                            country, fps, dv, diff_const, do_rotate, method
+                        )
+
                     fig = pl.plot_fundamental_diagram(country, mean_density, mean_speed)
                     st.plotly_chart(fig)
                     all_data[country] = (mean_speed, mean_density)
@@ -727,13 +657,44 @@ if __name__ == "__main__":
                 fig = pl.plot_fundamental_diagram_all(all_data)
                 st.plotly_chart(fig)
 
+            if calculations == calculations == "FD_micro":
+                all_data = {}
+                result_csv = proximity_results["path"]
+                # Path("proximity_analysis_results.csv")
+                if not result_csv.exists():
+                    msg.warning(f"{result_csv} does not exist yet!")
+
+                    with st.spinner("Downloading ..."):
+                        hp.download_csv(
+                            proximity_results["url"], proximity_results["path"]
+                        )
+
+                if result_csv.exists():
+                    msg.info(f"Reading file {result_csv}")
+                    df = pd.read_csv(result_csv)
+
+                st.dataframe(df)
+                for country in st.session_state.config.countries:
+                    if country == "pal":
+                        continue
+
+                    filter_df = df[df["country"] == country]
+                    st.dataframe(filter_df)
+                    density = al.calculate_individual_density_csv(filter_df)
+                    st.dataframe(density)
+                #     fig = pl.plot_fundamental_diagram(country, mean_density, mean_speed)
+                #     st.plotly_chart(fig)
+                #     all_data[country] = (mean_speed, mean_density)
+
+                # fig = pl.plot_fundamental_diagram_all(all_data)
+                # st.plotly_chart(fig)
+
     with tab3:
         # do_analysis = st.checkbox("Perform gender analysis", value=False)
         do_analysis = st.radio(
             "Choose option",
             [
                 "voronoi",
-                "calculate_gender_analysis",
                 "load_gender_analysis",
                 "plot_existing_data",
             ],
@@ -741,121 +702,174 @@ if __name__ == "__main__":
         if do_analysis == "voronoi":
             pass
 
-        if (
-            do_analysis == "calculate_gender_analysis"
-            or do_analysis == "load_gender_analysis"
-        ):
+        if do_analysis == "load_gender_analysis":
             result_csv = Path("proximity_analysis_results.csv")
-            if do_analysis == "calculate_gender_analysis":
-                start_time = time.time()
-                proximity_df = calculate_with_progress()
-                end_time = time.time()
-                elapsed_time = end_time - start_time
-                st.info(f"Time taken: {elapsed_time:.2f} seconds")
-                proximity_df.to_csv(result_csv, index=False)
+            msg = st.empty()
+            c1, c2, c3 = st.columns((1, 1, 1))
+            if not result_csv.exists():
+                msg.warning(f"{result_csv} does not exist yet!")
+                csv_url = "https://fz-juelich.sciebo.de/s/U5rujIKIaZenIUg/download"
+                with st.spinner("Downloading ..."):
+                    hp.download_csv(csv_url, result_csv)
+
+            if result_csv.exists():
+                msg.info(f"Reading file {result_csv}")
+                proximity_df = pd.read_csv(result_csv)
                 st.dataframe(proximity_df)
+            else:
+                msg.warning(f"File {result_csv} not found.")
+                st.stop()
 
-            if do_analysis == "load_gender_analysis":
-                msg = st.empty()
-                if not result_csv.exists():
-                    msg.warning(f"{result_csv} does not exist yet!")
-                    csv_url = "https://fz-juelich.sciebo.de/s/U5rujIKIaZenIUg/download"
-                    with st.spinner("Downloading ..."):
-                        hp.download_csv(csv_url, result_csv)
-
-                if result_csv.exists():
-                    msg.info(f"Reading file {result_csv}")
-                    proximity_df = pd.read_csv(result_csv)
-                    st.dataframe(proximity_df)
-                else:
-                    msg.warning(f"File {result_csv} not found.")
-                    st.stop()
-
-            with st.spinner("Calculating T-tests ..."):
-                same_gender_distances_next = proximity_df[
-                    "same_gender_proximity_next"
-                ].dropna()
-                diff_gender_distances_next = proximity_df[
-                    "diff_gender_proximity_next"
-                ].dropna()
-                same_gender_distances_prev = proximity_df[
-                    "same_gender_proximity_prev"
-                ].dropna()
-                diff_gender_distances_prev = proximity_df[
-                    "diff_gender_proximity_prev"
-                ].dropna()
-
-                # Perform a T-test
-                t_stat_next, p_val_next = stats.ttest_ind(
-                    same_gender_distances_next, diff_gender_distances_next
+            ttest = c1.checkbox("T-test", value=False)
+            plot_pdf = c2.checkbox("PDF", value=False)
+            debug = c3.checkbox("Debug", value=False)
+            if debug:
+                ids = proximity_df["id"].unique()
+                uid = st.number_input(
+                    "Insert id of pedestrian",
+                    value=int(min(ids)),
+                    min_value=int(min(ids)),
+                    max_value=int(max(ids)),
+                    placeholder=f"Type a number in [{int(min(ids))}, {int(max(ids))}]",
+                    format="%d",
                 )
-                t_stat_prev, p_val_prev = stats.ttest_ind(
-                    same_gender_distances_prev, diff_gender_distances_prev
+                condition = (
+                    (proximity_df["id"] == uid)
+                    & (proximity_df["file"] == selected_file),
                 )
 
-                st.info(
-                    f"T-Test results proximity_next: T-Statistic = {t_stat_next:.03f}, P-Value = {p_val_next:.03f}"
+                field = st.selectbox(
+                    "Field",
+                    (
+                        "same_gender_proximity_next",
+                        "same_gender_proximity_prev",
+                        "diff_gender_proximity_next",
+                        "diff_gender_proximity_prev",
+                    ),
                 )
-                st.info(
-                    f"T-Test results proximity_prev: T-Statistic = {t_stat_next:.03f}, P-Value = {p_val_prev:.03f}"
-                )
-
-            proximity_melted = proximity_df.melt(
-                id_vars=["id", "frame", "country"],
-                value_vars=[
-                    "same_gender_proximity_next",
-                    "diff_gender_proximity_next",
-                    # "same_gender_proximity_prev",
-                    # "diff_gender_proximity_prev",
-                ],
-                var_name="category",
-                value_name="distance",
-            )
-
-            proximity_melted["distance"] = proximity_melted["distance"].fillna(0)
-            st.info("proximity_melted")
-            st.dataframe(proximity_melted)
-            c1, _, c2 = st.columns((1, 0.5, 1))
-
-            for country in ["aus", "ger", "jap", "chn"]:
 
                 fig = make_subplots(
                     rows=1,
                     cols=1,
-                    subplot_titles=[f"<b>{country}</b>"],
                 )
 
-                for type, color in zip(
-                    ["same_gender_proximity_next", "diff_gender_proximity_next"],
-                    ["blue", "crimson"],
-                ):
+                frames = proximity_df.loc[
+                    condition,
+                    "frame",
+                ]
+                # y_col = proximity_df.loc[proximity_df["id"] == uid, field]
+                y_col = proximity_df.loc[condition, field]
 
-                    filtered_data = proximity_melted[
-                        (proximity_melted["country"] == country)
-                        & (proximity_melted["category"] == type)
-                    ]
-                    filtered_data = filtered_data[filtered_data["distance"] != 0]
-
-                    distances = np.unique(filtered_data["distance"])
-                    loc = distances.mean()
-                    scale = distances.std()
-                    distances = np.hstack(([0], distances))  # Exclude the value 0
-                    pdf = stats.norm.pdf(distances, loc=loc, scale=scale)
-
-                    # Create a DataFrame for the PDF data
-                    pdf_data = pd.DataFrame({"distance": distances, "PDF": pdf})
-                    trace = pl.plot_x_y_trace(
-                        distances,
-                        pdf,
-                        title=f"{country}: {type} | Mean: {loc:.2f}, Std: {scale:.2f}",
-                        xlabel="Distance / m",
-                        ylabel="PDF",
-                        color=color,
-                        name=type,
-                    )
-                    fig.append_trace(trace, row=1, col=1)
+                fig.add_trace(
+                    go.Scatter(
+                        x=frames,
+                        y=y_col,
+                        marker=dict(color="blue"),
+                        mode="lines",
+                    ),
+                    row=1,
+                    col=1,
+                )
+                fig.update_layout(
+                    title=f"distance of <{uid}> to <{field}> [m] |  min = {np.min(y_col):.2}, max = {np.max(y_col):.2}, mean = {np.mean(y_col):.2f} (+- {np.std(y_col):.2})",
+                    xaxis_title="frame",
+                    # yaxis_title=f"distance [m]",
+                    # xaxis=dict(scaleanchor="y"),  # , range=[xmin, xmax]),
+                    yaxis=dict(scaleratio=1, range=[0, 7]),
+                    showlegend=False,
+                )
 
                 st.plotly_chart(fig)
+
+            if ttest:
+                with st.spinner("Calculating T-tests ..."):
+                    same_gender_distances_next = proximity_df[
+                        "same_gender_proximity_next"
+                    ].dropna()
+                    diff_gender_distances_next = proximity_df[
+                        "diff_gender_proximity_next"
+                    ].dropna()
+                    same_gender_distances_prev = proximity_df[
+                        "same_gender_proximity_prev"
+                    ].dropna()
+                    diff_gender_distances_prev = proximity_df[
+                        "diff_gender_proximity_prev"
+                    ].dropna()
+
+                    # Perform a T-test
+                    t_stat_next, p_val_next = stats.ttest_ind(
+                        same_gender_distances_next, diff_gender_distances_next
+                    )
+                    t_stat_next_welch, p_val_next_welch = stats.ttest_ind(
+                        same_gender_distances_next,
+                        diff_gender_distances_next,
+                        equal_var=False,
+                    )
+
+                    st.info(
+                        f"T-Test results proximity_next: T-Statistic = {t_stat_next:.03f}, P-Value = {p_val_next:.03f}"
+                    )
+                    st.info(
+                        f"T-Test results proximity_next_welch: T-Statistic = {t_stat_next_welch:.03f}, P-Value = {p_val_next_welch:.03f}"
+                    )
+
+            if plot_pdf:
+                proximity_melted = proximity_df.melt(
+                    id_vars=["id", "frame", "country"],
+                    value_vars=[
+                        "same_gender_proximity_next",
+                        "diff_gender_proximity_next",
+                        # "same_gender_proximity_prev",
+                        # "diff_gender_proximity_prev",
+                    ],
+                    var_name="category",
+                    value_name="distance",
+                )
+
+                proximity_melted["distance"] = proximity_melted["distance"].fillna(0)
+                st.info("proximity_melted")
+                st.dataframe(proximity_melted)
+                c1, _, c2 = st.columns((1, 0.5, 1))
+
+                for country in ["aus", "ger", "jap", "chn"]:
+
+                    fig = make_subplots(
+                        rows=1,
+                        cols=1,
+                        subplot_titles=[f"<b>{country}</b>"],
+                    )
+
+                    for type, color in zip(
+                        ["same_gender_proximity_next", "diff_gender_proximity_next"],
+                        ["blue", "crimson"],
+                    ):
+
+                        filtered_data = proximity_melted[
+                            (proximity_melted["country"] == country)
+                            & (proximity_melted["category"] == type)
+                        ]
+                        filtered_data = filtered_data[filtered_data["distance"] != 0]
+
+                        distances = np.unique(filtered_data["distance"])
+                        loc = distances.mean()
+                        scale = distances.std()
+                        distances = np.hstack(([0], distances))  # Exclude the value 0
+                        pdf = stats.norm.pdf(distances, loc=loc, scale=scale)
+
+                        # Create a DataFrame for the PDF data
+                        pdf_data = pd.DataFrame({"distance": distances, "PDF": pdf})
+                        trace = pl.plot_x_y_trace(
+                            distances,
+                            pdf,
+                            title=f"{country}: {type} | Mean: {loc:.2f}, Std: {scale:.2f}",
+                            xlabel="Distance / m",
+                            ylabel="PDF",
+                            color=color,
+                            name=type,
+                        )
+                        fig.append_trace(trace, row=1, col=1)
+
+                    st.plotly_chart(fig)
 
     with tab4:
         convert = st.checkbox(

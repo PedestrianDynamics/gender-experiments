@@ -133,8 +133,8 @@ def plot_trajectories(
         title=f" Trajectories: {num_agents} | M: {num_unique_males} | F: {num_unique_females} | N: {num_unique_unknowns}",
         xaxis_title="X",
         yaxis_title="Y",
-        xaxis=dict(scaleanchor="y", range=[xmin, xmax]),
-        yaxis=dict(scaleratio=1, range=[ymin, ymax]),
+        xaxis=dict(scaleanchor="y"),  # , range=[xmin, xmax]),
+        yaxis=dict(scaleratio=1),  # , range=[ymin, ymax]),
         showlegend=False,
     )
 
