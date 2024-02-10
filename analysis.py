@@ -37,54 +37,64 @@ def calculate_speed(data: DataFrame, dv: int) -> DataFrame:
     return data
 
 
-def calculate_circular_distance_and_gender(data: DataFrame) -> DataFrame:
-    """
-    Calculate the distance to the nearest neighbors based on "prev" and "next" columns,
-    considering the spatial arrangement, and include the gender of these neighbors.
+import numpy as np
+import pandas as pd
 
-    Parameters:
-    data (DataFrame): A pandas DataFrame containing the columns 'id', 'gender', 'frame', 'x', 'y', 'prev', 'next'.
 
-    Returns:
-    DataFrame: The input DataFrame with additional columns for distances to the previous and next neighbors
-               and the gender of these neighbors.
-    """
+# Example usage:
+# neighbors = preprocess_neighbors(your_dataframe)
+# updated_data = calculate_circular_distance_and_gender(your_dataframe, neighbors)
 
-    # Initialize columns for distances to neighbors and their genders
-    data["distance_to_prev_neighbor"] = np.nan
-    data["gender_of_prev_neighbor"] = None
-    data["distance_to_next_neighbor"] = np.nan
-    data["gender_of_next_neighbor"] = None
 
-    #    data["prev"] = data["prev"].astype(int)
-    #    data["next"] = data["next"].astype(int)
+# def calculate_circular_distance_and_gender(data: DataFrame) -> DataFrame:
+#     """
+#     Calculate the distance to the nearest neighbors based on "prev" and "next" columns,
+#     considering the spatial arrangement, and include the gender of these neighbors.
 
-    # Calculate distances and gender information based on "prev" and "next" neighbors
-    for index, row in data.iterrows():
-        # Handle the case where there are no previous or next neighbors
-        if row["prev"] != -1:
-            prev_row = data.loc[data["id"] == row["prev"]].iloc[0]
-            data.at[index, "distance_to_prev_neighbor"] = np.linalg.norm(
-                [row["x"] - prev_row["x"], row["y"] - prev_row["y"]]
-            )
-            data.at[index, "gender_of_prev_neighbor"] = prev_row["gender"]
+#     Parameters:
+#     data (DataFrame): A pandas DataFrame containing the columns 'id', 'gender', 'frame', 'x', 'y', 'prev', 'next'.
 
-        if row["next"] != -1:
-            next_row = data.loc[data["id"] == row["next"]].iloc[0]
-            data.at[index, "distance_to_next_neighbor"] = np.linalg.norm(
-                [row["x"] - next_row["x"], row["y"] - next_row["y"]]
-            )
-            data.at[index, "gender_of_next_neighbor"] = next_row["gender"]
+#     Returns:
+#     DataFrame: The input DataFrame with additional columns for distances to the previous and next neighbors
+#                and the gender of these neighbors.
+#     """
 
-    return data
+#     # Initialize columns for distances to neighbors and their genders
+#     data["distance_to_prev_neighbor"] = np.nan
+#     data["gender_of_prev_neighbor"] = None
+#     data["distance_to_next_neighbor"] = np.nan
+#     data["gender_of_next_neighbor"] = None
+
+#     #    data["prev"] = data["prev"].astype(int)
+#     #    data["next"] = data["next"].astype(int)
+
+#     # Calculate distances and gender information based on "prev" and "next" neighbors
+#     for index, row in data.iterrows():
+#         # print(f"{index}/{len(data)}")
+#         # Handle the case where there are no previous or next neighbors
+#         if row["prev"] != -1:
+#             prev_row = data.loc[data["id"] == row["prev"]].iloc[0]
+#             data.at[index, "distance_to_prev_neighbor"] = np.linalg.norm(
+#                 [row["x"] - prev_row["x"], row["y"] - prev_row["y"]]
+#             )
+#             data.at[index, "gender_of_prev_neighbor"] = prev_row["gender"]
+
+#         if row["next"] != -1:
+#             next_row = data.loc[data["id"] == row["next"]].iloc[0]
+#             data.at[index, "distance_to_next_neighbor"] = np.linalg.norm(
+#                 [row["x"] - next_row["x"], row["y"] - next_row["y"]]
+#             )
+#             data.at[index, "gender_of_next_neighbor"] = next_row["gender"]
+
+#     return data
 
 
 def calculate_individual_density_csv(data):
     # Replace None values with NaN
-    data["same_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
-    data["same_gender_proximity_next"].replace({None: np.nan}, inplace=True)
-    data["diff_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
-    data["diff_gender_proximity_next"].replace({None: np.nan}, inplace=True)
+    data.loc["same_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
+    data.loc["same_gender_proximity_next"].replace({None: np.nan}, inplace=True)
+    data.loc["diff_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
+    data.loc["diff_gender_proximity_next"].replace({None: np.nan}, inplace=True)
 
     # Calculate half sum distances
     half_sum_distances = 0.5 * (

@@ -3,18 +3,19 @@
 import concurrent.futures
 import glob
 import itertools
+import subprocess
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from plotly.subplots import make_subplots
 
 import numpy as np
 import pandas as pd
 import pedpy
 import plotly.express as px
-import streamlit as st
 import plotly.graph_objects as go
+import streamlit as st
+from plotly.subplots import make_subplots
 
 # from joblib import Parallel, delayed
 from scipy import stats
@@ -29,6 +30,8 @@ from anim import animate
 proximity_results = {}
 proximity_results["path"] = Path("proximity_analysis_results.csv")
 proximity_results["url"] = "https://fz-juelich.sciebo.de/s/U5rujIKIaZenIUg/download"
+path = Path(__file__)
+ROOT_DIR = path.parent.absolute()
 
 
 # from plotly.subplots import make_subplots
@@ -40,9 +43,6 @@ proximity_results["url"] = "https://fz-juelich.sciebo.de/s/U5rujIKIaZenIUg/downl
 
 # from memory_profiler import profile
 # from memory_profiler import memory_usage
-
-path = Path(__file__)
-ROOT_DIR = path.parent.absolute()
 
 
 @dataclass
@@ -696,16 +696,35 @@ if __name__ == "__main__":
             [
                 "voronoi",
                 "load_gender_analysis",
+                "calculate_gender_analysis",
                 "plot_existing_data",
             ],
         )
         if do_analysis == "voronoi":
             pass
 
+        if do_analysis == "calculate_gender_analysis":
+            start_time = time.time()
+
+            with st.spinner("Calculating ..."):
+                result = subprocess.run(
+                    ["python", "proximity.py"], capture_output=True, text=True
+                )
+                # if result.stdout:
+                #     st.write(result.stdout)
+                if result.stderr:
+                    st.error(result.stderr)
+
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            st.info(f"Running time: {elapsed_time/60:.2} min")
+
         if do_analysis == "load_gender_analysis":
             result_csv = Path("proximity_analysis_results.csv")
             msg = st.empty()
             c1, c2, c3 = st.columns((1, 1, 1))
+            st.divider()
+
             if not result_csv.exists():
                 msg.warning(f"{result_csv} does not exist yet!")
                 csv_url = "https://fz-juelich.sciebo.de/s/U5rujIKIaZenIUg/download"
@@ -715,15 +734,23 @@ if __name__ == "__main__":
             if result_csv.exists():
                 msg.info(f"Reading file {result_csv}")
                 proximity_df = pd.read_csv(result_csv)
-                st.dataframe(proximity_df)
             else:
                 msg.warning(f"File {result_csv} not found.")
                 st.stop()
 
+            msg.empty()
+            st.info("All proximity data")
+            st.dataframe(proximity_df)
             ttest = c1.checkbox("T-test", value=False)
             plot_pdf = c2.checkbox("PDF", value=False)
-            debug = c3.checkbox("Debug", value=False)
+            debug = c3.checkbox(
+                "Time-series",
+                value=False,
+                help="Plot times series of distance per file",
+            )
             if debug:
+                st.info(f"Data for {selected_file}")
+                st.dataframe(proximity_df.loc[proximity_df["file"] == selected_file])
                 ids = proximity_df["id"].unique()
                 uid = st.number_input(
                     "Insert id of pedestrian",
@@ -782,36 +809,45 @@ if __name__ == "__main__":
                 st.plotly_chart(fig)
 
             if ttest:
-                with st.spinner("Calculating T-tests ..."):
-                    same_gender_distances_next = proximity_df[
-                        "same_gender_proximity_next"
-                    ].dropna()
-                    diff_gender_distances_next = proximity_df[
-                        "diff_gender_proximity_next"
-                    ].dropna()
-                    same_gender_distances_prev = proximity_df[
-                        "same_gender_proximity_prev"
-                    ].dropna()
-                    diff_gender_distances_prev = proximity_df[
-                        "diff_gender_proximity_prev"
-                    ].dropna()
+                st.divider()
+                st.markdown(
+                    ":information_source: **The mean distance between pairs of the same gender is equal to the mean distance between pairs of different genders.**"
+                )
+                st.latex("p <= 0.05 \\rightarrow \\text{ reject}\; H_0")
 
-                    # Perform a T-test
-                    t_stat_next, p_val_next = stats.ttest_ind(
-                        same_gender_distances_next, diff_gender_distances_next
-                    )
-                    t_stat_next_welch, p_val_next_welch = stats.ttest_ind(
-                        same_gender_distances_next,
-                        diff_gender_distances_next,
-                        equal_var=False,
-                    )
+                for country in ["aus", "ger", "jap", "chn"]:
+                    msg = f"{country}\n"
+                    filtered_data = proximity_df[
+                        (proximity_df["country"] == country)
+                        & (proximity_df["type"] == "mix_sorted")
+                    ]
+                    st.dataframe(filtered_data)
+                    with st.spinner("Calculating T-tests ..."):
+                        same_gender_distances_next = filtered_data[
+                            "same_gender_proximity_next"
+                        ].dropna()
+                        diff_gender_distances_next = filtered_data[
+                            "diff_gender_proximity_next"
+                        ].dropna()
+                        same_gender_distances_prev = filtered_data[
+                            "same_gender_proximity_prev"
+                        ].dropna()
+                        diff_gender_distances_prev = filtered_data[
+                            "diff_gender_proximity_prev"
+                        ].dropna()
 
-                    st.info(
-                        f"T-Test results proximity_next: T-Statistic = {t_stat_next:.03f}, P-Value = {p_val_next:.03f}"
-                    )
-                    st.info(
-                        f"T-Test results proximity_next_welch: T-Statistic = {t_stat_next_welch:.03f}, P-Value = {p_val_next_welch:.03f}"
-                    )
+                        # Perform a T-test
+                        t_stat_next, p_val_next = stats.ttest_ind(
+                            same_gender_distances_next, diff_gender_distances_next
+                        )
+                        t_stat_prev, p_val_prev = stats.ttest_ind(
+                            same_gender_distances_prev,
+                            diff_gender_distances_prev,
+                        )
+
+                        msg += f"- Next neighbors: T-Statistic = {t_stat_next:.02f}, P-Value = {p_val_next:.02f}\n"
+                        msg += f"- Prev neighbors: T-Statistic = {t_stat_prev:.02f}, P-Value = {p_val_prev:.02f}"
+                        st.info(msg)
 
             if plot_pdf:
                 proximity_melted = proximity_df.melt(
@@ -819,16 +855,16 @@ if __name__ == "__main__":
                     value_vars=[
                         "same_gender_proximity_next",
                         "diff_gender_proximity_next",
-                        # "same_gender_proximity_prev",
-                        # "diff_gender_proximity_prev",
+                        "same_gender_proximity_prev",
+                        "diff_gender_proximity_prev",
                     ],
                     var_name="category",
                     value_name="distance",
                 )
 
                 proximity_melted["distance"] = proximity_melted["distance"].fillna(0)
-                st.info("proximity_melted")
-                st.dataframe(proximity_melted)
+                # st.info("proximity_melted")
+                # st.dataframe(proximity_melted)
                 c1, _, c2 = st.columns((1, 0.5, 1))
 
                 for country in ["aus", "ger", "jap", "chn"]:
@@ -837,38 +873,54 @@ if __name__ == "__main__":
                         rows=1,
                         cols=1,
                         subplot_titles=[f"<b>{country}</b>"],
+                        x_title="Distance / m",
+                        y_title="PDF",
                     )
-
-                    for type, color in zip(
-                        ["same_gender_proximity_next", "diff_gender_proximity_next"],
-                        ["blue", "crimson"],
+                    msg = f"{country}\n"
+                    for type_, color in zip(
+                        [
+                            "same_gender_proximity_next",
+                            "diff_gender_proximity_next",
+                            "same_gender_proximity_prev",
+                            "diff_gender_proximity_prev",
+                        ],
+                        ["blue", "crimson", "blue", "crimson"],
                     ):
+
+                        line_property = "solid" if type_.endswith("next") else "dash"
 
                         filtered_data = proximity_melted[
                             (proximity_melted["country"] == country)
-                            & (proximity_melted["category"] == type)
+                            & (proximity_melted["category"] == type_)
                         ]
                         filtered_data = filtered_data[filtered_data["distance"] != 0]
 
                         distances = np.unique(filtered_data["distance"])
                         loc = distances.mean()
                         scale = distances.std()
+                        padded_type = type_.ljust(26)
+
+                        msg += f"- {padded_type}: Mean: {loc:.2f} (+-{scale:.2f}) m\n"
+
                         distances = np.hstack(([0], distances))  # Exclude the value 0
                         pdf = stats.norm.pdf(distances, loc=loc, scale=scale)
 
                         # Create a DataFrame for the PDF data
                         pdf_data = pd.DataFrame({"distance": distances, "PDF": pdf})
+
                         trace = pl.plot_x_y_trace(
                             distances,
                             pdf,
-                            title=f"{country}: {type} | Mean: {loc:.2f}, Std: {scale:.2f}",
+                            title=f"{country}: {type_} | Mean: {loc:.2f}, Std: {scale:.2f}",
                             xlabel="Distance / m",
                             ylabel="PDF",
                             color=color,
-                            name=type,
+                            name=type_,
+                            line_property=line_property,
                         )
                         fig.append_trace(trace, row=1, col=1)
 
+                    st.code(msg)
                     st.plotly_chart(fig)
 
     with tab4:

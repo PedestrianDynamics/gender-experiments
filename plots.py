@@ -417,15 +417,17 @@ def plot_agent_and_neighbors(
 
     X = data0["x"]
     Y = data0["y"]
+    idgray = data0["id"]
     X0 = neighbors[:, 0]
     Y0 = neighbors[:, 1]
 
-    for x, y in zip(X, Y):
+    for i, x, y in zip(idgray, X, Y):
         fig.add_trace(
             go.Scatter(
                 x=[x],
                 y=[y],
                 marker=dict(size=20),
+                name=f"ID: {i:0.0f}",
                 line_color="lightgray",
                 showlegend=False,
             )
@@ -514,23 +516,23 @@ def plot_agent_and_neighbors(
     return fig
 
 
-def plot_x_y_trace(x, y, title, xlabel, ylabel, color, name, threshold=0):
+def plot_x_y_trace(x, y, title, xlabel, ylabel, color, name, line_property):
 
     x = np.unique(x)
-    if threshold:
-        trace_threshold = go.Scatter(
-            x=[x[0], x[-1]],
-            y=[threshold, threshold],
-            mode="lines",
-            name="Social Distance = 1.5 m",
-            line=dict(width=4, dash="dash", color="gray"),
-        )
+    # if threshold:
+    #     trace_threshold = go.Scatter(
+    #         x=[x[0], x[-1]],
+    #         y=[threshold, threshold],
+    #         mode="lines",
+    #         name="Social Distance = 1.5 m",
+    #         line=dict(width=4, dash="dash", color="gray"),
+    #     )
 
     trace = go.Scatter(
         x=x,
         y=y,
         mode="lines",
-        line=dict(width=3, color=color),
+        line=dict(width=3, color=color, dash=line_property),
         fill="none",
         showlegend=True,
         name=name,

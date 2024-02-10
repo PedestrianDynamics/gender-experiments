@@ -370,6 +370,19 @@ def plot_neighbors_analysis(data, ids, exterior, interior, do_rotate):
     ) = get_neighbors_special_agent_data(
         agent, frame, rotated_data, nearest_dist, nearest_ind
     )
+    # pos_neighbors = []
+
+    # data_frame = rotated_data.loc[rotated_data["frame"] == frame]
+
+    # pos_agent = data_frame.loc[data_frame["id"] == agent, ["x", "y"]].values.flatten()
+
+    # st.dataframe(pos_agent)
+    # neighbor_pos = data_frame.loc[data_frame["id"] == 3, ["x", "y"]].values.flatten()
+    # dist = np.linalg.norm(pos_agent - neighbor_pos)
+    # pos_neighbors.append(dist)
+    # st.info(f"{dist}")
+    # st.dataframe(neighbor_pos)
+
     fig = pl.plot_agent_and_neighbors(
         agent,
         frame,
