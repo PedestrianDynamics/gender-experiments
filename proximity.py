@@ -78,27 +78,27 @@ def calculate_circular_distance_and_gender_vect(data: pd.DataFrame) -> pd.DataFr
                and the gender of these neighbors.
     """
     # Create dictionaries to store distances and genders
-    data["distance_to_prev_neighbor"] = np.nan
-    data["gender_of_prev_neighbor"] = np.nan
-    data["distance_to_next_neighbor"] = np.nan
-    data["gender_of_next_neighbor"] = np.nan
+    data.loc["distance_to_prev_neighbor"] = np.nan
+    data.loc["gender_of_prev_neighbor"] = np.nan
+    data.loc["distance_to_next_neighbor"] = np.nan
+    data.loc["gender_of_next_neighbor"] = np.nan
 
     ids = data["id"].unique()
     for id_ in ids:
         mask = data["id"] == id_
-        id_data = data[mask]
-        prev = id_data["prev"].iloc[0]
-        next_ = id_data["next"].iloc[0]
+        id_data = data.loc[mask]
+        prev_id = id_data["prev"].iloc[0]
+        next_id = id_data["next"].iloc[0]
         # print(id_data)
         # Calculate distances and genders for previous neighbors
-        prev_data = data.loc[data["id"] == prev]
+        prev_data = data.loc[data["id"] == prev_id]
         distances_to_prev = np.linalg.norm(
             id_data[["x", "y"]].values - prev_data[["x", "y"]].values, axis=1
         )
         gender_of_prev = prev_data["gender"].astype(int).values
         # Calculate distances and genders for next neighbors
 
-        next_data = data[data["id"] == next_]
+        next_data = data[data["id"] == next_id]
 
         distances_to_next = np.linalg.norm(
             id_data[["x", "y"]].values - next_data[["x", "y"]].values, axis=1
@@ -251,7 +251,7 @@ def calculate_with_joblib(countries, files):
 
     tasks = []
     for country in countries:
-        if country in ["pal", "jap", "ger", "chn"]:
+        if country in ["pal"]:
             continue
 
         print(f"prepare tasks: {country}")
@@ -262,7 +262,7 @@ def calculate_with_joblib(countries, files):
     def process_task(task):
         return unpack_and_process(task)
 
-    nproc = 1
+    nproc = -1
     print(f"Running tasks in parallel {len(tasks)} with {nproc} proc...")
     results = Parallel(n_jobs=nproc)(delayed(process_task)(task) for task in tasks)
 

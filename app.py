@@ -722,7 +722,7 @@ if __name__ == "__main__":
         if do_analysis == "load_gender_analysis":
             result_csv = Path("proximity_analysis_results.csv")
             msg = st.empty()
-            c1, c2, c3 = st.columns((1, 1, 1))
+            c0, c1, c2, c3 = st.columns((1, 1, 1, 1))
             st.divider()
 
             if not result_csv.exists():
@@ -739,8 +739,8 @@ if __name__ == "__main__":
                 st.stop()
 
             msg.empty()
-            st.info("All proximity data")
-            st.dataframe(proximity_df)
+
+            show_dataframe = c0.checkbox("Show data", value=True)
             ttest = c1.checkbox("T-test", value=False)
             plot_pdf = c2.checkbox("PDF", value=False)
             debug = c3.checkbox(
@@ -748,6 +748,10 @@ if __name__ == "__main__":
                 value=False,
                 help="Plot times series of distance per file",
             )
+            if show_dataframe:
+                st.info("All proximity data")
+                st.dataframe(proximity_df)
+
             if debug:
                 st.info(f"Data for {selected_file}")
                 st.dataframe(proximity_df.loc[proximity_df["file"] == selected_file])
@@ -764,49 +768,43 @@ if __name__ == "__main__":
                     (proximity_df["id"] == uid)
                     & (proximity_df["file"] == selected_file),
                 )
+                field_name = {
+                    "same_gender_proximity_next": "same next",
+                    "same_gender_proximity_prev": "same  prev",
+                    "diff_gender_proximity_next": "diff next",
+                    "diff_gender_proximity_prev": "diff prev",
+                }
+                colors = ["blue", "crimson", "green", "magenta"]
+                fig = go.Figure()
+                for (field, name), color in zip(field_name.items(), colors):
+                    frames = proximity_df.loc[
+                        condition,
+                        "frame",
+                    ]
+                    # y_col = proximity_df.loc[proximity_df["id"] == uid, field]
+                    y_col = proximity_df.loc[condition, field]
+                    title_text = rf"$ \text{ {name} }\in [{np.min(y_col):.2f}, {np.max(y_col):.2f}], \mu = {np.mean(y_col):.2f} \pm {np.std(y_col):.2f}$"
+                    if not np.all(np.isnan(y_col)):
+                        fig.add_trace(
+                            go.Scatter(
+                                x=frames,
+                                y=y_col,
+                                marker=dict(color=color),
+                                mode="lines",
+                                name=title_text,
+                                showlegend=True,
+                            ),
+                        )
 
-                field = st.selectbox(
-                    "Field",
-                    (
-                        "same_gender_proximity_next",
-                        "same_gender_proximity_prev",
-                        "diff_gender_proximity_next",
-                        "diff_gender_proximity_prev",
-                    ),
-                )
-
-                fig = make_subplots(
-                    rows=1,
-                    cols=1,
-                )
-
-                frames = proximity_df.loc[
-                    condition,
-                    "frame",
-                ]
-                # y_col = proximity_df.loc[proximity_df["id"] == uid, field]
-                y_col = proximity_df.loc[condition, field]
-
-                fig.add_trace(
-                    go.Scatter(
-                        x=frames,
-                        y=y_col,
-                        marker=dict(color="blue"),
-                        mode="lines",
-                    ),
-                    row=1,
-                    col=1,
-                )
                 fig.update_layout(
-                    title=f"distance of <{uid}> to <{field}> [m] |  min = {np.min(y_col):.2}, max = {np.max(y_col):.2}, mean = {np.mean(y_col):.2f} (+- {np.std(y_col):.2})",
+                    # title=title_text,
                     xaxis_title="frame",
-                    # yaxis_title=f"distance [m]",
+                    yaxis_title=r"Distance / m",
                     # xaxis=dict(scaleanchor="y"),  # , range=[xmin, xmax]),
-                    yaxis=dict(scaleratio=1, range=[0, 7]),
-                    showlegend=False,
+                    yaxis=dict(scaleratio=1, range=[0, 6]),
+                    showlegend=True,
                 )
-
-                st.plotly_chart(fig)
+                st.components.v1.html(fig.to_html(include_mathjax="cdn"), height=500)
 
             if ttest:
                 st.divider()
@@ -866,7 +864,12 @@ if __name__ == "__main__":
                 # st.info("proximity_melted")
                 # st.dataframe(proximity_melted)
                 c1, _, c2 = st.columns((1, 0.5, 1))
-
+                type_name = {
+                    "same_gender_proximity_next": "same next",
+                    "same_gender_proximity_prev": "same  prev",
+                    "diff_gender_proximity_next": "diff next",
+                    "diff_gender_proximity_prev": "diff prev",
+                }
                 for country in ["aus", "ger", "jap", "chn"]:
 
                     fig = make_subplots(
@@ -877,23 +880,22 @@ if __name__ == "__main__":
                         y_title="PDF",
                     )
                     msg = f"{country}\n"
-                    for type_, color in zip(
-                        [
-                            "same_gender_proximity_next",
-                            "diff_gender_proximity_next",
-                            "same_gender_proximity_prev",
-                            "diff_gender_proximity_prev",
-                        ],
-                        ["blue", "crimson", "blue", "crimson"],
+                    for (type_, name), color in zip(
+                        type_name.items(), ["blue", "crimson", "green", "magenta"]
                     ):
 
                         line_property = "solid" if type_.endswith("next") else "dash"
+                        if line_property == "dash":
+                            if type_.startswith("diff"):
+                                line_property = "dot"
 
-                        filtered_data = proximity_melted[
+                        filtered_data = proximity_melted.loc[
                             (proximity_melted["country"] == country)
                             & (proximity_melted["category"] == type_)
                         ]
-                        filtered_data = filtered_data[filtered_data["distance"] != 0]
+                        filtered_data = filtered_data.loc[
+                            filtered_data["distance"] != 0
+                        ]
 
                         distances = np.unique(filtered_data["distance"])
                         loc = distances.mean()
@@ -911,11 +913,11 @@ if __name__ == "__main__":
                         trace = pl.plot_x_y_trace(
                             distances,
                             pdf,
-                            title=f"{country}: {type_} | Mean: {loc:.2f}, Std: {scale:.2f}",
+                            title=f"{country}: {name} | Mean: {loc:.2f}, Std: {scale:.2f}",
                             xlabel="Distance / m",
                             ylabel="PDF",
                             color=color,
-                            name=type_,
+                            name=name,
                             line_property=line_property,
                         )
                         fig.append_trace(trace, row=1, col=1)
