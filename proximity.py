@@ -1,16 +1,17 @@
-import concurrent.futures
-import pedpy
-import time
+import glob
 import itertools
+import re
+import time
 from pathlib import Path
+from typing import Dict, List
+
 import numpy as np
 import pandas as pd
-import analysis as al
-import glob
-import helper as hp
-from tqdm import tqdm
-import re
+import pedpy
 from joblib import Parallel, delayed
+from tqdm import tqdm
+
+import helper as hp
 
 
 def load_file(file: str) -> pedpy.TrajectoryData:
@@ -60,10 +61,6 @@ def filter_frames(data: pd.DataFrame, nagents: int) -> pd.DataFrame:
     return cleaned_data
 
 
-import pandas as pd
-import numpy as np
-
-
 def calculate_circular_distance_and_gender_vect(data: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate the distance to the nearest neighbors based on preprocessed neighbor information,
@@ -78,17 +75,28 @@ def calculate_circular_distance_and_gender_vect(data: pd.DataFrame) -> pd.DataFr
                and the gender of these neighbors.
     """
     # Create dictionaries to store distances and genders
-    data.loc["distance_to_prev_neighbor"] = np.nan
-    data.loc["gender_of_prev_neighbor"] = np.nan
-    data.loc["distance_to_next_neighbor"] = np.nan
-    data.loc["gender_of_next_neighbor"] = np.nan
-
     ids = data["id"].unique()
+    new_columns = [
+        "distance_to_prev_neighbor",
+        "gender_of_prev_neighbor",
+        "distance_to_next_neighbor",
+        "gender_of_next_neighbor",
+    ]
+    data.loc[:, new_columns] = np.nan
+
     for id_ in ids:
+        # if np.isnan(id_):
+        #     print(f"{ids=}")
         mask = data["id"] == id_
         id_data = data.loc[mask]
+        # print("=======")
+        # print(f"{id_=}")
+        # print(id_data)
+
         prev_id = id_data["prev"].iloc[0]
         next_id = id_data["next"].iloc[0]
+        # print(f"{prev_id=}, {next_id=}")
+        # print("=======")
         # print(id_data)
         # Calculate distances and genders for previous neighbors
         prev_data = data.loc[data["id"] == prev_id]
@@ -114,40 +122,56 @@ def calculate_circular_distance_and_gender_vect(data: pd.DataFrame) -> pd.DataFr
     return data
 
 
-def extract_first_number(filename):
-    """Define a regular expression pattern to match the first sequence of digits"""
+def extract_first_number(filename: str) -> int:
+    """Define a regular expression pattern to match the first sequence of digits."""
     pattern = r"\d+"
     numbers = re.findall(pattern, filename)
 
-    if numbers:
-        return int(numbers[0])
-    else:
-        return None  # I hope this does not happen!
+    return int(numbers[0])
 
 
-def calculate_proximity_analysis(country, file, rotated_data):
-    # processed_data = al.calculate_circular_distance_and_gender(rotated_data)
+def calculate_proximity_analysis(
+    country: str, filename: str, rotated_data: pd.DataFrame, fps: int = 25
+) -> List[Dict]:
+    """
+    Performs proximity analysis on given data of agents.
+    Filtering by frames and categorizing
+    by gender proximity for each agent within the selected frames.
 
-    nagents = extract_first_number(file)
+    Args:
+        country (str): The country code or name related to the dataset.
+        filename (str): The name of the file containing the dataset, used to infer gender composition.
+        data (pd.DataFrame): A pandas DataFrame witqh rotated data including agent positions and genders.
+        fps (int, optional): The frames per second rate used to filter the data. Defaults to 25.
 
+    Returns:
+        List[Dict]: A list of dictionaries, each containing the proximity analysis results for an agent in
+        the filtered frames, including country, file name, agent type, ID, frame number, and distances to
+        the next and previous neighbors classified by gender similarity.
+
+    Note:
+        The function expects 'data' DataFrame to include 'frame', 'id', 'gender',
+        'gender_of_next_neighbor', 'gender_of_prev_neighbor', 'distance_to_next_neighbor',
+        and 'distance_to_prev_neighbor' columns.
+    """
+    nagents = extract_first_number(filename)
     cleaned_data = filter_frames(rotated_data, nagents)
     processed_data = calculate_circular_distance_and_gender_vect(cleaned_data)
 
     proximity_analysis_res = []
-    fps = 25
     frames_to_include = set(range(0, processed_data["frame"].max(), fps))
 
     # Filter the DataFrame to only include the desired frames
     filtered_data = processed_data[processed_data["frame"].isin(frames_to_include)]
 
     # Now iterate over the filtered DataFrame
-    if "female" in file:
+    if "female" in filename:
         name = "female"
-    elif "male" in file:
+    elif "male" in filename:
         name = "male"
-    elif "mix_sorted" in file:
+    elif "mix_sorted" in filename:
         name = "mix_sorted"
-    elif "mix_random" in file:
+    elif "mix_random" in filename:
         name = "mix_random"
     else:
         name = "unknown"
@@ -179,7 +203,7 @@ def calculate_proximity_analysis(country, file, rotated_data):
         proximity_analysis_res.append(
             {
                 "country": country,
-                "file": file,
+                "file": filename,
                 "type": name,
                 "id": row["id"],
                 "frame": row["frame"],
@@ -200,49 +224,8 @@ def unpack_and_process(args):
 def prepare_data(country, selected_file):
     trajectory_data = load_file(selected_file)
     data = trajectory_data.data
-    return country, selected_file, data
-
-
-# def calculate_with_progress(countries, files):
-#     res_file = "proximity_results"
-#     # res_file_path = Path(res_file)
-#     # if res_file_path.exists():
-#     #     st.info("Found ")
-#     #     return pd.read_pickle(res_file)
-
-#     # Prepare tasks
-#     tasks = []
-
-#     for country in countries:
-#         if country == "pal":
-#             continue
-
-#         print(f"prepare tasks: {country}")
-#         for f in files[country]:
-#             tasks.append(prepare_data(country, f))
-
-#     with tqdm(total=len(tasks)) as pbar:
-#         with concurrent.futures.ProcessPoolExecutor() as executor:
-#             # Submit all tasks to the executor
-#             future_to_task = {
-#                 executor.submit(unpack_and_process, task): task for task in tasks
-#             }
-
-#             results = []
-#             for i, future in enumerate(
-#                 concurrent.futures.as_completed(future_to_task), 1
-#             ):
-#                 # Result from the completed task
-#                 result = future.result()
-#                 results.append(result)
-#                 # Update the progress bar
-#                 pbar.update(1)
-
-#     # Return the final results
-#     flattened_results = list(itertools.chain.from_iterable(results))
-#     flattened_results = pd.DataFrame(flattened_results)
-#     flattened_results.to_pickle(res_file)
-#     return flattened_results
+    fps = 25
+    return country, selected_file, data, 25
 
 
 def calculate_with_joblib(countries, files):
@@ -251,9 +234,6 @@ def calculate_with_joblib(countries, files):
 
     tasks = []
     for country in countries:
-        if country in ["pal"]:
-            continue
-
         print(f"prepare tasks: {country}")
         for file in files[country]:
             tasks.append(prepare_data(country, file))
@@ -264,7 +244,11 @@ def calculate_with_joblib(countries, files):
 
     nproc = -1
     print(f"Running tasks in parallel {len(tasks)} with {nproc} proc...")
-    results = Parallel(n_jobs=nproc)(delayed(process_task)(task) for task in tasks)
+    results = Parallel(n_jobs=nproc)(
+        delayed(process_task)(task) for task in tqdm(tasks)
+    )
+    # for task in tasks:
+    #     process_task(task)
 
     print(f"Done running tasks in parallel {len(tasks)} ...")
     # Return the final results
