@@ -207,101 +207,77 @@ def plot_time_series(
 def plot_fundamental_diagram(
     country, density: pd.DataFrame, speed: pd.DataFrame
 ) -> go.Figure:
-    fig = make_subplots(
-        rows=1,
-        cols=1,
-    )
+    fig = go.Figure()
 
     fig.add_trace(
         go.Scatter(
-            x=density,
-            y=speed,
+            x=density[::50],
+            y=speed[::50],
             marker=dict(color="blue"),
             mode="markers",
         ),
-        row=1,
-        col=1,
     )
 
-    # fig.add_trace(
-    #     go.Scatter(
-    #         x=density,
-    #         y=speed * density,
-    #         marker=dict(color="blue"),
-    #         mode="markers",
-    #     ),
-    #     row=1,
-    #     col=2,
-    # )
-
     # rmin = 0  # np.min(data["instantaneous_density"]) - 0.5
-    rmax = np.max(density) + 0.5
-    vmin = 0
-    vmax = np.max(speed) + 0.5
+    # rmax = np.max(density) + 0.5
+    vmin = np.min(speed) - 0.05
+    vmax = np.max(speed) + 0.05
     fig.update_layout(
         title=f"Country: {country}",
         xaxis_title="Density / 1/m/m",
         showlegend=False,
     )
-    fig.update_yaxes(range=[vmin, vmax], title_text="Speed / m/s", row=1, col=1)
-    # fig.update_yaxes(title_text="Speed * Density / 1/m/s", row=1, col=2)
-    # fig.update_xaxes(title_text="Density / 1/m/m", row=1, col=2)
+    fig.update_yaxes(range=[vmin, vmax], title_text="Speed / m/s")
+    fig.update_xaxes(
+        scaleanchor="y",
+        scaleratio=1,
+    )
+
     return fig
 
 
 def plot_fundamental_diagram_all(country_data) -> go.Figure:
-    fig = make_subplots(
-        rows=1,
-        cols=1,
-        subplot_titles=("Density - Speed"),
-    )
+    fig = go.Figure()
+
     rmax = -1
     vmax = -1
 
     colors_const = ["blue", "red", "green", "magenta", "black"]
+    marker_shapes = ["circle", "square", "diamond", "cross", "x-thin"]  # Example shapes
+
     colors = {}
     for country, color in zip(country_data.keys(), colors_const):
         colors[country] = color
 
-    for country, (speed, density) in country_data.items():
+    for i, (country, (density, speed)) in enumerate(country_data.items()):
         fig.add_trace(
             go.Scatter(
-                x=density,
-                y=speed,
-                marker=dict(color=colors[country]),
+                x=density[::50],
+                y=speed[::50],
+                marker=dict(
+                    color=colors[country],
+                    opacity=0.5,
+                    symbol=marker_shapes[i % len(marker_shapes)],
+                ),
                 mode="markers",
                 name=f"{country}",
-                showlegend=False,
-            ),
-            row=1,
-            col=1,
+                showlegend=True,
+            )
         )
-        # fig.add_trace(
-        #     go.Scatter(
-        #         x=density,
-        #         y=speed * density,
-        #         marker=dict(color=colors[country]),
-        #         mode="markers",
-        #         name=f"{country}",
-        #         showlegend=True,
-        #     ),
-        #     row=1,
-        #     col=2,
-        # )
         rmax = max(rmax, np.max(density))
         vmax = max(vmax, np.max(speed))
 
     vmin = 0
-    vmax += 0.5
-    rmax += 0.5
-    fig.update_layout(
-        # title=f"Country: {country}",
-        xaxis_title="Density / 1/m/m",
+    vmax += 0.05
+    rmax += 0.05
+    vmax = 2.0
+    fig.update_yaxes(range=[vmin, vmax], title_text=r"$v\; / \frac{m}{s}$")
+    fig.update_xaxes(
+        title_text=r"$\rho / m^{-2}$",
+        scaleanchor="y",
+        scaleratio=1,
     )
-    fig.update_yaxes(range=[vmin, vmax], title_text="Speed / m/s", row=1, col=1)
-    # fig.update_yaxes(title_text="Speed * Density / 1/m/s", row=1, col=2)
-    fig.update_xaxes(range=[0, rmax], title_text="Density / 1/m/m", row=1, col=1)
-    # fig.update_xaxes(range=[0, rmax], title_text="Density / 1/m/m", row=1, col=2)
+
     return fig
 
 

@@ -1,8 +1,7 @@
 """Main entry point to the app."""
 
-import concurrent.futures
 import glob
-import itertools
+import pickle
 import subprocess
 import time
 from collections import defaultdict
@@ -12,7 +11,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pedpy
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
@@ -404,8 +402,8 @@ def density_speed_time_series_micro(country, file, fps, dv, diff_const):
     with st.spinner(f"Calculating {country} ..."):
         start_time = time.time()
         filter_df = df[(df["country"] == country) & (df["file"] == file)]
-        st.info(f"{file}")
-        st.dataframe(filter_df)
+        # st.info(f"{file}")
+        # st.dataframe(filter_df)
         density = al.calculate_individual_density_csv(filter_df)
         st.info(f"Density for {file}")
         cd.dataframe(density)
@@ -432,9 +430,10 @@ def density_speed_time_series_micro(country, file, fps, dv, diff_const):
         st.plotly_chart(fig)
 
 
-def fundamental_diagram(country, fps, dv, diff_const, do_rotate, method: str):
+def fundamental_diagram_micro(country, fps, dv, diff_const):
     msg = st.empty()
     result_csv = proximity_results["path"]
+    all_merged_df = pd.DataFrame()
     if not result_csv.exists():
         msg.warning(f"{result_csv} does not exist yet!")
         with st.spinner("Downloading ..."):
@@ -443,78 +442,132 @@ def fundamental_diagram(country, fps, dv, diff_const, do_rotate, method: str):
     if result_csv.exists():
         msg.info(f"Reading file {result_csv}")
         df = pd.read_csv(result_csv)
-
+    c1, c2 = st.columns((1, 1))
     with st.spinner(f"Calculating {country} ..."):
         start_time = time.time()
-        mean_density = []
-        mean_speed = []
-        density_columns = []
-        speed_columns = []
-        density_key = (
-            "instantaneous_density" if method == "macro" else "individual_density"
-        )
-
         for file in st.session_state.config.files[country]:
-            msg.info(f"{file}")
-            # set_rotation_variables(file, country)
-            trajectory_data = hp.load_file(file)
-            data = trajectory_data.data
-            if do_rotate:
-                rotated_data = hp.rotate_trajectories(
-                    data,
-                    st.session_state.center_x,
-                    st.session_state.center_y,
-                    st.session_state.angle_degrees,
-                )
-            else:
-                rotated_data = data
+            try:
+                msg.info(f"{file}")
+                trajectory_data = hp.load_file(file)
+                data = trajectory_data.data
 
-            if method == "macro":
-                density = al.calculate_instantaneous_density_per_frame(
-                    rotated_data, fps
-                )
-
-            elif method == "micro":
-                msg.info("start calculating")
                 filter_df = df[(df["country"] == country) & (df["file"] == file)]
-                density = al.calculate_individual_density_csv(filter_df)  #
 
-                start = time.time()
-                # density = al.calculate_individual_density(rotated_data)  #
-                end = time.time()
-                msg.info(f"Finished with {file} in {end-start} s")
-            else:
-                st.warning(
-                    f"Method {method} is not implemented. Choose between macro or micro"
+                density = al.calculate_individual_density_csv(filter_df)
+                speed = al.calculate_speed(data, dv)
+                steady_state_index = al.calculate_steady_state(
+                    speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
                 )
-                st.stop()
-            speed = al.calculate_speed(rotated_data, dv)  #
-            steady_state_index = al.calculate_steady_state(
-                speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
+                speed_df = speed.loc[:, ["frame", "id", "speed"]].iloc[
+                    steady_state_index:
+                ]
+
+                # Data consistency check (example)
+                if not density.empty and not speed_df.empty:
+                    merged_df = pd.merge(density, speed_df, on=["id", "frame"])
+                    all_merged_df = pd.concat(
+                        [all_merged_df, merged_df], ignore_index=True
+                    )
+                else:
+                    msg.warning(
+                        f"Empty DataFrame encountered for {file}. Skipping merge."
+                    )
+            except Exception as e:
+                msg.error(f"Error processing {file}: {e}")
+
+    end_time = time.time()
+    # msg.info(f"Finished with {file} in {end_time-start_time:.2f} s")
+    return all_merged_df
+
+    def fundamental_diagram_macro(country, fps, dv, diff_const, do_rotate, method: str):
+        msg = st.empty()
+        result_csv = proximity_results["path"]
+        if not result_csv.exists():
+            msg.warning(f"{result_csv} does not exist yet!")
+            with st.spinner("Downloading ..."):
+                hp.download_csv(proximity_results["url"], proximity_results["path"])
+
+        if result_csv.exists():
+            msg.info(f"Reading file {result_csv}")
+            df = pd.read_csv(result_csv)
+
+        with st.spinner(f"Calculating {country} ..."):
+            start_time = time.time()
+            mean_density = []
+            mean_speed = []
+            density_columns = []
+            speed_columns = []
+            density_key = (
+                "instantaneous_density" if method == "macro" else "individual_density"
             )
-            # mean_speed.append(np.mean(speed["speed"].iloc[steady_state_index:]))
-            # mean_density.append(np.mean(density[density_key]))
-            # mean_speed.append(speed["speed"].iloc[steady_state_index:])
-            # mean_density.append(density[density_key])
-            density_columns.append(density[density_key])
-            speed_columns.append(speed["speed"])
 
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        st.info(f"Time taken to calculate density: {elapsed_time:.2f} seconds")
+            for file in st.session_state.config.files[country]:
+                msg.info(f"{file}")
+                # set_rotation_variables(file, country)
+                trajectory_data = hp.load_file(file)
+                data = trajectory_data.data
+                if do_rotate:
+                    rotated_data = hp.rotate_trajectories(
+                        data,
+                        st.session_state.center_x,
+                        st.session_state.center_y,
+                        st.session_state.angle_degrees,
+                    )
+                else:
+                    rotated_data = data
 
-        density_series = pd.concat(density_columns, ignore_index=True)
-        density_array = density_series.to_numpy()
-        speed_series = pd.concat(speed_columns, ignore_index=True)
-        speed_array = speed_series.to_numpy()
+                if method == "macro":
+                    density = al.calculate_instantaneous_density_per_frame(
+                        rotated_data, fps
+                    )
 
-        mean_density = np.array(mean_density)
-        mean_speed = np.array(mean_speed)
-        # return mean_speed, mean_density
-        np.save(f"density_array_{country}.npy", density_array)
-        np.save(f"speed_array_{country}.npy", speed_array)
+                elif method == "micro":
+                    msg.info("start calculating")
+                    filter_df = df[(df["country"] == country) & (df["file"] == file)]
+                    start = time.time()
+                    density = al.calculate_individual_density_csv(filter_df)  #
+                    # density = al.calculate_individual_density(rotated_data)  #
+                    end = time.time()
+                    msg.info(f"Finished with {file} in {end-start:.2} s")
+                else:
+                    st.warning(
+                        f"Method {method} is not implemented. Choose between macro or micro"
+                    )
+                    st.stop()
+                speed = al.calculate_speed(rotated_data, dv)  #
+                steady_state_index = al.calculate_steady_state(
+                    speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
+                )
+                # speed_df = speed.loc[:, ["frame", "id", "speed"]]
+                # speed_df = speed_df.iloc[steady_state_index:]
+                speed_df = speed.loc[:, ["frame", "id", "speed"]].iloc[
+                    steady_state_index:
+                ]
+                merged_df = pd.merge(density, speed_df, on=["id", "frame"])
 
-        return speed_array, density_array
+                # mean_speed.append(np.mean(speed["speed"].iloc[steady_state_index:]))
+                # mean_density.append(np.mean(density[density_key]))
+                # mean_speed.append(speed["speed"].iloc[steady_state_index:])
+                # mean_density.append(density[density_key])
+                density_columns.append(density[density_key])
+                speed_columns.append(speed["speed"])
+
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            st.info(f"Time taken to calculate density: {elapsed_time:.2f} seconds")
+
+            density_series = pd.concat(density_columns, ignore_index=True)
+            density_array = density_series.to_numpy()
+            speed_series = pd.concat(speed_columns, ignore_index=True)
+            speed_array = speed_series.to_numpy()
+            st.info("series")
+            st.dataframe(merged_df)
+
+            mean_density = np.array(mean_density)
+            mean_speed = np.array(mean_speed)
+            # return mean_speed, mean_density
+
+            return speed_array, density_array
 
 
 # Main
@@ -638,10 +691,9 @@ if __name__ == "__main__":
                 density_speed_time_series_micro(
                     country, selected_file, fps, dv, diff_const
                 )
+            method = calculations.split("_")[-1]
 
             if calculations == "FD_macro":
-                method = calculations.split("_")[-1]
-                st.info(method)
                 all_data = {}
                 for country in st.session_state.config.countries:
                     file_density = Path(f"density_array_{country}.npy")
@@ -650,7 +702,7 @@ if __name__ == "__main__":
                         mean_density = np.load(file_density)
                         mean_speed = np.load(file_speed)
                     else:
-                        mean_speed, mean_density = fundamental_diagram(  #
+                        mean_speed, mean_density = fundamental_diagram_macro(  #
                             country, fps, dv, diff_const, do_rotate, method
                         )
 
@@ -663,44 +715,38 @@ if __name__ == "__main__":
 
             if calculations == calculations == "FD_micro":
                 all_data = {}
-                result_csv = proximity_results["path"]
-                # Path("proximity_analysis_results.csv")
-                if not result_csv.exists():
-                    msg.warning(f"{result_csv} does not exist yet!")
-
-                    with st.spinner("Downloading ..."):
-                        hp.download_csv(
-                            proximity_results["url"], proximity_results["path"]
-                        )
-
-                if result_csv.exists():
-                    msg.info(f"Reading file {result_csv}")
-                    df = pd.read_csv(result_csv)
                 st.divider()
-                for country in st.session_state.config.countries:
-                    if country == "pal":
-                        continue
+                countries = [
+                    country
+                    for country in st.session_state.config.countries
+                    if country != "pal"
+                ]
+                for country in countries:
+                    precalculated_file = f"density_micro_{country}.pkl"
+                    if not Path(precalculated_file).exists():
+                        result = fundamental_diagram_micro(country, fps, dv, diff_const)
+                        with open(precalculated_file, "wb") as f:
+                            pickle.dump(result, f)
+                    else:
+                        msg.info(f"load precalculated file {precalculated_file}")
+                        with open(precalculated_file, "rb") as f:
+                            result = pickle.load(f)
 
-                    filter_df = df[df["country"] == country]
-                    if "jap" == country:
-                        flag = ":flag-jp:"
-                    if "aus" == country:
-                        flag = ":flag-ac:"
-                    if "chn" == country:
-                        flag = ":flag-cn:"
-                    if "ger" == country:
-                        flag = ":flag-de:"
+                    all_data[country] = (
+                        result["individual_density"],
+                        result["speed"],
+                    )
 
-                    st.info(f"Country: {country} {flag}")
-                    st.dataframe(filter_df)
-                    density = al.calculate_individual_density_csv(filter_df)
-                    st.info("Density")
-                    st.dataframe(density)
-                    #     fig = pl.plot_fundamental_diagram(country, mean_density, mean_speed)
-                    #     st.plotly_chart(fig)
-                    # all_data[country] = (mean_speed, mean_density)
-
-                # fig = pl.plot_fundamental_diagram_all(all_data)
+                st.markdown("**Fundamental diagram**")
+                selected_countries = st.multiselect(
+                    "Select countries to display:",
+                    options=countries,
+                    default=countries,
+                )
+                filtered_country_data = {
+                    country: all_data[country] for country in selected_countries
+                }
+                fig = pl.plot_fundamental_diagram_all(filtered_country_data)
                 hp.show_fig(fig, html=True)
 
     with tab3:
@@ -818,6 +864,7 @@ if __name__ == "__main__":
                     yaxis=dict(scaleratio=1, range=[0, 6]),
                     showlegend=True,
                 )
+                hp.show_fig(fig, bool=True)
                 st.components.v1.html(fig.to_html(include_mathjax="cdn"), height=500)
 
             if ttest:
