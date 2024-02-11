@@ -157,8 +157,8 @@ def calculate_proximity_analysis(
     nagents = extract_first_number(filename)
     cleaned_data = filter_frames(rotated_data, nagents)
     processed_data = calculate_circular_distance_and_gender_vect(cleaned_data)
-
     proximity_analysis_res = []
+
     frames_to_include = set(range(0, processed_data["frame"].max(), fps))
 
     # Filter the DataFrame to only include the desired frames
@@ -221,14 +221,13 @@ def unpack_and_process(args):
     return calculate_proximity_analysis(*args)
 
 
-def prepare_data(country, selected_file):
+def prepare_data(country, selected_file, fps):
     trajectory_data = load_file(selected_file)
     data = trajectory_data.data
-    fps = 25
-    return country, selected_file, data, 25
+    return country, selected_file, data, fps
 
 
-def calculate_with_joblib(countries, files):
+def calculate_with_joblib(countries, files, fps):
     # Prepare tasks
     res_file = "proximity_results"
 
@@ -236,7 +235,7 @@ def calculate_with_joblib(countries, files):
     for country in countries:
         print(f"prepare tasks: {country}")
         for file in files[country]:
-            tasks.append(prepare_data(country, file))
+            tasks.append(prepare_data(country, file, fps))
 
     # Define a function to be executed in parallel
     def process_task(task):
@@ -259,27 +258,38 @@ def calculate_with_joblib(countries, files):
     return flattened_results
 
 
-def init():
+@dataclass
+class InitData:
+    countries: list
+    files: dict
+    result_csv: Path
+    fps: int
+
+
+def init() -> InitData:
+    """
+    Initializes the application by setting up the countries, file paths, result CSV path, and FPS (frames per second).
+
+    Returns:
+        InitData: A data class containing initialized data including countries, files dictionary, result CSV path, and FPS.
+    """
     result_csv = Path("proximity_analysis_results.csv")
-    countries = [
-        "aus",
-        "ger",
-        "jap",
-        "chn",
-        "pal",
-    ]
+    fps = 25  # For distance calculations, calculate every fps-frame
+    countries = ["aus", "ger", "jap", "chn"]
     files = {}
     for country in countries:
-        files[country] = glob.glob(f"{country}/*.csv")
+        files[country] = [str(path) for path in Path(country).glob("*.csv")]
 
-    return countries, files, result_csv
+    return InitData(countries=countries, files=files, result_csv=result_csv, fps=fps)
 
 
 if __name__ == "__main__":
-    countries, files, result_csv = init()
+    init_data = init()
     start_time = time.time()
-    proximity_df = calculate_with_joblib(countries, files)
+    proximity_df = calculate_with_joblib(
+        init_data.countries, init_data.files, init_data.fps
+    )
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Time taken: {elapsed_time:.2f} seconds")
-    proximity_df.to_csv(result_csv, index=False)
+    proximity_df.to_csv(init_data.result_csv, index=False)
