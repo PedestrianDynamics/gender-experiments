@@ -192,7 +192,7 @@ def plot_time_series(
     )
 
     rmin = 0  # np.min(data["instantaneous_density"]) - 0.5
-    rmax = 3  # np.max(data["instantaneous_density"]) + 0.5
+    rmax = 5  # np.max(data["instantaneous_density"]) + 0.5
     vmax = np.max(speed["speed"]) + 0.5
     fig.update_layout(
         xaxis_title="Time / s",

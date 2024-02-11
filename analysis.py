@@ -91,10 +91,10 @@ import pandas as pd
 
 def calculate_individual_density_csv(data):
     # Replace None values with NaN
-    data.loc["same_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
-    data.loc["same_gender_proximity_next"].replace({None: np.nan}, inplace=True)
-    data.loc["diff_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
-    data.loc["diff_gender_proximity_next"].replace({None: np.nan}, inplace=True)
+    data.loc[:, "same_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
+    data.loc[:, "same_gender_proximity_next"].replace({None: np.nan}, inplace=True)
+    data.loc[:, "diff_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
+    data.loc[:, "diff_gender_proximity_next"].replace({None: np.nan}, inplace=True)
 
     # Calculate half sum distances
     half_sum_distances = 0.5 * (
