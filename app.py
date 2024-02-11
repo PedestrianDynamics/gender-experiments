@@ -765,7 +765,7 @@ if __name__ == "__main__":
                         yaxis=dict(scaleratio=1, range=[0, 6]),
                         showlegend=True,
                     )
-                    hp.show_fig(fig, bool=True)
+                    hp.show_fig(fig, html=True)
                     st.components.v1.html(
                         fig.to_html(include_mathjax="cdn"), height=500
                     )
