@@ -1,17 +1,17 @@
 """Collection of some helpful functions."""
 
-import numpy as np
-from typing import Tuple, Any
-import pandas as pd
-import streamlit as st
-import pedpy
+from typing import Any, Tuple
 
-from shapely.geometry import Polygon
+import numpy as np
+import pandas as pd
+import pedpy
+import requests
+import streamlit as st
+from plotly.graph_objs import Figure
 from scipy.spatial import KDTree
+from shapely.geometry import Polygon
 
 import plots as pl
-
-import requests
 
 
 def download_csv(url, destination):
@@ -500,3 +500,20 @@ def set_rotation_variables(selected_file, country):
         st.session_state.center_x = -1.5
         st.session_state.center_y = 0
         st.session_state.angle_degrees = 0
+
+
+def show_fig(fig: Figure, html: bool = False, height: int = 500) -> None:
+    """Workaround function to show figures having LaTeX-Code.
+
+    Args:
+        fig (Figure): A Plotly figure object to display.
+        html (bool, optional): Flag to determine if the figure should be shown as HTML. Defaults to False.
+        height (int, optional): Height of the HTML component if displayed as HTML. Defaults to 500.
+
+    Returns:
+        None
+    """
+    if not html:
+        st.plotly_chart(fig)
+    else:
+        st.components.v1.html(fig.to_html(include_mathjax="cdn"), height=height)

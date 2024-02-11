@@ -400,15 +400,19 @@ def density_speed_time_series_micro(country, file, fps, dv, diff_const):
     if result_csv.exists():
         msg.info(f"Reading file {result_csv}")
         df = pd.read_csv(result_csv)
-
+    cs, cd = st.columns((1, 1))
     with st.spinner(f"Calculating {country} ..."):
         start_time = time.time()
         filter_df = df[(df["country"] == country) & (df["file"] == file)]
+        st.info(f"{file}")
         st.dataframe(filter_df)
         density = al.calculate_individual_density_csv(filter_df)
-        st.dataframe(density)
+        st.info(f"Density for {file}")
+        cd.dataframe(density)
         msg.info("calculate speed")
         speed = al.calculate_speed(rotated_data, dv)
+
+        cs.dataframe(speed.loc[:, ["frame", "id", "speed"]])
         msg.info("calculate speed steady state")
         steady_state_index = al.calculate_steady_state(
             speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
@@ -672,22 +676,32 @@ if __name__ == "__main__":
                 if result_csv.exists():
                     msg.info(f"Reading file {result_csv}")
                     df = pd.read_csv(result_csv)
-
-                st.dataframe(df)
+                st.divider()
                 for country in st.session_state.config.countries:
                     if country == "pal":
                         continue
 
                     filter_df = df[df["country"] == country]
+                    if "jap" == country:
+                        flag = ":flag-jp:"
+                    if "aus" == country:
+                        flag = ":flag-ac:"
+                    if "chn" == country:
+                        flag = ":flag-cn:"
+                    if "ger" == country:
+                        flag = ":flag-de:"
+
+                    st.info(f"Country: {country} {flag}")
                     st.dataframe(filter_df)
                     density = al.calculate_individual_density_csv(filter_df)
+                    st.info("Density")
                     st.dataframe(density)
-                #     fig = pl.plot_fundamental_diagram(country, mean_density, mean_speed)
-                #     st.plotly_chart(fig)
-                #     all_data[country] = (mean_speed, mean_density)
+                    #     fig = pl.plot_fundamental_diagram(country, mean_density, mean_speed)
+                    #     st.plotly_chart(fig)
+                    # all_data[country] = (mean_speed, mean_density)
 
                 # fig = pl.plot_fundamental_diagram_all(all_data)
-                # st.plotly_chart(fig)
+                hp.show_fig(fig, html=True)
 
     with tab3:
         # do_analysis = st.checkbox("Perform gender analysis", value=False)
@@ -776,13 +790,13 @@ if __name__ == "__main__":
                 }
                 colors = ["blue", "crimson", "green", "magenta"]
                 fig = go.Figure()
-                for (field, name), color in zip(field_name.items(), colors):
+                for (field_, name), color in zip(field_name.items(), colors):
                     frames = proximity_df.loc[
                         condition,
                         "frame",
                     ]
                     # y_col = proximity_df.loc[proximity_df["id"] == uid, field]
-                    y_col = proximity_df.loc[condition, field]
+                    y_col = proximity_df.loc[condition, field_]
                     title_text = rf"$ \text{ {name} }\in [{np.min(y_col):.2f}, {np.max(y_col):.2f}], \mu = {np.mean(y_col):.2f} \pm {np.std(y_col):.2f}$"
                     if not np.all(np.isnan(y_col)):
                         fig.add_trace(
