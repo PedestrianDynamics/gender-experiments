@@ -526,7 +526,7 @@ if __name__ == "__main__":
 
     with tab2:
         do_calculations = st.toggle("Activate", key="tab2", value=False)
-        docs = st.expander("Documentation", expanded=True)
+        docs = st.expander("Documentation (click to expand)", expanded=False)
         with docs:
             st.write(
                 r"""
@@ -778,13 +778,13 @@ if __name__ == "__main__":
                     st.latex("p <= 0.05 \\rightarrow \\text{ reject}\; H_0")
 
                     for country in ["aus", "ger", "jap", "chn"]:
-                        msg = f"{country}\n"
+                        msg = f"Result for <{country}>\n"
                         filtered_data = proximity_df[
                             (proximity_df["country"] == country)
                             & (proximity_df["type"] == "mix_sorted")
                         ]
-                        st.dataframe(filtered_data)
-                        with st.spinner("Calculating T-tests ..."):
+                        # st.dataframe(filtered_data)
+                        with st.status("Calculating T-tests ...", expanded=True):
                             same_gender_distances_next = filtered_data[
                                 "same_gender_proximity_next"
                             ].dropna()
@@ -797,7 +797,6 @@ if __name__ == "__main__":
                             diff_gender_distances_prev = filtered_data[
                                 "diff_gender_proximity_prev"
                             ].dropna()
-
                             # Perform a T-test
                             t_stat_next, p_val_next = stats.ttest_ind(
                                 same_gender_distances_next, diff_gender_distances_next
