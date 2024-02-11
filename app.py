@@ -27,7 +27,7 @@ from anim import animate
 # global variables for csv proximity file
 proximity_results = {}
 proximity_results["path"] = Path("proximity_analysis_results.csv")
-proximity_results["url"] = "https://fz-juelich.sciebo.de/s/U5rujIKIaZenIUg/download"
+proximity_results["url"] = "https://fz-juelich.sciebo.de/s/ubLkIFwFmfSAvJG/download"
 path = Path(__file__)
 ROOT_DIR = path.parent.absolute()
 
@@ -679,15 +679,15 @@ if __name__ == "__main__":
                 st.info(f"Running time: {elapsed_time/60:.2} min")
 
             if do_analysis == "load_gender_analysis":
-                result_csv = Path("proximity_analysis_results.csv")
+                result_csv = proximity_results["path"]
                 msg = st.empty()
                 c0, c1, c2, c3 = st.columns((1, 1, 1, 1))
                 st.divider()
 
                 if not result_csv.exists():
                     msg.warning(f"{result_csv} does not exist yet!")
-                    csv_url = "https://fz-juelich.sciebo.de/s/U5rujIKIaZenIUg/download"
-                    with st.spinner("Downloading ..."):
+                    csv_url = proximity_results["url"]
+                    with st.status("Downloading ..."):
                         hp.download_csv(csv_url, result_csv)
 
                 if result_csv.exists():
