@@ -49,6 +49,7 @@ def run_tab3(selected_file: str):
         if do_analysis == "load_gender_analysis":
             result_csv = st.session_state.config.proximity_results["path"]
             msg = st.empty()
+            st.divider()
             c0, c1, c2, c3, c4 = st.columns((1, 1, 1, 1, 1))
             st.divider()
 
@@ -78,15 +79,21 @@ def run_tab3(selected_file: str):
                 value_name="distance",
             )
             show_dataframe = c0.checkbox("Show data", value=True)
-            ttest = c1.checkbox("T-test", value=False)
-            plot_pdf = c2.checkbox("PDF", value=False)
+            ttest = c1.checkbox(
+                "T-test", value=False, help="Perform ttest on the distances."
+            )
+            plot_pdf = c2.checkbox(
+                "PDF", value=False, help="PDF function for distances"
+            )
             debug = c3.checkbox(
                 "Time-series",
                 value=False,
                 help="Plot times series of distance per file",
             )
             plot_box = c4.checkbox(
-                "Box-plot", value=False, help="Plot box plot for all countries (slow!)"
+                "Box-plot",
+                value=False,
+                help="Plot box plot for all countries **(slow!)**.",
             )
             if show_dataframe:
                 col1, col2, col3 = st.columns((0.3, 0.3, 0.3))

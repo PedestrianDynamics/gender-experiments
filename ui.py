@@ -12,7 +12,7 @@ def init_page_config():
         menu_items={
             "Get Help": "https://github.com/PedestrianDynamics/gender-experiments",
             "Report a bug": "https://github.com/PedestrianDynamics/gender-experiments/issues",
-            "About": "# Gender-experiments across culture.\n This is a tool to analyse and visualise several experiments of pedestrian dynamics in five different countries:\n\n :flag-ac: Australia, :flag-cn: China, :flag-jp: Japan, :flag-de: Germany and :flag-ae: Palestine.",
+            "About": "# Gender-experiments across culture.\n This is a tool to analyse and visualise several experiments of pedestrian dynamics in five different countries:\n\n :flag-ac: Australia, :flag-cn: China, :flag-jp: Japan, :flag-de: Germany and :flag-ps: Palestine.",
         },
     )
 
@@ -55,6 +55,6 @@ def init_sidebar():
     if "ger" in country:
         flag.write(":flag-de:")
     if "pal" in country:
-        flag.write(":flag-ae:")
+        flag.write(":flag-ps:")
 
     return country, tab1, tab2, tab3, tab4

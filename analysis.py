@@ -209,6 +209,58 @@ def density_speed_time_series_micro(
         st.plotly_chart(fig)
 
 
+def fundamental_diagram_micro(country, dv, diff_const):
+
+    result_csv = st.session_state.config.proximity_results["path"]
+    url = st.session_state.config.proximity_results["url"]
+    all_merged_df = pd.DataFrame()
+    if not result_csv.exists():
+        st.warning(f"{result_csv} does not exist yet!")
+        with st.status("Downloading ...", expanded=True):
+            hp.download_csv(url, result_csv)
+
+    if result_csv.exists():
+        st.info(f"Reading file {result_csv}")
+        df = pd.read_csv(result_csv)
+    c1, c2 = st.columns((1, 1))
+    with st.status(f"Calculating {country} ...", expanded=True):
+        msg = st.empty()
+        start_time = time.time()
+        for filename in st.session_state.config.files[country]:
+            try:
+                msg.info(f"{filename}")
+                trajectory_data = hp.load_file(filename)
+                data = trajectory_data.data
+
+                filter_df = df[(df["country"] == country) & (df["file"] == filename)]
+
+                density = al.calculate_individual_density_csv(filter_df)
+                speed = al.calculate_speed(data, dv)
+                steady_state_index = al.calculate_steady_state(
+                    speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
+                )
+                speed_df = speed.loc[:, ["frame", "id", "speed"]].iloc[
+                    steady_state_index:
+                ]
+
+                # Data consistency check (example)
+                if not density.empty and not speed_df.empty:
+                    merged_df = pd.merge(density, speed_df, on=["id", "frame"])
+                    all_merged_df = pd.concat(
+                        [all_merged_df, merged_df], ignore_index=True
+                    )
+                else:
+                    msg.warning(
+                        f"Empty DataFrame encountered for {filename}. Skipping merge."
+                    )
+            except Exception as e:
+                msg.error(f"Error processing {filename}: {e}")
+
+    end_time = time.time()
+    msg.info(f"Finished with {filename} in {end_time-start_time:.2f} s")
+    return all_merged_df
+
+
 # def kde():
 #         filtered_data = proximity_df[(proximity_df['country'] == country) &
 #                                      (proximity_df['category'] == category)]
