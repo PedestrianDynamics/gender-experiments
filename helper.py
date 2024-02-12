@@ -616,3 +616,12 @@ def show_fig(fig: Figure, html: bool = False, height: int = 500) -> None:
         st.plotly_chart(fig)
     else:
         st.components.v1.html(fig.to_html(include_mathjax="cdn"), height=height)
+
+
+# implement pagination to show large dataframe
+def increment_page_start(page_size):
+    st.session_state.page_start += page_size
+
+
+def decrement_page_start(page_size):
+    st.session_state.page_start -= page_size

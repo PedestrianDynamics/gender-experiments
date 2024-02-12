@@ -50,6 +50,10 @@ class DataConfig:
 
 def init_session_state(msg):
     """Init session_state. throughout the app."""
+
+    if "page_start" not in st.session_state:
+        st.session_state.page_start = 0
+
     if not hasattr(st.session_state, "loaded_data"):
         st.session_state.loaded_data = {}
 
