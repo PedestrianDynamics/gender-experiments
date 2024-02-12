@@ -14,6 +14,7 @@ from plotly.subplots import make_subplots
 from scipy import stats
 
 import helper as hp
+import plots as pl
 
 
 def run_tab3(selected_file: str):
@@ -186,8 +187,6 @@ def run_tab3(selected_file: str):
                 )
 
                 proximity_melted["distance"] = proximity_melted["distance"].fillna(0)
-                # st.info("proximity_melted")
-                # st.dataframe(proximity_melted)
                 c1, _, c2 = st.columns((1, 0.5, 1))
                 type_name = {
                     "same_gender_proximity_next": "same next",
@@ -233,7 +232,7 @@ def run_tab3(selected_file: str):
                         pdf = stats.norm.pdf(distances, loc=loc, scale=scale)
 
                         # Create a DataFrame for the PDF data
-                        pdf_data = pd.DataFrame({"distance": distances, "PDF": pdf})
+                        # pdf_data = pd.DataFrame({"distance": distances, "PDF": pdf})
 
                         trace = pl.plot_x_y_trace(
                             distances,
