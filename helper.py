@@ -15,6 +15,68 @@ from shapely.geometry import Polygon
 import plots as pl
 
 
+def set_rotation_variables(selected_file, country):
+    ger_substrings_to_check = [
+        "female",
+        "20_19",
+        "16_18",
+        "40_11",
+        "8_16",
+        "8_17",
+        "32_11",
+        "36_11",
+        "4_11",
+        "4_12",
+        "4_13",
+        "4_15",
+        "4_14",
+    ]
+    aus_substrings_to_check = ["female", "mix_sorted_40_01", "mix_random_41_01"]
+    if country == "ger":
+        if any(substring in selected_file for substring in ger_substrings_to_check):
+            st.session_state.center_x = 3.1
+            st.session_state.center_y = 3
+            st.session_state.angle_degrees = 90
+        else:
+            st.session_state.center_x = 3.1
+            st.session_state.center_y = -3
+            st.session_state.angle_degrees = 90
+
+    if country == "aus":
+        if any(substring in selected_file for substring in aus_substrings_to_check):
+            st.session_state.center_x = 1.7
+            st.session_state.center_y = -0.2
+            st.session_state.angle_degrees = 85
+        else:
+            st.session_state.center_x = 1.8
+            st.session_state.center_y = -6.3
+            st.session_state.angle_degrees = 89
+
+    if country == "chn":
+        if "female" in selected_file:
+            st.session_state.center_x = 0.1
+            st.session_state.center_y = 0
+            st.session_state.angle_degrees = 87
+        elif "mix_random" in selected_file:
+            st.session_state.center_x = 0.1
+            st.session_state.center_y = 0
+            st.session_state.angle_degrees = 85
+        else:
+            st.session_state.center_x = 0.3
+            st.session_state.center_y = 0
+            st.session_state.angle_degrees = 90
+
+    if country == "jap":
+        st.session_state.center_x = 0
+        st.session_state.center_y = 0
+        st.session_state.angle_degrees = 0
+
+    if country == "pal":
+        st.session_state.center_x = -1.5
+        st.session_state.center_y = 0
+        st.session_state.angle_degrees = 0
+
+
 def download_csv(url: str, destination: Union[str, Path]) -> None:
     """
     Downloads a CSV file from a specified URL and saves it to a given destination,

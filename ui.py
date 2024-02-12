@@ -1,0 +1,46 @@
+from pathlib import Path
+
+import streamlit as st
+
+
+def ini_app_looks():
+    path = Path(__file__)
+    ROOT_DIR = path.parent.absolute()
+
+    gh = "https://badgen.net/badge/icon/GitHub?icon=github&label"
+    repo = "https://github.com/PedestrianDynamics/gender-experiments"
+    repo_name = f"[![Repo]({gh})]({repo})"
+    c1, c2 = st.sidebar.columns((1.2, 0.5))
+    c2.markdown(repo_name, unsafe_allow_html=True)
+    c1.write(
+        "[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7697604.svg)](https://doi.org/10.5281/zenodo.7697604)"
+    )
+    st.sidebar.image(f"{ROOT_DIR}/logo.png", use_column_width=True)
+
+
+def init_sidebar():
+    """Init sidebar and tabs."""
+    c1, c2 = st.sidebar.columns((1.8, 0.2))
+    flag = c2.empty()
+    tab1, tab2, tab3, tab4 = st.tabs(
+        [
+            "👫🏻 View trajectories",
+            "📉 Fundamental diagram",
+            "📍 Proximity analysis",
+            "📂 write enhanced data",
+        ]
+    )
+
+    country = c1.selectbox("Select a country:", st.session_state.config.countries)
+    if "jap" in country:
+        flag.write(":flag-jp:")
+    if "aus" in country:
+        flag.write(":flag-ac:")
+    if "chn" in country:
+        flag.write(":flag-cn:")
+    if "ger" in country:
+        flag.write(":flag-de:")
+    if "pal" in country:
+        flag.write(":flag-ae:")
+
+    return country, tab1, tab2, tab3, tab4
