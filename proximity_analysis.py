@@ -8,6 +8,7 @@ import time
 
 import numpy as np
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
@@ -48,13 +49,13 @@ def run_tab3(selected_file: str):
         if do_analysis == "load_gender_analysis":
             result_csv = st.session_state.config.proximity_results["path"]
             msg = st.empty()
-            c0, c1, c2, c3 = st.columns((1, 1, 1, 1))
+            c0, c1, c2, c3, c4 = st.columns((1, 1, 1, 1, 1))
             st.divider()
 
             if not result_csv.exists():
                 msg.warning(f"{result_csv} does not exist yet!")
                 csv_url = st.session_state.config.proximity_results["url"]
-                with st.status("Downloading ..."):
+                with st.status("Downloading ...", expanded=True):
                     hp.download_csv(csv_url, result_csv)
 
             if result_csv.exists():
@@ -65,7 +66,17 @@ def run_tab3(selected_file: str):
                 st.stop()
 
             msg.empty()
-
+            proximity_melted = proximity_df.melt(
+                id_vars=["id", "frame", "country"],
+                value_vars=[
+                    "same_gender_proximity_next",
+                    "diff_gender_proximity_next",
+                    "same_gender_proximity_prev",
+                    "diff_gender_proximity_prev",
+                ],
+                var_name="category",
+                value_name="distance",
+            )
             show_dataframe = c0.checkbox("Show data", value=True)
             ttest = c1.checkbox("T-test", value=False)
             plot_pdf = c2.checkbox("PDF", value=False)
@@ -74,9 +85,37 @@ def run_tab3(selected_file: str):
                 value=False,
                 help="Plot times series of distance per file",
             )
+            plot_box = c4.checkbox(
+                "Box-plot", value=False, help="Plot box plot for all countries (slow!)"
+            )
             if show_dataframe:
-                st.info("All proximity data")
-                st.dataframe(proximity_df)
+                col1, col2, col3 = st.columns((0.3, 0.3, 0.3))
+                page_size = col3.number_input(
+                    "Number of rows",
+                    value=100,
+                    min_value=100,
+                    max_value=int(len(proximity_df) / 2),
+                )
+
+                with col1:
+                    decrement = st.button("Previous Page")
+                    if decrement:
+                        hp.decrement_page_start(page_size)
+                with col2:
+                    increment = st.button("Next Page")
+                    if increment:
+                        hp.increment_page_start(page_size)
+
+                if st.session_state.page_start < 0:
+                    st.session_state.page_start = 0
+
+                # Ensure page_start doesn't go above total data length
+                if st.session_state.page_start >= len(proximity_df):
+                    st.session_state.page_start = len(proximity_df) - page_size
+
+                # Calculate page_end
+                page_end = st.session_state.page_start + page_size
+                st.dataframe(proximity_df.iloc[st.session_state.page_start : page_end])
 
             if debug:
                 st.info(f"Data for {selected_file}")
@@ -134,7 +173,6 @@ def run_tab3(selected_file: str):
                 st.components.v1.html(fig.to_html(include_mathjax="cdn"), height=500)
 
             if ttest:
-                st.divider()
                 st.markdown(
                     ":information_source: **The mean distance between pairs of the same gender is equal to the mean distance between pairs of different genders.**"
                 )
@@ -174,18 +212,6 @@ def run_tab3(selected_file: str):
                         st.info(msg)
 
             if plot_pdf:
-                proximity_melted = proximity_df.melt(
-                    id_vars=["id", "frame", "country"],
-                    value_vars=[
-                        "same_gender_proximity_next",
-                        "diff_gender_proximity_next",
-                        "same_gender_proximity_prev",
-                        "diff_gender_proximity_prev",
-                    ],
-                    var_name="category",
-                    value_name="distance",
-                )
-
                 proximity_melted["distance"] = proximity_melted["distance"].fillna(0)
                 c1, _, c2 = st.columns((1, 0.5, 1))
                 type_name = {
@@ -248,3 +274,21 @@ def run_tab3(selected_file: str):
 
                     st.code(msg)
                     st.plotly_chart(fig)
+
+            if plot_box:
+                fig = px.box(
+                    proximity_melted,
+                    x="category",
+                    y="distance",
+                    color="country",
+                    title="Proximity Analysis Based on Gender and Country",
+                    labels={"distance": "Proximity Distance", "category": "Category"},
+                )
+
+                fig.update_layout(
+                    yaxis_title="Distance",
+                    xaxis_title="Gender Proximity Category",
+                    showlegend=True,
+                )
+
+                hp.show_fig(fig)
