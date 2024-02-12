@@ -45,10 +45,8 @@ class DataConfig:
     def __post_init__(self):
         """Initialize the DataConfig instance by retrieving files for each country."""
 
-        self.proximity_results["path"] = Path("proximity_analysis_results.csv")
-        self.proximity_results["url"] = (
-            "https://fz-juelich.sciebo.de/s/ubLkIFwFmfSAvJG/download"
-        )
+        self.proximity_results["path"] = Path("app_data/proximity_analysis_results.csv")
+        self.proximity_results["url"] = "https://go.fzj.de/proximity_results"
         self.retrieve_files()
 
     def retrieve_files(self) -> None:
@@ -318,12 +316,15 @@ def original(country, selected_file):
 
 def fundamental_diagram_micro(country, dv, diff_const):
     msg = st.empty()
-    result_csv = proximity_results["path"]
+    result_csv = st.session_state.config.proximity_results["path"]
     all_merged_df = pd.DataFrame()
     if not result_csv.exists():
         msg.warning(f"{result_csv} does not exist yet!")
         with st.spinner("Downloading ..."):
-            hp.download_csv(proximity_results["url"], proximity_results["path"])
+            hp.download_csv(
+                st.session_state.config.proximity_results["url"],
+                st.session_state.config.proximity_results["path"],
+            )
 
     if result_csv.exists():
         msg.info(f"Reading file {result_csv}")
@@ -487,7 +488,7 @@ if __name__ == "__main__":
                     if country != "pal"
                 ]
                 for country in countries:
-                    precalculated_file = f"density_micro_{country}.pkl"
+                    precalculated_file = f"app_data/density_micro_{country}.pkl"
                     if not Path(precalculated_file).exists():
                         result = fundamental_diagram_micro(country, dv, diff_const)
                         with open(precalculated_file, "wb") as f:
@@ -547,14 +548,14 @@ if __name__ == "__main__":
                 st.info(f"Running time: {elapsed_time/60:.2} min")
 
             if do_analysis == "load_gender_analysis":
-                result_csv = proximity_results["path"]
+                result_csv = st.session_state.config.proximity_results["path"]
                 msg = st.empty()
                 c0, c1, c2, c3 = st.columns((1, 1, 1, 1))
                 st.divider()
 
                 if not result_csv.exists():
                     msg.warning(f"{result_csv} does not exist yet!")
-                    csv_url = proximity_results["url"]
+                    csv_url = st.session_state.config.proximity_results["url"]
                     with st.status("Downloading ..."):
                         hp.download_csv(csv_url, result_csv)
 

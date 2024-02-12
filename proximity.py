@@ -230,7 +230,7 @@ def prepare_data(country, selected_file, fps):
 
 def calculate_with_joblib(countries, files, fps):
     # Prepare tasks
-    res_file = "proximity_results"
+    res_file = "app_data/proximity_results.pkl"
 
     tasks = []
     for country in countries:
