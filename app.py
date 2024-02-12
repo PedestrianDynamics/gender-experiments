@@ -14,6 +14,7 @@ import pedpy
 import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
+from typing import Dict, List
 
 # from joblib import Parallel, delayed
 from scipy import stats
@@ -27,34 +28,27 @@ from anim import animate
 import docs
 
 # global variables for csv proximity file
-proximity_results = {}
-proximity_results["path"] = Path("proximity_analysis_results.csv")
-proximity_results["url"] = "https://fz-juelich.sciebo.de/s/ubLkIFwFmfSAvJG/download"
 path = Path(__file__)
 ROOT_DIR = path.parent.absolute()
 
 
-# from plotly.subplots import make_subplots
-# import plotly.graph_objects as go
-
-
-# from tqdm import tqdm
-
-
-# from memory_profiler import profile
-# from memory_profiler import memory_usage
-
-
 @dataclass
 class DataConfig:
-    rename_mapping: dict
-    column_types: dict
-    countries: list
-    files: dict = field(default_factory=dict)
-    data: dict = field(default_factory=lambda: defaultdict(list))
+    rename_mapping: Dict[str, str]
+    column_types: Dict[str, str]
+    countries: List[str]
+    proximity_results: Dict[str, Path] = field(default_factory=dict)
+
+    files: Dict[str, List[str]] = field(default_factory=dict)
+    data: Dict[str, List] = field(default_factory=lambda: defaultdict(list))
 
     def __post_init__(self):
         """Initialize the DataConfig instance by retrieving files for each country."""
+
+        self.proximity_results["path"] = Path("proximity_analysis_results.csv")
+        self.proximity_results["url"] = (
+            "https://fz-juelich.sciebo.de/s/ubLkIFwFmfSAvJG/download"
+        )
         self.retrieve_files()
 
     def retrieve_files(self) -> None:
@@ -113,40 +107,6 @@ def init_session_state(msg):
 
     if not hasattr(st.session_state, "load_fd_data"):
         st.session_state.load_fd_data = {}
-
-
-def load_data(msg, country):
-    #    for country in st.session_state.config.countries:
-    if country not in st.session_state.loaded_data:
-        files = st.session_state.config.files[country]
-
-        if not files:
-            msg.warning(f"{country}: data missing")
-            # continue
-
-        st.write(f"Processing data for <{country}>")
-        progress_text = st.empty()
-        progress = st.progress(0)
-        num_files = len(files)
-        st.session_state.loaded_data[country] = []
-
-        for idx, file in enumerate(files):
-            data = pd.read_csv(file)
-            hp.rename_columns(data, st.session_state.config.rename_mapping)
-            hp.set_column_types(data, st.session_state.config.column_types)
-            if file == files[0]:
-                fps = hp.calculate_fps(data)
-
-            trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
-            st.session_state.loaded_data[country].append(trajectory_data)
-
-            # Update the progress bar
-            progress_value = (idx + 1) / num_files
-            progress.progress(progress_value)
-            progress_text.text(f"File {idx + 1} of {num_files}")
-
-
-# @st.cache_data
 
 
 def set_rotation_variables(selected_file, country):
@@ -215,7 +175,6 @@ def original(country, selected_file):
     """First tab. Plot original data, animatoin, neighborhood."""
     c1, c2 = st.columns((1, 1))
     do_rotate = False
-    # load_data(msg, country)
     msg.write("")
     if country:
         if selected_file:
@@ -355,54 +314,6 @@ def original(country, selected_file):
                 st.plotly_chart(anm)
 
     return do_rotate
-
-
-def density_speed_time_series_micro(country, file, dv, diff_const):
-    """Calculate the individual density (Voronoi 1D)."""
-    msg = st.empty()
-    trajectory_data = hp.load_file(file)
-    rotated_data = trajectory_data.data
-    result_csv = proximity_results["path"]
-
-    if not result_csv.exists():
-        msg.warning(f"{result_csv} does not exist yet!")
-        with st.spinner("Downloading ..."):
-            hp.download_csv(proximity_results["url"], proximity_results["path"])
-
-    if result_csv.exists():
-        msg.info(f"Reading file {result_csv}")
-        df = pd.read_csv(result_csv)
-    #    cs, cd = st.columns((1, 1))
-    with st.spinner(f"Calculating {country} ..."):
-        start_time = time.time()
-        filter_df = df[(df["country"] == country) & (df["file"] == file)]
-        # st.info(f"{file}")
-        # st.dataframe(filter_df)
-        density = al.calculate_individual_density_csv(filter_df)
-        #       cd.dataframe(density)
-        msg.info("calculate speed")
-        speed = al.calculate_speed(rotated_data, dv)
-
-        # cs.dataframe(speed.loc[:, ["frame", "id", "speed"]])
-        msg.info("calculate speed steady state")
-        steady_state_index = al.calculate_steady_state(
-            speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
-        )
-        speed = speed.iloc[steady_state_index:]
-
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        msg.info(
-            f"Time taken to calculate speed and density micro: {elapsed_time:.2f} seconds"
-        )
-        fig = pl.plot_time_series(
-            density,
-            speed,
-            trajectory_data.frame_rate,
-            steady_state_index,
-            "individual_density",
-        )
-        st.plotly_chart(fig)
 
 
 def fundamental_diagram_micro(country, dv, diff_const):
@@ -562,7 +473,7 @@ if __name__ == "__main__":
                 )
 
             if calculations == "time_series":
-                density_speed_time_series_micro(  #
+                al.density_speed_time_series_micro(
                     country, selected_file, dv, diff_const
                 )
             method = calculations.split("_")[-1]
