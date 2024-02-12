@@ -20,6 +20,37 @@ def download_csv(url, destination):
         f.write(response.content)
 
 
+# def load_data(msg, country):
+#     #    for country in st.session_state.config.countries:
+#     if country not in st.session_state.loaded_data:
+#         files = st.session_state.config.files[country]
+
+#         if not files:
+#             msg.warning(f"{country}: data missing")
+#             # continue
+
+#         st.write(f"Processing data for <{country}>")
+#         progress_text = st.empty()
+#         progress = st.progress(0)
+#         num_files = len(files)
+#         st.session_state.loaded_data[country] = []
+
+#         for idx, file in enumerate(files):
+#             data = pd.read_csv(file)
+#             hp.rename_columns(data, st.session_state.config.rename_mapping)
+#             hp.set_column_types(data, st.session_state.config.column_types)
+#             if file == files[0]:
+#                 fps = hp.calculate_fps(data)
+
+#             trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
+#             st.session_state.loaded_data[country].append(trajectory_data)
+
+#             # Update the progress bar
+#             progress_value = (idx + 1) / num_files
+#             progress.progress(progress_value)
+#             progress_text.text(f"File {idx + 1} of {num_files}")
+
+
 def generate_oval_shape_points(
     num_points: int,
     length: float = 2.3,
