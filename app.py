@@ -561,17 +561,26 @@ if __name__ == "__main__":
             )
             st.write(
                 """
-                where $\Delta x$ and $\Delta y$ represent the displacements in the $x$ and $y$ directions, respectively, and $\Delta v$ is the difference in frame indices used for the calculation.
+                where $\Delta x$ and $\Delta y$ represent the displacements in the $x$ and $y$ directions, respectively, and $\Delta t$ is the difference in frame indices used for the calculation.
 
                 - Compute Distance Traveled: The distance traveled between the frames is computed using the Pythagorean theorem, which combines the displacements in both directions:
                 $$
                 \\text{distance} = \sqrt{\Delta x^2 + \Delta y^2}.
                 $$
                 - Calculate Speed: Finally, the speed is calculated as the ratio of the distance traveled to the time
-                $$
-                \\text{speed} = \\frac{\\text{distance}}{\Delta t}.
-                $$
-                This yields the speed of each entity between the specified frames, taking into account the displacements in both spatial dimensions.    
+                """
+            )
+            st.latex(
+                r"""
+                \begin{equation}
+                \text{speed} = \frac{\text{distance}}{\Delta t}
+                \end{equation}
+                """
+            )
+            st.write(
+                """
+                This yields the speed of each entity between the specified frames, taking into account the displacements in both spatial dimensions.
+                See [implementation here](https://github.com/PedestrianDynamics/gender-experiments/blob/main/analysis.py#L10).
             """
             )
         c0, c1, c2 = st.columns((1, 1, 1))
@@ -593,12 +602,12 @@ if __name__ == "__main__":
             else:
 
                 dv = c2.slider(
-                    "steps",
+                    r"$\Delta t$",
                     1,
                     100,
                     10,
                     5,
-                    help="number of frames to jump for diff speed",
+                    help="To calculate the displacement over a specified number of frames. See Eq. (1)",
                 )
                 diff_const = c2.slider(
                     "diff_const", 1, 500, 5, 1, help="window steady state"
