@@ -47,6 +47,8 @@ class DataConfig:
 
         self.proximity_results["path"] = Path("app_data/proximity_analysis_results.csv")
         self.proximity_results["url"] = "https://go.fzj.de/proximity_results"
+        # Ensure the directory exists
+        self.proximity_results["path"].parent.mkdir(parents=True, exist_ok=True)
         self.retrieve_files()
 
     def retrieve_files(self) -> None:
