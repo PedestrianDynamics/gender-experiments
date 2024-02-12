@@ -131,63 +131,6 @@ def calculate_individual_density_csv(data):
     return frame_density_data
 
 
-def enhance_data(data):
-    # Calculate speed
-    data = calculate_speed(data)
-
-    # Calculate density
-    data = calculate_individual_density_csv(data)
-
-    return data
-
-
-# def calculate_individual_density(data: DataFrame) -> DataFrame:
-#     """
-#     Calculates the individual density for each entity per frame in the dataset. The individual density
-#     is defined as the inverse of the sum of half the distance to the previous neighbor and half the distance
-#     to the next neighbor.
-
-#     Parameters:
-#     - data (DataFrame): A pandas DataFrame containing the columns 'frame', 'x', 'y', 'prev', 'next',
-#                         along with 'distance_to_prev_neighbor' and 'distance_to_next_neighbor' if not already calculated.
-#     - fps (int): The frames per second of the dataset, used for time-based calculations if necessary.
-
-#     Returns:
-#     - DataFrame: The input DataFrame with an additional column 'individual_density' representing the
-#                  calculated individual density for each row/entity.
-#     """
-
-#     data = calculate_circular_distance_and_gender(data)  #
-
-#     # Calculate half the sum of distances to previous and next neighbors
-#     half_sum_distances = 0.5 * (
-#         data["distance_to_prev_neighbor"] + data["distance_to_next_neighbor"]
-#     )
-
-#     # Avoid division by zero
-#     half_sum_distances.replace(0, np.nan, inplace=True)
-
-#     # Calculate individual density
-#     data["individual_density"] = 1 / half_sum_distances
-#     frame_density_data = data[["frame", "individual_density"]]
-
-#     return frame_density_data
-
-
-def load_or_calculate_individual_density(
-    data: pd.DataFrame, fps: int, filepath: str
-) -> pd.DataFrame:
-    if os.path.exists(filepath):
-        # Load the DataFrame if it exists
-        return pd.read_pickle(filepath)
-    else:
-        # Calculate the density
-        data = calculate_individual_density(data)
-        # Save the DataFrame for future use
-        data.to_pickle(filepath)
-        return data
-
-
 def calculate_union_area_shapely(data: DataFrame, R: float = 0.75) -> float:
     """
     Calculate the total area of the union of circles representing personal spaces using Shapely.
