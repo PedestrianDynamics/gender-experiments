@@ -283,19 +283,23 @@ def run_tab3(selected_file: str):
                     st.plotly_chart(fig)
 
             if plot_box:
-                fig = px.box(
-                    proximity_melted,
-                    x="category",
-                    y="distance",
-                    color="country",
-                    title="Proximity Analysis Based on Gender and Country",
-                    labels={"distance": "Proximity Distance", "category": "Category"},
-                )
+                with st.status("Plotting ..."):
+                    fig = px.box(
+                        proximity_melted,
+                        x="category",
+                        y="distance",
+                        color="country",
+                        title="Proximity Analysis Based on Gender and Country",
+                        labels={
+                            "distance": "Proximity Distance",
+                            "category": "Category",
+                        },
+                    )
 
-                fig.update_layout(
-                    yaxis_title="Distance",
-                    xaxis_title="Gender Proximity Category",
-                    showlegend=True,
-                )
+                    fig.update_layout(
+                        yaxis_title="Distance",
+                        xaxis_title="Gender Proximity Category",
+                        showlegend=True,
+                    )
 
-                hp.show_fig(fig)
+                    hp.show_fig(fig)

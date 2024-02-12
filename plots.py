@@ -266,11 +266,13 @@ def plot_fundamental_diagram_all(country_data) -> go.Figure:
         )
         rmax = max(rmax, np.max(density))
         vmax = max(vmax, np.max(speed))
+        vmin = min(vmax, np.min(speed))
 
-    vmin = 0
     vmax += 0.05
     rmax += 0.05
-    vmax = 2.0
+    vmin -= 0.05
+
+    # vmax = 2.0
     fig.update_yaxes(range=[vmin, vmax], title_text=r"$v\; / \frac{m}{s}$")
     fig.update_xaxes(
         title_text=r"$\rho / m^{-2}$",
