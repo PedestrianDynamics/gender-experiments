@@ -1,10 +1,16 @@
-import pandas as pd
+import os
+import time
+
 import numpy as np
+import pandas as pd
+import streamlit as st
 from pandas import DataFrame
 from shapely.geometry import Point
 from shapely.ops import unary_union
 
-import os
+import analysis as al
+import helper as hp
+import plots as pl
 
 
 def calculate_speed(data: DataFrame, dv: int) -> DataFrame:
@@ -34,10 +40,6 @@ def calculate_speed(data: DataFrame, dv: int) -> DataFrame:
     # data["speed"] = data["speed"].fillna(0)
 
     return data
-
-
-import numpy as np
-import pandas as pd
 
 
 # Example usage:
@@ -257,6 +259,59 @@ def calculate_steady_state(data, window_size, threshold, diff_const):
     ].first_valid_index()
 
     return steady_state_index
+
+
+def density_speed_time_series_micro(
+    country: str, filename: str, dv: int, diff_const: int
+):
+    """Calculate the individual density (Voronoi 1D) and show it."""
+    msg = st.empty()
+    trajectory_data = hp.load_file(filename)
+    rotated_data = trajectory_data.data
+    result_csv = st.session_state.config.proximity_results["path"]
+
+    if not result_csv.exists():
+        msg.warning(f"{result_csv} does not exist yet!")
+        with st.spinner("Downloading ..."):
+            hp.download_csv(
+                st.session_state.config.proximity_results["url"],
+                st.session_state.config.proximity_results["path"],
+            )
+
+    if result_csv.exists():
+        msg.info(f"Reading file {result_csv}")
+        df = pd.read_csv(result_csv)
+    #    cs, cd = st.columns((1, 1))
+    with st.spinner(f"Calculating {country} ..."):
+        start_time = time.time()
+        filter_df = df[(df["country"] == country) & (df["file"] == filename)]
+        # st.info(f"{file}")
+        # st.dataframe(filter_df)
+        density = al.calculate_individual_density_csv(filter_df)
+        #       cd.dataframe(density)
+        msg.info("calculate speed")
+        speed = al.calculate_speed(rotated_data, dv)
+
+        # cs.dataframe(speed.loc[:, ["frame", "id", "speed"]])
+        msg.info("calculate speed steady state")
+        steady_state_index = al.calculate_steady_state(
+            speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
+        )
+        speed = speed.iloc[steady_state_index:]
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        msg.info(
+            f"Time taken to calculate speed and density micro: {elapsed_time:.2f} seconds"
+        )
+        fig = pl.plot_time_series(
+            density,
+            speed,
+            trajectory_data.frame_rate,
+            steady_state_index,
+            "individual_density",
+        )
+        st.plotly_chart(fig)
 
 
 # def kde():
