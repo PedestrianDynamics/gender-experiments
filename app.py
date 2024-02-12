@@ -580,7 +580,7 @@ if __name__ == "__main__":
             calculations = c0.radio(
                 "Choose calculation",
                 [
-                    "micro_fd_rudina",
+                    # "micro_fd_rudina",
                     "time_series",
                     "FD",
                 ],
