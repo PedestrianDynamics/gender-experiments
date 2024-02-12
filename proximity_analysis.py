@@ -50,7 +50,7 @@ def run_tab3(selected_file: str):
             result_csv = st.session_state.config.proximity_results["path"]
             msg = st.empty()
             st.divider()
-            c0, c1, c2, c3, c4 = st.columns((1, 1, 1, 1, 1))
+            c0, c1, c2, c3, c4, c5 = st.columns(6)
             st.divider()
 
             if not result_csv.exists():
@@ -66,6 +66,15 @@ def run_tab3(selected_file: str):
                 msg.warning(f"File {result_csv} not found.")
                 st.stop()
 
+            # maybe filter low densities out. File with only 4 pedestrians
+            exclude = c5.checkbox(
+                "Exclude *04-files",
+                value=True,
+                help="Exclude 04 files, since their neighborhood may not be correct.",
+            )
+            if exclude:
+                pattern = ".*_04_.*\.csv"
+                proximity_df = proximity_df[~proximity_df["file"].str.contains(pattern)]
             msg.empty()
             proximity_melted = proximity_df.melt(
                 id_vars=["id", "frame", "country"],
@@ -180,19 +189,36 @@ def run_tab3(selected_file: str):
                 st.components.v1.html(fig.to_html(include_mathjax="cdn"), height=500)
 
             if ttest:
+                type_ = st.radio(
+                    "Select group",
+                    ["female", "male", "mix_random", "mix_sorted", "all"],
+                    horizontal=True,
+                )
                 st.markdown(
                     ":information_source: **The mean distance between pairs of the same gender is equal to the mean distance between pairs of different genders.**"
                 )
                 st.latex("p <= 0.05 \\rightarrow \\text{ reject}\; H_0")
 
                 for country in ["aus", "ger", "jap", "chn"]:
-                    msg = f"Result for <{country}>\n"
+                    msg = ""
                     filtered_data = proximity_df[
                         (proximity_df["country"] == country)
-                        & (proximity_df["type"] == "mix_sorted")
+                        & (proximity_df["type"] == type_)
                     ]
+                    if type_ == "all":
+                        # If "all" is selected, filter by country only
+                        filtered_data = proximity_df[proximity_df["country"] == country]
+                    else:
+                        # Otherwise, filter by both country and type
+                        filtered_data = proximity_df[
+                            (proximity_df["country"] == country)
+                            & (proximity_df["type"] == type_)
+                        ]
                     # st.dataframe(filtered_data)
-                    with st.status("Calculating T-tests ...", expanded=True):
+                    with st.status(
+                        f"Calculating T-tests for **<{country}>** and **<{type_}>**",
+                        expanded=True,
+                    ):
                         same_gender_distances_next = filtered_data[
                             "same_gender_proximity_next"
                         ].dropna()
@@ -214,8 +240,8 @@ def run_tab3(selected_file: str):
                             diff_gender_distances_prev,
                         )
 
-                        msg += f"- Next neighbors: T-Statistic = {t_stat_next:.02f}, P-Value = {p_val_next:.02f}\n"
-                        msg += f"- Prev neighbors: T-Statistic = {t_stat_prev:.02f}, P-Value = {p_val_prev:.02f}"
+                        msg += f"- Next neighbors, different-same: T-Statistic = {t_stat_next:.02f}, P-Value = {p_val_next:.02f}\n"
+                        msg += f"- Prev neighbors, different-same: T-Statistic = {t_stat_prev:.02f}, P-Value = {p_val_prev:.02f}"
                         st.info(msg)
 
             if plot_pdf:
