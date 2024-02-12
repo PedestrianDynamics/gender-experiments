@@ -20,6 +20,7 @@ def run_tab1(msg, country: str, selected_file: str):
     msg.write("")
     if country:
         if selected_file:
+            # st.toast(f"{selected_file}", icon="📂")
             # file_index = files.index(selected_file)
             # default values
             hp.set_rotation_variables(selected_file, country)

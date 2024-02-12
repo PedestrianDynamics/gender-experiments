@@ -96,8 +96,8 @@ def init_session_state(msg):
 
 
 if __name__ == "__main__":
-    # cyclomatic complexity too high (16)
-    ui.ini_app_looks()
+    ui.init_page_config()
+    ui.init_app_looks()
     msg = st.empty()
     init_session_state(msg)
     country, tab1, tab2, tab3, tab4 = ui.init_sidebar()

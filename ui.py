@@ -3,7 +3,21 @@ from pathlib import Path
 import streamlit as st
 
 
-def ini_app_looks():
+def init_page_config():
+    st.set_page_config(
+        page_title="Single-file experiments with different gender and countries",
+        page_icon="📊",
+        layout="wide",
+        initial_sidebar_state="expanded",
+        menu_items={
+            "Get Help": "https://github.com/PedestrianDynamics/gender-experiments",
+            "Report a bug": "https://github.com/PedestrianDynamics/gender-experiments/issues",
+            "About": "# Gender-experiments across culture.\n This is a tool to analyse and visualise several experiments of pedestrian dynamics in five different countries:\n\n :flag-ac: Australia, :flag-cn: China, :flag-jp: Japan, :flag-de: Germany and :flag-ae: Palestine.",
+        },
+    )
+
+
+def init_app_looks():
     path = Path(__file__)
     ROOT_DIR = path.parent.absolute()
 
