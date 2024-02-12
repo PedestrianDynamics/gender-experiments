@@ -120,6 +120,13 @@ def run_tab1(msg, country: str, selected_file: str):
                 st.plotly_chart(fig)
             # neighborhood
             if get_neighborhood and len(ids) > 2 and country != "pal":
+                if selected_file == "ger/mix_random_4_22.csv":
+                    first_frame = 600
+                    data = data[data["frame"] >= first_frame]
+                if selected_file == "ger/mix_sorted_4_11.csv":
+                    first_frame = 100
+                    data = data[data["frame"] >= first_frame]
+
                 fig = hp.plot_neighbors_analysis(
                     data, ids, exterior, interior, do_rotate
                 )
