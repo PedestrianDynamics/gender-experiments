@@ -3,12 +3,15 @@
 tab2: Fundamental diagram
 """
 
-import streamlit as st
-import docs
-import plots as pl
-import analysis as al
 import pickle
 from pathlib import Path
+
+import streamlit as st
+
+import analysis as al
+import docs
+import helper as hp
+import plots as pl
 
 
 def run_tab2(country: str, selected_file: str):
