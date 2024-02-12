@@ -322,8 +322,9 @@ def fundamental_diagram_micro(country, dv, diff_const):
     all_merged_df = pd.DataFrame()
     if not result_csv.exists():
         msg.warning(f"{result_csv} does not exist yet!")
-        with st.spinner("Downloading ..."):
-            hp.download_csv(
+        with st.spinner("Downloading ...", expanded=True):
+            hp.download_csv
+            (
                 st.session_state.config.proximity_results["url"],
                 st.session_state.config.proximity_results["path"],
             )

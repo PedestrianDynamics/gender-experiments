@@ -272,7 +272,7 @@ def density_speed_time_series_micro(
 
     if not result_csv.exists():
         msg.warning(f"{result_csv} does not exist yet!")
-        with st.spinner("Downloading ..."):
+        with st.status("Downloading ...", expanded=True):
             hp.download_csv(
                 st.session_state.config.proximity_results["url"],
                 st.session_state.config.proximity_results["path"],

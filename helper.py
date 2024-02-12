@@ -1,6 +1,7 @@
 """Collection of some helpful functions."""
 
-from typing import Any, Tuple
+from pathlib import Path
+from typing import Any, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -14,41 +15,46 @@ from shapely.geometry import Polygon
 import plots as pl
 
 
-def download_csv(url, destination):
-    response = requests.get(url)
+def download_csv(url: str, destination: Union[str, Path]) -> None:
+    """
+    Downloads a CSV file from a specified URL and saves it to a given destination,
+    displaying the download progress in a Streamlit app.
+
+    Args:
+        url (str): The URL of the CSV file to download.
+        destination (Union[str, Path]): The local file path or Path object where the CSV file will be saved.
+
+    Returns:
+        None: This function does not return a value but writes the downloaded content to a file
+              and updates the Streamlit UI with the download progress.
+
+    Example:
+        download_csv(
+            "https://example.com/largefile.csv",
+            "path/to/save/largefile.csv",
+        )
+    """
+    # Send a GET request
+    response = requests.get(url, stream=True)
+
+    # Total size in bytes.
+    total_size = int(response.headers.get("content-length", 0))
+    block_size = 1024  # 1 Kbyte
+    progress_bar = st.progress(0)
+    progress_status = st.empty()
+    written = 0
+
     with open(destination, "wb") as f:
-        f.write(response.content)
+        for data in response.iter_content(block_size):
+            written += len(data)
+            f.write(data)
+            # Update progress bar
+            progress = int(100 * written / total_size)
+            progress_bar.progress(progress)
+            progress_status.text(f"> {progress}%")
 
-
-# def load_data(msg, country):
-#     #    for country in st.session_state.config.countries:
-#     if country not in st.session_state.loaded_data:
-#         files = st.session_state.config.files[country]
-
-#         if not files:
-#             msg.warning(f"{country}: data missing")
-#             # continue
-
-#         st.write(f"Processing data for <{country}>")
-#         progress_text = st.empty()
-#         progress = st.progress(0)
-#         num_files = len(files)
-#         st.session_state.loaded_data[country] = []
-
-#         for idx, file in enumerate(files):
-#             data = pd.read_csv(file)
-#             hp.rename_columns(data, st.session_state.config.rename_mapping)
-#             hp.set_column_types(data, st.session_state.config.column_types)
-#             if file == files[0]:
-#                 fps = hp.calculate_fps(data)
-
-#             trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
-#             st.session_state.loaded_data[country].append(trajectory_data)
-
-#             # Update the progress bar
-#             progress_value = (idx + 1) / num_files
-#             progress.progress(progress_value)
-#             progress_text.text(f"File {idx + 1} of {num_files}")
+    progress_status.text("Download complete.")
+    progress_bar.empty()  # clear  the progress bar after completion
 
 
 def generate_oval_shape_points(
