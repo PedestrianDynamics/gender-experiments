@@ -549,7 +549,7 @@ def plot_neighbors_analysis(selected_file, data, ids, exterior, interior, do_rot
     # st.info(pos_next)
     # st.info(pos_prev)
     write_to_file = n0.button("Write to file")
-    add = n1.checkbox("Add to data", value=False)
+    add = n1.button("Force add line to data")
     # ids = data["id"].unique()
     if next_ < min(ids):
         next_ = np.nan
