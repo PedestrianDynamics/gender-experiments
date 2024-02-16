@@ -389,9 +389,9 @@ def plot_agent_and_neighbors(
 
     data0 = rdata[rdata["frame"] == frame]
     agent_data = rdata[(rdata["id"] == agent) & (rdata["frame"] == frame)]
-
-    x_agent = agent_data.iloc[0]["x"]
-    y_agent = agent_data.iloc[0]["y"]
+    if not agent_data.empty:
+        x_agent = agent_data.iloc[0]["x"]
+        y_agent = agent_data.iloc[0]["y"]
 
     X = data0["x"]
     Y = data0["y"]
@@ -406,7 +406,7 @@ def plot_agent_and_neighbors(
                 y=[y],
                 marker=dict(size=20),
                 name=f"ID: {i:0.0f}",
-                line_color="lightgray",
+                line_color="black",
                 showlegend=False,
             )
         )
@@ -455,17 +455,18 @@ def plot_agent_and_neighbors(
             )
         )
     # plot agent
-    fig.add_trace(
-        go.Scatter(
-            x=[x_agent],
-            y=[y_agent],
-            fillcolor="red",
-            name=f"Agent: {agent:0.0f}",
-            marker=dict(size=20),
-            line_color="firebrick",
-            showlegend=True,
+    if not agent_data.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=[x_agent],
+                y=[y_agent],
+                fillcolor="red",
+                name=f"Agent: {agent:0.0f}",
+                marker=dict(size=20),
+                line_color="firebrick",
+                showlegend=True,
+            )
         )
-    )
     # fig.add_shape(
     #     type="circle",
     #     xref="x",

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import streamlit as st
-
+import pandas as pd
 import enhance_data
 import fundamental_diagram
 import helper as hp
@@ -50,7 +50,11 @@ class DataConfig:
 
 def init_session_state(msg):
     """Init session_state. throughout the app."""
+    if "file_changed" not in st.session_state:
+        st.session_state.file_changed = ""
 
+    if "new_data" not in st.session_state:
+        st.session_state.new_data = pd.DataFrame()
     if "page_start" not in st.session_state:
         st.session_state.page_start = 0
 

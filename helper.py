@@ -13,6 +13,27 @@ from scipy.spatial import KDTree
 from shapely.geometry import Polygon
 
 import plots as pl
+import os
+import shutil
+
+
+def zip_directory(path_to_directory):
+    """Zips the specified directory and returns the path to the zipped file."""
+    output_filename = f"{path_to_directory}"
+    shutil.make_archive(output_filename, "zip", path_to_directory)
+
+    return f"{output_filename}.zip"
+
+
+def download_zipped_directory(zipped_path):
+    """Creates a download button for the zipped file."""
+    with open(zipped_path, "rb") as file:
+        btn = st.download_button(
+            label="Download ZIP",
+            data=file,
+            file_name=os.path.basename(zipped_path),
+            mime="application/zip",
+        )
 
 
 def set_rotation_variables(selected_file, country):
@@ -422,9 +443,11 @@ def get_neighbors_special_agent_data(
     return neighbors, neighbors_ids, area, neighbors_dist, neighbor_type
 
 
-def plot_neighbors_analysis(data, ids, exterior, interior, do_rotate):
-    n0, n1, n2 = st.columns((1, 1, 1))
-    agent = n1.number_input(
+def plot_neighbors_analysis(selected_file, data, ids, exterior, interior, do_rotate):
+    # st.dataframe(data)
+
+    n0, n1, n2, n3 = st.columns((1, 1, 1, 1))
+    agent = n2.number_input(
         "Agent",
         min_value=int(min(ids)),
         max_value=int(max(ids)),
@@ -432,60 +455,143 @@ def plot_neighbors_analysis(data, ids, exterior, interior, do_rotate):
         placeholder=f"Type a number in [{int(min(ids))}, {int(max(ids))}]",
         format="%d",
     )
-    frames = data["frame"].to_numpy()
 
-    frame = n2.number_input(
+    frames = data["frame"].to_numpy()
+    is_prev_in_df = "prev" in data.columns
+    is_next_in_df = "next" in data.columns
+    next0 = -1
+    prev0 = -1
+    if is_prev_in_df and is_next_in_df:
+        neighbors_tmp = data.loc[data["id"] == agent, ["next", "prev"]].iloc[0].values
+        if not np.isnan(neighbors_tmp[0]):
+            next0 = int(neighbors_tmp[0])
+        if not np.isnan(neighbors_tmp[1]):
+            prev0 = int(neighbors_tmp[1])
+    else:
+        data[["next", "prev"]] = np.nan
+        st.info(f"init neighbors for {selected_file}")
+        for fr in frames:
+            data0 = data[data["frame"] == fr].copy()
+            data0_sorted = data0.sort_values(by="x")
+            data0_sorted.reset_index(drop=True, inplace=True)
+            sorted_ids = data0_sorted["id"].tolist()
+            for index, current_id in enumerate(sorted_ids):
+
+                prev_id = sorted_ids[index - 1] if index > 0 else None
+                next_id = sorted_ids[index + 1] if index < len(sorted_ids) - 1 else None
+
+                # Fetch the current 'prev' and 'next' values to check if they are NaN
+                current_prev = data.loc[data["id"] == current_id, "prev"].values
+                current_next = data.loc[data["id"] == current_id, "next"].values
+
+                # Update 'prev' if it's NaN
+                if len(current_prev) > 0 and pd.isna(current_prev[0]):
+                    data.loc[data["id"] == current_id, "prev"] = prev_id
+
+                # Update 'next' if it's NaN
+                if len(current_next) > 0 and pd.isna(current_next[0]):
+                    data.loc[data["id"] == current_id, "next"] = next_id
+
+        st.info(f"Done init neighbors for {selected_file}")
+        # st.info(f"{current_id=}, {prev_id=}, {next_id=}")
+        # st.dataframe(data[data["frame"] == fr])
+        neighbors_tmp = data.loc[data["id"] == agent, ["next", "prev"]].iloc[0].values
+        if not np.isnan(neighbors_tmp[0]):
+            next0 = int(neighbors_tmp[0])
+        if not np.isnan(neighbors_tmp[1]):
+            prev0 = int(neighbors_tmp[1])
+
+    #    st.dataframe(data)
+    frame = n3.number_input(
         "Frame",
         int(frames[0]),
-        int(frames[-1]),
+        int(np.max(frames)),
         int(frames[0]),
-        step=1,
+        step=10,
         help="Frame at which to display a snapshot of the neighbors",
     )
+    #    st.dataframe(data)
 
-    k = n0.number_input(
-        "k neighbors",
-        2,
-        4,
-        3,
+    # st.dataframe(data[data["id"] == agent])
+
+    # k = n0.number_input(
+    #     "k neighbors",
+    #     2,
+    #     4,
+    #     3,
+    #     format="%d",
+    # )
+
+    prev = n0.number_input(
+        "prev",
+        value=prev0,
         format="%d",
     )
-    if do_rotate:
-        rotated_data = rotate_trajectories(
-            data,
-            st.session_state.center_x,
-            st.session_state.center_y,
-            st.session_state.angle_degrees,
-        )
-    else:
-        rotated_data = data
-    nearest_dist, nearest_ind = get_neighbors_at_frame(frame, rotated_data, k)
-    (
-        neighbors,
-        neighbors_ids,
-        area,
-        agent_distances,
-        neighbor_type,
-    ) = get_neighbors_special_agent_data(
-        agent, frame, rotated_data, nearest_dist, nearest_ind
+
+    next_ = n1.number_input(
+        "next",
+        value=next0,
+        format="%d",
     )
-    # pos_neighbors = []
 
-    # data_frame = rotated_data.loc[rotated_data["frame"] == frame]
+    pos_next = data.loc[
+        (data["frame"] == frame) & (data["id"] == next_), ["x", "y"]
+    ].values
+    pos_prev = data.loc[
+        (data["frame"] == frame) & (data["id"] == prev), ["x", "y"]
+    ].values
+    if pos_next.any():
+        pos_next = pos_next[0]
 
-    # pos_agent = data_frame.loc[data_frame["id"] == agent, ["x", "y"]].values.flatten()
+    if pos_prev.any():
+        pos_prev = pos_prev[0]
 
-    # st.dataframe(pos_agent)
-    # neighbor_pos = data_frame.loc[data_frame["id"] == 3, ["x", "y"]].values.flatten()
-    # dist = np.linalg.norm(pos_agent - neighbor_pos)
-    # pos_neighbors.append(dist)
-    # st.info(f"{dist}")
-    # st.dataframe(neighbor_pos)
+    # st.info(pos_next)
+    # st.info(pos_prev)
+    write_to_file = n0.button("Write to file")
+    add = n1.checkbox("Add to data", value=False)
+    # ids = data["id"].unique()
+    if next_ < min(ids):
+        next_ = np.nan
+    if prev < min(ids):
+        prev = np.nan
+
+    # rotated_data = data
+    # nearest_dist, nearest_ind = get_neighbors_at_frame(frame, rotated_data, k)
+    # (
+    #     neighbors,
+    #     neighbors_ids,
+    #     area,
+    #     agent_distances,
+    #     neighbor_type,
+    # ) = get_neighbors_special_agent_data(
+    #     agent, frame, rotated_data, nearest_dist, nearest_ind
+    # )
+
+    neighbors_ids = [next_, prev]
+    neighbor_type = ["next", "prev"]
+    if np.isnan(next_):
+        neighbors_ids = [prev]
+        neighbor_type = ["prev"]
+    if np.isnan(prev):
+        neighbors_ids = [next_]
+        neighbor_type = ["next"]
+
+    if pos_next.size > 0 and pos_prev.size > 0:
+        neighbors = np.vstack((pos_next, pos_prev))
+    elif pos_next.size > 0:
+        neighbors = pos_next.reshape(-1, pos_next.shape[-1])
+        neighbors_ids = [next_]
+        neighbor_type = ["next"]
+    else:
+        neighbors = pos_prev.reshape(-1, pos_prev.shape[-1])
+        neighbors_ids = [prev]
+        neighbor_type = ["prev"]
 
     fig = pl.plot_agent_and_neighbors(
         agent,
         frame,
-        rotated_data,
+        data,
         neighbors,
         neighbors_ids,
         exterior,
@@ -493,7 +599,52 @@ def plot_neighbors_analysis(data, ids, exterior, interior, do_rotate):
         neighbor_type,
     )
 
-    return fig
+    if write_to_file:
+        directory = Path("enhanced_" + selected_file.split("/")[0])
+        directory.mkdir(parents=True, exist_ok=True)
+        newfile = f"enhanced_{selected_file}"
+        st.warning(newfile)
+        rename_mapping = {
+            "id": "ID",
+            "time": "t(s)",
+            "x": "x(m)",
+            "y": "y(m)",
+        }
+        wdata = data.copy()
+        wdata.rename(columns=rename_mapping, inplace=True)
+        selected_columns = [
+            "ID",
+            "next",
+            "prev",
+            "gender",
+            "frame",
+            "t(s)",
+            "x(m)",
+            "y(m)",
+        ]
+
+        wdata[selected_columns].to_csv(newfile, index=False)
+        # st.dataframe(wdata)
+        # st.info("Done!")
+        zip_file = zip_directory(directory)
+        download_zipped_directory(zip_file)
+
+    correct = (next_ != next0) or (prev0 != prev)
+    if next_ != next0:
+        what_changed = next_
+    elif prev0 != prev:
+        what_changed = prev
+    else:
+        what_changed = -1
+    if correct or add:
+        if add:
+            st.info(f"added next {next_}, prev {prev}.")
+        else:
+            st.info(f"added {what_changed}.")
+        data.loc[data["id"] == agent, ["prev", "next"]] = [prev, next_]
+        st.divider()
+        # st.dataframe(data[data["frame"] == frame])
+    return fig, data
 
 
 def get_numbers_country(country: str) -> Tuple[int, int, int, int]:

@@ -9,6 +9,9 @@ from shapely import Polygon, difference
 import helper as hp
 import plots as pl
 from anim import animate
+from pathlib import Path
+import numpy as np
+import pandas as pd
 
 
 def run_tab1(msg, country: str, selected_file: str):
@@ -20,6 +23,7 @@ def run_tab1(msg, country: str, selected_file: str):
     msg.write("")
     if country:
         if selected_file:
+
             # st.toast(f"{selected_file}", icon="📂")
             # file_index = files.index(selected_file)
             # default values
@@ -27,17 +31,18 @@ def run_tab1(msg, country: str, selected_file: str):
             # trajectory_data = st.session_state.loaded_data[country][file_index]
             trajectory_data = hp.load_file(selected_file)
             data = trajectory_data.data
+            if selected_file != st.session_state.file_changed:
+                st.session_state.file_changed = selected_file
+                st.session_state.new_data = data.copy()
+
             # st.dataframe(data)
             start_time = time.time()
             rc0, rc1, rc2, rc3 = st.columns((1, 1, 1, 1))
             st.write("---------")
             columns_to_display = ["id", "frame", "time", "x", "y", "prev", "next"]
-            display = rc0.checkbox("Data", value=True, help="Display data table")
+            display = rc0.checkbox("Data", value=False, help="Display data table")
             if display:
-                if country != "pal":
-                    st.dataframe(trajectory_data.data.loc[:, columns_to_display])
-                else:
-                    st.warning("For pal there are no neighbors.")
+                st.dataframe(trajectory_data.data.loc[:, columns_to_display])
             do_plot_trajectories = rc1.checkbox(
                 "Plot", value=False, help="Plot trajectories"
             )
@@ -46,7 +51,7 @@ def run_tab1(msg, country: str, selected_file: str):
                 "Animation", value=False, help="Visualise movement of trajecories"
             )
             get_neighborhood = rc3.checkbox(
-                "Neighbors", value=False, help="Calculate and visualize neighbors"
+                "Neighbors", value=True, help="Calculate and visualize neighbors"
             )
             ids = data["id"].unique()
             if do_plot_trajectories:
@@ -119,17 +124,83 @@ def run_tab1(msg, country: str, selected_file: str):
 
                 st.plotly_chart(fig)
             # neighborhood
-            if get_neighborhood and len(ids) > 2 and country != "pal":
-                if selected_file == "ger/mix_random_4_22.csv":
-                    first_frame = 600
-                    data = data[data["frame"] >= first_frame]
-                if selected_file == "ger/mix_sorted_4_11.csv":
-                    first_frame = 100
-                    data = data[data["frame"] >= first_frame]
+            if get_neighborhood and len(ids) > 2:
+                # if selected_file == "ger/mix_random_4_22.csv":
+                #     first_frame = 600
+                #     data = data[data["frame"] >= first_frame]
+                # if selected_file == "ger/mix_sorted_4_11.csv":
+                #     first_frame = 100
+                #     data = data[data["frame"] >= first_frame]
+                # ===============================================
+                if country == "pal0":
+                    for filename in st.session_state.config.files[country]:
+                        trajectory_data = hp.load_file(filename)
+                        data = trajectory_data.data
+                        data[["next", "prev"]] = np.nan
+                        st.info(f"init neighbors for {filename}")
+                        frames = data["frame"].to_numpy()
+                        for fr in frames:
+                            data0 = data[data["frame"] == fr].copy()
+                            data0_sorted = data0.sort_values(by="x")
+                            data0_sorted.reset_index(drop=True, inplace=True)
+                            sorted_ids = data0_sorted["id"].tolist()
+                            for index, current_id in enumerate(sorted_ids):
+                                prev_id = sorted_ids[index - 1] if index > 0 else None
+                                next_id = (
+                                    sorted_ids[index + 1]
+                                    if index < len(sorted_ids) - 1
+                                    else None
+                                )
+                                # Fetch the current 'prev' and 'next' values to check if they are NaN
+                                current_prev = data.loc[
+                                    data["id"] == current_id, "prev"
+                                ].values
+                                current_next = data.loc[
+                                    data["id"] == current_id, "next"
+                                ].values
+                                # Update 'prev' if it's NaN
+                                if len(current_prev) > 0 and pd.isna(current_prev[0]):
+                                    data.loc[data["id"] == current_id, "prev"] = prev_id
 
-                fig = hp.plot_neighbors_analysis(
-                    data, ids, exterior, interior, do_rotate
+                                # Update 'next' if it's NaN
+                                if len(current_next) > 0 and pd.isna(current_next[0]):
+                                    data.loc[data["id"] == current_id, "next"] = next_id
+                        # write to file
+                        directory = Path("enhanced_" + filename.split("/")[0])
+                        directory.mkdir(parents=True, exist_ok=True)
+                        newfile = f"enhanced_{filename}"
+                        st.warning(newfile)
+                        rename_mapping = {
+                            "id": "ID",
+                            "time": "t(s)",
+                            "x": "x(m)",
+                            "y": "y(m)",
+                        }
+                        wdata = data.copy()
+                        wdata.rename(columns=rename_mapping, inplace=True)
+                        selected_columns = [
+                            "ID",
+                            "next",
+                            "prev",
+                            "gender",
+                            "frame",
+                            "t(s)",
+                            "x(m)",
+                            "y(m)",
+                        ]
+
+                        wdata[selected_columns].to_csv(newfile, index=False)
+
+                    # ===============================================
+                fig, new_data = hp.plot_neighbors_analysis(
+                    selected_file,
+                    st.session_state.new_data,
+                    ids,
+                    exterior,
+                    interior,
+                    do_rotate,
                 )
+                st.session_state.new_data = new_data
                 st.plotly_chart(fig)
 
             end_time = time.time()
