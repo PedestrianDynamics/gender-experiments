@@ -59,7 +59,7 @@ def run_tab2(country: str, selected_file: str):
                 for country in st.session_state.config.countries
                 if country != "pal"
             ]
-            for country in countries:
+            for country in st.session_state.config.countries:
                 precalculated_file = f"app_data/density_micro_{country}.pkl"
                 if not Path(precalculated_file).exists():
                     result = al.fundamental_diagram_micro(country, dv, diff_const)

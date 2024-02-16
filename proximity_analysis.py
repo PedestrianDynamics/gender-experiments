@@ -33,7 +33,7 @@ def run_tab3(selected_file: str):
         if do_analysis == "calculate_gender_analysis":
             start_time = time.time()
 
-            with st.spinner("Calculating ..."):
+            with st.status("Calculating ...", expanded=True):
                 result = subprocess.run(
                     ["python", "proximity.py"], capture_output=True, text=True
                 )

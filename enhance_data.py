@@ -20,8 +20,6 @@ def run_tab4(do_rotate):
         log = st.empty()
         k = 3
         for country in st.session_state.config.countries:
-            if country == "pal":
-                continue
             files = st.session_state.config.files[country]
             directory_path = Path(f"enhanced_{country}")
             if not directory_path.is_dir():
