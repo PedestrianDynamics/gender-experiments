@@ -186,7 +186,6 @@ def run_tab3(selected_file: str):
                     showlegend=True,
                 )
                 hp.show_fig(fig, html=True)
-                st.components.v1.html(fig.to_html(include_mathjax="cdn"), height=500)
 
             if ttest:
                 type_ = st.radio(

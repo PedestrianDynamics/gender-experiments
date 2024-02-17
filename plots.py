@@ -345,11 +345,30 @@ def plot_rudina_fd(countries, fps=100):
 def plot_agent_and_neighbors(
     agent, frame, rdata, neighbors, neighbors_ids, exterior, interior, neighbor_type
 ):
+
+    agent_data = rdata[(rdata["id"] == agent) & (rdata["frame"] == frame)]
+
+    X0 = neighbors[:, 0]
+    Y0 = neighbors[:, 1]
+    color = {"prev": "blue", "next": "green"}
+    dists = []
+    text = ""
+    if not agent_data.empty:
+        x_agent = agent_data.iloc[0]["x"]
+        y_agent = agent_data.iloc[0]["y"]
+
+        for i, (x, y, ni, nt) in enumerate(zip(X0, Y0, neighbors_ids, neighbor_type)):
+            dists.append(
+                np.linalg.norm(np.array([x_agent, y_agent]) - np.array([x, y]))
+            )
+            text += f"Dist to <b>{neighbor_type[i]}: </b> {dists[i]:.2}. "
+
     fig = make_subplots(
         rows=1,
         cols=1,
         subplot_titles=[
-            f"<b>Agent {agent} at Frame {frame} has {len(neighbors)} neighbors: {neighbors_ids}</b>"
+            # f"<b>Agent {agent} at Frame {frame} has {len(neighbors)} neighbors: {neighbors_ids}</b>"
+            text
         ],
         x_title="X",
         y_title=r"Y",
@@ -389,15 +408,10 @@ def plot_agent_and_neighbors(
 
     data0 = rdata[rdata["frame"] == frame]
     agent_data = rdata[(rdata["id"] == agent) & (rdata["frame"] == frame)]
-    if not agent_data.empty:
-        x_agent = agent_data.iloc[0]["x"]
-        y_agent = agent_data.iloc[0]["y"]
 
     X = data0["x"]
     Y = data0["y"]
     idgray = data0["id"]
-    X0 = neighbors[:, 0]
-    Y0 = neighbors[:, 1]
 
     for i, x, y in zip(idgray, X, Y):
         fig.add_trace(
@@ -442,7 +456,6 @@ def plot_agent_and_neighbors(
 
     fig.append_trace(polygon, row=1, col=1)
     # plot neighbors
-    color = {"prev": "blue", "next": "green"}
     for x, y, ni, nt in zip(X0, Y0, neighbors_ids, neighbor_type):
         fig.add_trace(
             go.Scatter(

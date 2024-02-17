@@ -15,6 +15,14 @@ from tqdm import tqdm
 import helper as hp
 
 
+@dataclass
+class InitData:
+    countries: list
+    files: dict
+    result_csv: Path
+    fps: int
+
+
 def load_file(file: str) -> pedpy.TrajectoryData:
     """Loads and processes a file to create a TrajectoryData object."""
 
@@ -62,6 +70,91 @@ def filter_frames(data: pd.DataFrame, nagents: int) -> pd.DataFrame:
     return cleaned_data
 
 
+def calculate_circular_distance_and_gender_pal(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate the distance to the nearest neighbors based on preprocessed neighbor information,
+    considering the spatial arrangement, and include the gender of these neighbors.
+
+    This function is designed for pal experiments, since in these experiments
+    agents enter and leave the experiment area, unlike the other experiments.
+
+    Parameters:
+    data (DataFrame): A pandas DataFrame containing the columns 'id', 'gender', 'x', and 'y'.
+
+    Returns:
+    DataFrame: The input DataFrame with additional columns for distances to the previous and next neighbors
+               and the gender of these neighbors.
+    """
+    # Ensure DataFrame is sorted by frame
+    data = data.sort_values(by="frame")
+
+    # Group data by id
+    grouped_data = data.groupby("id")
+
+    # Create new columns
+    new_columns = [
+        "distance_to_prev_neighbor",
+        "gender_of_prev_neighbor",
+        "distance_to_next_neighbor",
+        "gender_of_next_neighbor",
+    ]
+    data.loc[:, new_columns] = np.nan
+    # Iterate over groups
+    for id_, group in grouped_data:
+        mask = data["id"] == id_
+        prev_id = group["prev"].iloc[0]
+        next_id = group["next"].iloc[0]
+        if np.isnan(prev_id) or np.isnan(next_id):
+            continue
+
+        frames_with_both_neighbors = set(group["frame"]).intersection(
+            set(grouped_data.get_group(prev_id)["frame"]),
+            set(grouped_data.get_group(next_id)["frame"]),
+        )
+
+        for frame in frames_with_both_neighbors:
+            frame_data = group[group["frame"] == frame]
+            distances_to_prev = np.linalg.norm(
+                frame_data[["x", "y"]].values
+                - grouped_data.get_group(prev_id)[
+                    grouped_data.get_group(prev_id)["frame"] == frame
+                ][["x", "y"]].values,
+                axis=1,
+            )
+            gender_of_prev = (
+                grouped_data.get_group(prev_id)
+                .loc[grouped_data.get_group(prev_id)["frame"] == frame, "gender"]
+                .values[0]
+            )
+            distances_to_next = np.linalg.norm(
+                frame_data[["x", "y"]].values
+                - grouped_data.get_group(next_id)[
+                    grouped_data.get_group(next_id)["frame"] == frame
+                ][["x", "y"]].values,
+                axis=1,
+            )
+            gender_of_next = (
+                grouped_data.get_group(next_id)
+                .loc[grouped_data.get_group(next_id)["frame"] == frame, "gender"]
+                .values[0]
+            )
+
+            data.loc[mask & (data["frame"] == frame), "distance_to_prev_neighbor"] = (
+                distances_to_prev
+            )
+            data.loc[mask & (data["frame"] == frame), "gender_of_prev_neighbor"] = (
+                gender_of_prev
+            )
+            data.loc[mask & (data["frame"] == frame), "distance_to_next_neighbor"] = (
+                distances_to_next
+            )
+            data.loc[mask & (data["frame"] == frame), "gender_of_next_neighbor"] = (
+                gender_of_next
+            )
+
+    return data
+
+
 def calculate_circular_distance_and_gender_vect(data: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate the distance to the nearest neighbors based on preprocessed neighbor information,
@@ -84,21 +177,15 @@ def calculate_circular_distance_and_gender_vect(data: pd.DataFrame) -> pd.DataFr
         "gender_of_next_neighbor",
     ]
     data.loc[:, new_columns] = np.nan
-
     for id_ in ids:
-        # if np.isnan(id_):
-        #     print(f"{ids=}")
+
         mask = data["id"] == id_
         id_data = data.loc[mask]
-        # print("=======")
-        # print(f"{id_=}")
-        # print(id_data)
-
         prev_id = id_data["prev"].iloc[0]
         next_id = id_data["next"].iloc[0]
-        # print(f"{prev_id=}, {next_id=}")
-        # print("=======")
-        # print(id_data)
+        # print(id_, prev_id, next_id)
+        if np.isnan(prev_id) or np.isnan(next_id):
+            continue
         # Calculate distances and genders for previous neighbors
         prev_data = data.loc[data["id"] == prev_id]
         distances_to_prev = np.linalg.norm(
@@ -106,14 +193,11 @@ def calculate_circular_distance_and_gender_vect(data: pd.DataFrame) -> pd.DataFr
         )
         gender_of_prev = prev_data["gender"].astype(int).values
         # Calculate distances and genders for next neighbors
-
         next_data = data[data["id"] == next_id]
-
         distances_to_next = np.linalg.norm(
             id_data[["x", "y"]].values - next_data[["x", "y"]].values, axis=1
         )
         gender_of_next = next_data["gender"].astype(int).values
-
         # Enhance the data with the new columns
         data.loc[mask, "distance_to_prev_neighbor"] = distances_to_prev
         data.loc[mask, "distance_to_next_neighbor"] = distances_to_next
@@ -132,7 +216,7 @@ def extract_first_number(filename: str) -> int:
 
 
 def calculate_proximity_analysis(
-    country: str, filename: str, rotated_data: pd.DataFrame, fps: int = 25
+    country: str, filename: str, data: pd.DataFrame, fps: int = 25
 ) -> List[Dict]:
     """
     Performs proximity analysis on given data of agents.
@@ -155,11 +239,17 @@ def calculate_proximity_analysis(
         'gender_of_next_neighbor', 'gender_of_prev_neighbor', 'distance_to_next_neighbor',
         and 'distance_to_prev_neighbor' columns.
     """
-    nagents = extract_first_number(filename)
-    cleaned_data = filter_frames(rotated_data, nagents)
-    processed_data = calculate_circular_distance_and_gender_vect(cleaned_data)
-    proximity_analysis_res = []
+    if country != "pal":
+        nagents = extract_first_number(filename)
+        cleaned_data = filter_frames(data, nagents)
+        processed_data = calculate_circular_distance_and_gender_vect(cleaned_data)
+        fps = 25
+    else:
+        processed_data = calculate_circular_distance_and_gender_pal(data)
+        fps = 1
 
+    proximity_analysis_res = []
+    # print(processed_data)
     frames_to_include = set(range(0, processed_data["frame"].max(), fps))
 
     # Filter the DataFrame to only include the desired frames
@@ -228,15 +318,14 @@ def prepare_data(country, selected_file, fps):
     return country, selected_file, data, fps
 
 
-def calculate_with_joblib(countries, files, fps):
+def calculate_with_joblib(init_data: InitData):
     # Prepare tasks
-    res_file = "app_data/proximity_results.pkl"
 
     tasks = []
-    for country in countries:
+    for country in init_data.countries:
         print(f"prepare tasks: {country}")
-        for file in files[country]:
-            tasks.append(prepare_data(country, file, fps))
+        for filename in init_data.files[country]:
+            tasks.append(prepare_data(country, filename, init_data.fps))
 
     # Define a function to be executed in parallel
     def process_task(task):
@@ -254,17 +343,10 @@ def calculate_with_joblib(countries, files, fps):
     # Return the final results
     flattened_results = list(itertools.chain.from_iterable(results))
     flattened_results = pd.DataFrame(flattened_results)
-    flattened_results.to_pickle(res_file)
+    print(init_data.result_csv)
+    flattened_results.to_pickle(init_data.result_csv)
 
     return flattened_results
-
-
-@dataclass
-class InitData:
-    countries: list
-    files: dict
-    result_csv: Path
-    fps: int
 
 
 def init() -> InitData:
@@ -274,9 +356,9 @@ def init() -> InitData:
     Returns:
         InitData: A data class containing initialized data including countries, files dictionary, result CSV path, and FPS.
     """
-    result_csv = Path("proximity_analysis_results.csv")
+    result_csv = Path("app_data/proximity_analysis_results.csv")
     fps = 25  # For distance calculations, calculate every fps-frame
-    countries = ["pal, " "aus", "ger", "jap", "chn"]
+    countries = ["pal", "aus", "ger", "jap", "chn"]
     files = {}
     for country in countries:
         files[country] = [str(path) for path in Path(country).glob("*.csv")]
@@ -287,9 +369,7 @@ def init() -> InitData:
 if __name__ == "__main__":
     init_data = init()
     start_time = time.time()
-    proximity_df = calculate_with_joblib(
-        init_data.countries, init_data.files, init_data.fps
-    )
+    proximity_df = calculate_with_joblib(init_data)
     end_time = time.time()
     elapsed_time = end_time - start_time
     print(f"Time taken: {elapsed_time:.2f} seconds")
