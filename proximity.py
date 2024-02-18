@@ -15,6 +15,7 @@ from tqdm import tqdm
 import helper as hp
 
 exterior, interior, middle_path = hp.generate_parcour()
+path_distances = hp.precompute_path_distances(middle_path)
 
 
 @dataclass
@@ -246,7 +247,7 @@ def calculate_circular_distance_and_gender_arc(data: pd.DataFrame) -> pd.DataFra
         distances_to_next = []
         for p1, p2 in zip(id_data[["x", "y"]].values, prev_data[["x", "y"]].values):
             distance, _, _ = hp.sum_distances_between_agents_on_path(
-                p1, p2, middle_path
+                p1, p2, middle_path, path_distances
             )
             distances_to_prev.append(distance)
 
