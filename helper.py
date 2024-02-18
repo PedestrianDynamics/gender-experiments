@@ -795,7 +795,17 @@ def project_position_to_path(position, path):
     return closest_point_index, delta_sum[closest_point_index]
 
 
-def sum_distances_between_agents_on_path(agent1_pos, agent2_pos, path):
+def precompute_path_distances(path):
+    distances = np.array(
+        [
+            np.linalg.norm(np.array(path[i]) - np.array(path[i + 1]))
+            for i in range(len(path) - 1)
+        ]
+    )
+    return distances
+
+
+def sum_distances_between_agents_on_path(agent1_pos, agent2_pos, path, path_distances):
     """Calculate the distance between two agents by summing the distances between points on the path that lie between them."""
     index1, _ = project_position_to_path(agent1_pos, path)
     index2, _ = project_position_to_path(agent2_pos, path)
@@ -806,20 +816,22 @@ def sum_distances_between_agents_on_path(agent1_pos, agent2_pos, path):
     # Ensure index1 is smaller than index2 for simplicity
     if index1 > index2:
         index1, index2 = index2, index1
-
-    direct_dist_list = [
-        np.sqrt((path[i][0] - path[i + 1][0]) ** 2 + (path[i][1] - path[i + 1][1]) ** 2)
-        for i in range(index1, index2)
-    ]
-    direct_distance_sum = sum(direct_dist_list)
+    direct_distance_sum = np.sum(path_distances[index1:index2])
+    # direct_dist_list = [
+    #     np.sqrt((path[i][0] - path[i + 1][0]) ** 2 + (path[i][1] - path[i + 1][1]) ** 2)
+    #     for i in range(index1, index2)
+    # ]
+    # direct_distance_sum = sum(direct_dist_list)  #
 
     # Calculate loop-around distance
-    loop_around_dist_list = [
-        np.sqrt((path[i][0] - path[i + 1][0]) ** 2 + (path[i][1] - path[i + 1][1]) ** 2)
-        for i in list(range(index2, len(path) - 1)) + list(range(0, index1))
-    ]
-    loop_around_distance_sum = sum(loop_around_dist_list)
-
+    # loop_around_dist_list = [
+    #     np.sqrt((path[i][0] - path[i + 1][0]) ** 2 + (path[i][1] - path[i + 1][1]) ** 2)
+    #     for i in list(range(index2, len(path) - 1)) + list(range(0, index1))
+    # ]
+    # loop_around_distance_sum = sum(loop_around_dist_list)
+    loop_around_distance_sum = np.sum(path_distances[index2:]) + np.sum(
+        path_distances[:index1]
+    )
     # Choose the shorter distance
     distance_sum = min(direct_distance_sum, loop_around_distance_sum)
     distance_sum += distance1 + distance2

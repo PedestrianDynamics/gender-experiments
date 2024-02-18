@@ -367,6 +367,7 @@ def plot_agent_and_neighbors(
 
     text = ""
     show_fake = st.checkbox("Show projections", value=False)
+    path_distances = hp.precompute_path_distances(middle_path)
     if not agent_data.empty:
         x_agent = agent_data.iloc[0]["x"]
         y_agent = agent_data.iloc[0]["y"]
@@ -376,7 +377,10 @@ def plot_agent_and_neighbors(
                 np.linalg.norm(np.array([x_agent, y_agent]) - np.array([x, y]))
             )
             d, p1, p2 = hp.sum_distances_between_agents_on_path(
-                np.array([x_agent, y_agent]), np.array([x, y]), middle_path
+                np.array([x_agent, y_agent]),
+                np.array([x, y]),
+                middle_path,
+                path_distances,
             )
             agent_fake = p1
             X_fake.append(p2[0])
