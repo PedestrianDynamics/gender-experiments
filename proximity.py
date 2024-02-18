@@ -256,7 +256,7 @@ def calculate_circular_distance_and_gender_arc(data: pd.DataFrame) -> pd.DataFra
         next_data = data[data["id"] == next_id]
         for p1, p2 in zip(id_data[["x", "y"]].values, next_data[["x", "y"]].values):
             distance, _, _ = hp.sum_distances_between_agents_on_path(
-                p1, p2, middle_path
+                p1, p2, middle_path, path_distances
             )
             distances_to_next.append(distance)
 
@@ -421,7 +421,7 @@ def init() -> InitData:
     """
     result_csv = Path("app_data/proximity_analysis_results.csv")
     fps = 25  # For distance calculations, calculate every fps-frame
-    countries = ["aus", "ger", "jap", "chn", "pal"]
+    countries = ["aus"]  # , "ger", "jap", "chn", "pal"]
     files = {}
     for country in countries:
         files[country] = [str(path) for path in Path(country).glob("*.csv")]
