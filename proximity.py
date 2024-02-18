@@ -14,6 +14,8 @@ from tqdm import tqdm
 
 import helper as hp
 
+exterior, interior, middle_path = hp.generate_parcour()
+
 
 @dataclass
 class InitData:
@@ -207,6 +209,66 @@ def calculate_circular_distance_and_gender_vect(data: pd.DataFrame) -> pd.DataFr
     return data
 
 
+def calculate_circular_distance_and_gender_arc(data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate the distance to the nearest neighbors based on preprocessed neighbor information,
+    considering the spatial arrangement, and include the gender of these neighbors.
+
+    Parameters:
+    data (DataFrame): A pandas DataFrame containing the columns 'id', 'gender', 'x', and 'y'.
+    neighbors (dict): A dictionary mapping each ID to its previous and next neighbors.
+
+    Returns:
+    DataFrame: The input DataFrame with additional columns for distances to the previous and next neighbors
+               and the gender of these neighbors.
+    """
+    # Create dictionaries to store distances and genders
+    ids = data["id"].unique()
+    new_columns = [
+        "distance_to_prev_neighbor",
+        "gender_of_prev_neighbor",
+        "distance_to_next_neighbor",
+        "gender_of_next_neighbor",
+    ]
+    data.loc[:, new_columns] = np.nan
+    for id_ in ids:
+
+        mask = data["id"] == id_
+        id_data = data.loc[mask]
+        prev_id = id_data["prev"].iloc[0]
+        next_id = id_data["next"].iloc[0]
+        # print(id_, prev_id, next_id)
+        if np.isnan(prev_id) or np.isnan(next_id):
+            continue
+        # Calculate distances and genders for previous neighbors
+        prev_data = data.loc[data["id"] == prev_id]
+        distances_to_prev = []
+        distances_to_next = []
+        for p1, p2 in zip(id_data[["x", "y"]].values, prev_data[["x", "y"]].values):
+            distance, _, _ = hp.sum_distances_between_agents_on_path(
+                p1, p2, middle_path
+            )
+            distances_to_prev.append(distance)
+
+        gender_of_prev = prev_data["gender"].astype(int).values
+        # Calculate distances and genders for next neighbors
+        next_data = data[data["id"] == next_id]
+        for p1, p2 in zip(id_data[["x", "y"]].values, next_data[["x", "y"]].values):
+            distance, _, _ = hp.sum_distances_between_agents_on_path(
+                p1, p2, middle_path
+            )
+            distances_to_next.append(distance)
+
+        gender_of_next = next_data["gender"].astype(int).values
+        # Enhance the data with the new columns
+        data.loc[mask, "distance_to_prev_neighbor"] = distances_to_prev
+        data.loc[mask, "distance_to_next_neighbor"] = distances_to_next
+        data.loc[mask, "gender_of_prev_neighbor"] = gender_of_prev
+        data.loc[mask, "gender_of_next_neighbor"] = gender_of_next
+
+    return data
+
+
 def extract_first_number(filename: str) -> int:
     """Define a regular expression pattern to match the first sequence of digits."""
     pattern = r"\d+"
@@ -242,7 +304,7 @@ def calculate_proximity_analysis(
     if country != "pal":
         nagents = extract_first_number(filename)
         cleaned_data = filter_frames(data, nagents)
-        processed_data = calculate_circular_distance_and_gender_vect(cleaned_data)
+        processed_data = calculate_circular_distance_and_gender_arc(cleaned_data)
         fps = 25
     else:
         processed_data = calculate_circular_distance_and_gender_pal(data)
@@ -358,7 +420,7 @@ def init() -> InitData:
     """
     result_csv = Path("app_data/proximity_analysis_results.csv")
     fps = 25  # For distance calculations, calculate every fps-frame
-    countries = ["pal", "aus", "ger", "jap", "chn"]
+    countries = ["aus", "ger", "jap", "chn", "pal"]
     files = {}
     for country in countries:
         files[country] = [str(path) for path in Path(country).glob("*.csv")]

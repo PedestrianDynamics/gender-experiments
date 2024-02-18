@@ -343,7 +343,15 @@ def plot_rudina_fd(countries, fps=100):
 
 
 def plot_agent_and_neighbors(
-    agent, frame, rdata, neighbors, neighbors_ids, exterior, interior, neighbor_type
+    agent,
+    frame,
+    rdata,
+    neighbors,
+    neighbors_ids,
+    exterior,
+    interior,
+    middle_path,
+    neighbor_type,
 ):
 
     agent_data = rdata[(rdata["id"] == agent) & (rdata["frame"] == frame)]
@@ -352,7 +360,13 @@ def plot_agent_and_neighbors(
     Y0 = neighbors[:, 1]
     color = {"prev": "blue", "next": "green"}
     dists = []
+    dists2 = []
+    agent_fake = []
+    X_fake = []
+    Y_fake = []
+
     text = ""
+    show_fake = st.checkbox("Show projections", value=False)
     if not agent_data.empty:
         x_agent = agent_data.iloc[0]["x"]
         y_agent = agent_data.iloc[0]["y"]
@@ -361,7 +375,14 @@ def plot_agent_and_neighbors(
             dists.append(
                 np.linalg.norm(np.array([x_agent, y_agent]) - np.array([x, y]))
             )
-            text += f"Dist to <b>{neighbor_type[i]}: </b> {dists[i]:.2}. "
+            d, p1, p2 = hp.sum_distances_between_agents_on_path(
+                np.array([x_agent, y_agent]), np.array([x, y]), middle_path
+            )
+            agent_fake = p1
+            X_fake.append(p2[0])
+            Y_fake.append(p2[1])
+            dists2.append(d)
+            text += f"<b>{neighbor_type[i]}: </b> [Euklidean {dists[i]:.2} m. Arc {dists2[i]:.2f} m]. "
 
     fig = make_subplots(
         rows=1,
@@ -379,6 +400,10 @@ def plot_agent_and_neighbors(
     x_interior, y_interior = Polygon(interior).exterior.xy
     x_interior = list(x_interior)
     y_interior = list(y_interior)
+    x_middle, y_middle = Polygon(middle_path).exterior.xy
+    x_middle = list(x_middle)
+    y_middle = list(y_middle)
+
     xmin = np.min(x_exterior)
     xmax = np.max(x_exterior)
     ymin = np.min(y_exterior) - 0.5
@@ -400,6 +425,17 @@ def plot_agent_and_neighbors(
             mode="lines",
             line=dict(color="red"),
             name="interior",
+            showlegend=False,
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter(
+            x=x_middle,
+            y=y_middle,
+            mode="lines",
+            line=dict(color="black"),
+            name="middle",
             showlegend=False,
         )
     )
@@ -467,6 +503,23 @@ def plot_agent_and_neighbors(
                 showlegend=True,
             )
         )
+    if show_fake:
+        for x, y, ni, nt in zip(X_fake, Y_fake, neighbors_ids, neighbor_type):
+            fig.add_trace(
+                go.Scatter(
+                    x=[x],
+                    y=[y],
+                    name=f"{nt}: {ni:0.0f}",
+                    marker=dict(
+                        size=20,
+                        color="rgba(255,255,255,0)",
+                        line=dict(color=color[nt], width=2),
+                    ),
+                    mode="markers+lines",
+                    showlegend=False,
+                )
+            )
+
     # plot agent
     if not agent_data.empty:
         fig.add_trace(
@@ -480,6 +533,23 @@ def plot_agent_and_neighbors(
                 showlegend=True,
             )
         )
+        if show_fake:
+            fig.add_trace(
+                go.Scatter(
+                    x=[agent_fake[0]],
+                    y=[agent_fake[1]],
+                    # fillcolor="blue",
+                    name=f"Agent: {agent:0.0f}",
+                    marker=dict(
+                        size=20,
+                        color="rgba(255,255,255,0)",
+                        line=dict(color="firebrick", width=2),
+                    ),
+                    # line_color="blue",
+                    showlegend=False,
+                    mode="markers+lines",
+                )
+            )
     # fig.add_shape(
     #     type="circle",
     #     xref="x",

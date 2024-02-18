@@ -158,7 +158,7 @@ def generate_oval_shape_points(
         return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
 
     # Calculate dphi based on the dx and radius
-    dphi = dx / radius
+    dphi = 0.005 / radius
 
     center2 = (start[0] + length, start[1] + radius)
     center1 = (start[0], start[1] + radius)
@@ -215,7 +215,7 @@ def generate_oval_shape_points(
 
 def generate_parcour():
     _, exterior = generate_oval_shape_points(
-        num_points=50,
+        num_points=100,
         radius=1.65 + 0.4,
         start=(-1, -2),
         threshold=0.2,
@@ -228,7 +228,16 @@ def generate_parcour():
         threshold=0.2,
     )
 
-    return exterior, interior
+    _, middle_path = generate_oval_shape_points(
+        num_points=250,
+        radius=1.65,
+        length=2,
+        start=(-1, -1.6),
+        dx=0.05,
+        threshold=0.05,
+    )
+
+    return exterior, interior, middle_path
 
 
 def sorting_key(filename: str) -> Tuple[int, str]:
@@ -443,7 +452,7 @@ def get_neighbors_special_agent_data(
     return neighbors, neighbors_ids, area, neighbors_dist, neighbor_type
 
 
-def plot_neighbors_analysis(selected_file, data, ids, exterior, interior, do_rotate):
+def plot_neighbors_analysis(selected_file, data, ids, exterior, interior, middle_path):
     # st.dataframe(data)
 
     n0, n1, n2, n3 = st.columns((1, 1, 1, 1))
@@ -596,6 +605,7 @@ def plot_neighbors_analysis(selected_file, data, ids, exterior, interior, do_rot
         neighbors_ids,
         exterior,
         interior,
+        middle_path,
         neighbor_type,
     )
 
@@ -776,3 +786,41 @@ def increment_page_start(page_size):
 
 def decrement_page_start(page_size):
     st.session_state.page_start -= page_size
+
+
+def project_position_to_path(position, path):
+    """Project a position onto the path by finding the point with the minimum Δx and Δy differences."""
+    delta_sum = [np.linalg.norm(position - p) for p in path]
+    closest_point_index = np.argmin(delta_sum)
+    return closest_point_index, delta_sum[closest_point_index]
+
+
+def sum_distances_between_agents_on_path(agent1_pos, agent2_pos, path):
+    """Calculate the distance between two agents by summing the distances between points on the path that lie between them."""
+    index1, _ = project_position_to_path(agent1_pos, path)
+    index2, _ = project_position_to_path(agent2_pos, path)
+    distance1 = np.linalg.norm(agent1_pos - path[index1])
+    distance2 = np.linalg.norm(agent2_pos - path[index2])
+    p1, p2 = path[index1], path[index2]
+    #    st.info((index1, index2))
+    # Ensure index1 is smaller than index2 for simplicity
+    if index1 > index2:
+        index1, index2 = index2, index1
+
+    direct_dist_list = [
+        np.sqrt((path[i][0] - path[i + 1][0]) ** 2 + (path[i][1] - path[i + 1][1]) ** 2)
+        for i in range(index1, index2)
+    ]
+    direct_distance_sum = sum(direct_dist_list)
+
+    # Calculate loop-around distance
+    loop_around_dist_list = [
+        np.sqrt((path[i][0] - path[i + 1][0]) ** 2 + (path[i][1] - path[i + 1][1]) ** 2)
+        for i in list(range(index2, len(path) - 1)) + list(range(0, index1))
+    ]
+    loop_around_distance_sum = sum(loop_around_dist_list)
+
+    # Choose the shorter distance
+    distance_sum = min(direct_distance_sum, loop_around_distance_sum)
+    distance_sum += distance1 + distance2
+    return distance_sum, p1, p2

@@ -18,7 +18,7 @@ def run_tab1(msg, country: str, selected_file: str):
     """First tab. Plot original data, animatoin, neighborhood."""
     c1, c2 = st.columns((1, 1))
     do_rotate = False
-    exterior, interior = hp.generate_parcour()
+    exterior, interior, middle_path = hp.generate_parcour()
     walkable_area = pedpy.WalkableArea(difference(Polygon(exterior), Polygon(interior)))
     msg.write("")
     if country:
@@ -198,7 +198,7 @@ def run_tab1(msg, country: str, selected_file: str):
                     ids,
                     exterior,
                     interior,
-                    do_rotate,
+                    middle_path,
                 )
                 st.session_state.new_data = new_data
                 st.plotly_chart(fig)
