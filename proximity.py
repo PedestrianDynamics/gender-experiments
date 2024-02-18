@@ -421,7 +421,7 @@ def init() -> InitData:
     """
     result_csv = Path("app_data/proximity_analysis_results.csv")
     fps = 25  # For distance calculations, calculate every fps-frame
-    countries = ["aus"]  # , "ger", "jap", "chn", "pal"]
+    countries = ["aus", "ger", "jap", "chn", "pal"]
     files = {}
     for country in countries:
         files[country] = [str(path) for path in Path(country).glob("*.csv")]
