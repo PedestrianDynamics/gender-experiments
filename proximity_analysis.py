@@ -27,8 +27,9 @@ def run_tab3(selected_file: str):
                 "load_gender_analysis_(Euklidean)",
                 "load_gender_analysis_(Arc)",
                 # "calculate_gender_analysis",
-                "plot_existing_data",
+                # "plot_existing_data",
             ],
+            horizontal=True,
         )
 
         if do_analysis == "calculate_gender_analysis":
