@@ -23,15 +23,25 @@ class DataConfig:
     rename_mapping: Dict[str, str]
     column_types: Dict[str, str]
     countries: List[str]
+    # Arc distance
     proximity_results: Dict[str, Path] = field(default_factory=dict)
+    # Euklidean distance
+    proximity_results0: Dict[str, Path] = field(default_factory=dict)
 
     files: Dict[str, List[str]] = field(default_factory=dict)
     data: Dict[str, List] = field(default_factory=lambda: defaultdict(list))
 
     def __post_init__(self):
         """Initialize the DataConfig instance by retrieving files for each country."""
+        # direct distance results
+        self.proximity_results0["path"] = Path(
+            "app_data/proximity_analysis_results0.csv"
+        )
+        self.proximity_results0["url"] = "https://go.fzj.de/proximity_results0"
+
         self.proximity_results["path"] = Path("app_data/proximity_analysis_results.csv")
         self.proximity_results["url"] = "https://go.fzj.de/proximity_results"
+
         # Ensure the directory exists
         self.proximity_results["path"].parent.mkdir(parents=True, exist_ok=True)
         self.retrieve_files()

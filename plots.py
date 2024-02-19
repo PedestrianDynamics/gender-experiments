@@ -41,12 +41,13 @@ def plot_trajectories(
     x_interior = list(x_interior)
     y_interior = list(y_interior)
 
-    rotated_data = hp.rotate_trajectories(
-        data,
-        st.session_state.center_x,
-        st.session_state.center_y,
-        st.session_state.angle_degrees,
-    )
+    # rotated_data = hp.rotate_trajectories(
+    #     data,
+    #     st.session_state.center_x,
+    #     st.session_state.center_y,
+    #     st.session_state.angle_degrees,
+    # )
+    rotated_data = data
     # For each unique id, plot a trajectory
     if uid is not None:
         df = data[data["id"] == uid]

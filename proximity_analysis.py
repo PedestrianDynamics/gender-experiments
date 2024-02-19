@@ -24,8 +24,9 @@ def run_tab3(selected_file: str):
         do_analysis = st.radio(
             "Choose option",
             [
-                "load_gender_analysis",
-                "calculate_gender_analysis",
+                "load_gender_analysis_(Euklidean)",
+                "load_gender_analysis_(Arc)",
+                # "calculate_gender_analysis",
                 "plot_existing_data",
             ],
         )
@@ -46,8 +47,17 @@ def run_tab3(selected_file: str):
             elapsed_time = end_time - start_time
             st.info(f"Running time: {elapsed_time/60:.2} min")
 
-        if do_analysis == "load_gender_analysis":
-            result_csv = st.session_state.config.proximity_results["path"]
+        if (
+            do_analysis == "load_gender_analysis_(Euklidean)"
+            or do_analysis == "load_gender_analysis_(Arc)"
+        ):
+            if do_analysis == "load_gender_analysis_(Euklidean)":
+                result_csv = st.session_state.config.proximity_results0["path"]
+                csv_url = st.session_state.config.proximity_results0["url"]
+            else:
+                result_csv = st.session_state.config.proximity_results["path"]
+                csv_url = st.session_state.config.proximity_results["url"]
+
             msg = st.empty()
             st.divider()
             c0, c1, c2, c3, c4, c5 = st.columns(6)
@@ -55,7 +65,6 @@ def run_tab3(selected_file: str):
 
             if not result_csv.exists():
                 msg.warning(f"{result_csv} does not exist yet!")
-                csv_url = st.session_state.config.proximity_results["url"]
                 with st.status("Downloading ...", expanded=True):
                     hp.download_csv(csv_url, result_csv)
 
@@ -67,14 +76,14 @@ def run_tab3(selected_file: str):
                 st.stop()
 
             # maybe filter low densities out. File with only 4 pedestrians
-            exclude = c5.checkbox(
-                "Exclude *04-files",
-                value=True,
-                help="Exclude 04 files, since their neighborhood may not be correct.",
-            )
-            if exclude:
-                pattern = ".*_04_.*\.csv"
-                proximity_df = proximity_df[~proximity_df["file"].str.contains(pattern)]
+            # exclude = c5.checkbox(
+            #     "Exclude *04-files",
+            #     value=True,
+            #     help="Exclude 04 files, since their neighborhood may not be correct.",
+            # )
+            # if exclude:
+            #     pattern = ".*_04_.*\.csv"
+            #     proximity_df = proximity_df[~proximity_df["file"].str.contains(pattern)]
             msg.empty()
             proximity_melted = proximity_df.melt(
                 id_vars=["id", "frame", "country"],
@@ -87,7 +96,7 @@ def run_tab3(selected_file: str):
                 var_name="category",
                 value_name="distance",
             )
-            show_dataframe = c0.checkbox("Show data", value=True)
+            show_dataframe = c0.checkbox("Show data", value=False)
             ttest = c1.checkbox(
                 "T-test", value=False, help="Perform ttest on the distances."
             )
@@ -134,8 +143,7 @@ def run_tab3(selected_file: str):
                 st.dataframe(proximity_df.iloc[st.session_state.page_start : page_end])
 
             if debug:
-                st.info(f"Data for {selected_file}")
-                st.dataframe(proximity_df.loc[proximity_df["file"] == selected_file])
+                # st.info(f"Data for {selected_file}")
                 ids = proximity_df["id"].unique()
                 uid = st.number_input(
                     "Insert id of pedestrian",
@@ -186,7 +194,7 @@ def run_tab3(selected_file: str):
                     showlegend=True,
                 )
                 hp.show_fig(fig, html=True)
-
+                st.dataframe(proximity_df.loc[proximity_df["file"] == selected_file])
             if ttest:
                 type_ = st.radio(
                     "Select group",
