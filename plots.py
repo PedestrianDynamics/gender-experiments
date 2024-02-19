@@ -367,7 +367,7 @@ def plot_agent_and_neighbors(
     Y_fake = []
 
     text = ""
-    show_fake = st.checkbox("Show projections", value=False)
+    show_fake = st.checkbox("Show projections", value=True)
     path_distances = hp.precompute_path_distances(middle_path)
     if not agent_data.empty:
         x_agent = agent_data.iloc[0]["x"]

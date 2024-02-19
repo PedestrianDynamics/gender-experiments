@@ -53,6 +53,7 @@ def run_tab1(msg, country: str, selected_file: str):
             get_neighborhood = rc3.checkbox(
                 "Neighbors", value=True, help="Calculate and visualize neighbors"
             )
+
             ids = data["id"].unique()
             if do_plot_trajectories:
                 # do_fix = c1.checkbox("Fix", value=False)
@@ -125,6 +126,23 @@ def run_tab1(msg, country: str, selected_file: str):
                 st.plotly_chart(fig)
             # neighborhood
             if get_neighborhood and len(ids) > 2:
+                with st.expander("How to calculate the distance? (click to expand)"):
+                    st.write(
+                        """
+                        First, we define an oval (black line) with the following specifications:
+                        - Two semi-circles with radius $r=1.65$ m.
+                        - Two linear segments a length $l=2$ m.
+                        - Resolution of the linear segments is $\delta x = 0.05$ m
+                        - Resolution of the angular setup is  $\delta \phi = \\frac{0.005}{r}$ m
+
+                        With this we can calculate the distance between two points $p_1$ and $p_2$ with two methods:
+                        - **Method 1 (Euklidean)**: Just calculate the direct distance between two points. $d_1=|p_1-p_2|$
+                        - **Method 2 (Arc)**: Project the points on the oval, getting $p_1^\prime$ and $p_2^\prime$.
+                        Then calculate the distance as $d_2 =  \sum_i |p_i - p_{i+1} |,$ where $p_i$ are points on the arc between $p_1^\prime$ and $p_2^\prime$.
+
+                        **Note**: in the graph $p_1^\prime$ and $p_2^\prime$ are depicted as circles.
+                        """
+                    )
                 # if selected_file == "ger/mix_random_4_22.csv":
                 #     first_frame = 600
                 #     data = data[data["frame"] >= first_frame]

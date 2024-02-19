@@ -834,5 +834,5 @@ def sum_distances_between_agents_on_path(agent1_pos, agent2_pos, path, path_dist
     )
     # Choose the shorter distance
     distance_sum = min(direct_distance_sum, loop_around_distance_sum)
-    distance_sum += distance1 + distance2
+    # distance_sum += distance1 + distance2
     return distance_sum, p1, p2
