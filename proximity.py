@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List
-
+import os
 import numpy as np
 import pandas as pd
 import pedpy
@@ -14,8 +14,10 @@ from tqdm import tqdm
 
 import helper as hp
 
-exterior, interior, middle_path = hp.generate_parcour()
+_, _, middle_path = hp.generate_parcour()
+print(f"middle_path {len(middle_path)}")
 path_distances = hp.precompute_path_distances(middle_path)
+print(f"distances {len(path_distances)}")
 
 
 @dataclass
@@ -419,7 +421,11 @@ def init() -> InitData:
     Returns:
         InitData: A data class containing initialized data including countries, files dictionary, result CSV path, and FPS.
     """
+    print("Enter Init")
     result_csv = Path("app_data/proximity_analysis_results.csv")
+    result_csv.parent.mkdir(parents=True, exist_ok=True)
+    print("Created directory")
+    print(os.listdir())
     fps = 25  # For distance calculations, calculate every fps-frame
     countries = ["aus", "ger", "jap", "chn", "pal"]
     files = {}
