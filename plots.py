@@ -58,8 +58,8 @@ def plot_trajectories(
                 go.Scatter(
                     x=df["x"][::framerate],
                     y=df["y"][::framerate],
-                    line=dict(color=color_choice),
-                    marker=dict(color=color_choice),
+                    line={"color": color_choice},
+                    marker={"color": color_choice},
                     mode="lines",
                     name=f"ID {uid}, {gender}",
                 )
@@ -71,8 +71,8 @@ def plot_trajectories(
                 go.Scatter(
                     x=rotated_df["x"][::framerate],
                     y=rotated_df["y"][::framerate],
-                    line=dict(color=color_choice),
-                    marker=dict(color=color_choice),
+                    line={"color": color_choice},
+                    marker={"color": color_choice},
                     mode="lines",
                     name=f"ID {uid}, {gender}",
                 )
@@ -86,8 +86,8 @@ def plot_trajectories(
                     go.Scatter(
                         x=df["x"][::framerate],
                         y=df["y"][::framerate],
-                        line=dict(color=color_choice),
-                        marker=dict(color=color_choice),
+                        line={"color": color_choice},
+                        marker={"color": color_choice},
                         mode="lines",
                         name=f"ID {uid}, {gender}",
                     )
@@ -100,8 +100,8 @@ def plot_trajectories(
                     go.Scatter(
                         x=rotated_df["x"][::framerate],
                         y=rotated_df["y"][::framerate],
-                        line=dict(color=color_choice),
-                        marker=dict(color=color_choice),
+                        line={"color": color_choice},
+                        marker={"color": color_choice},
                         mode="lines",
                         name=f"ID {uid}, {gender}",
                     )
@@ -113,7 +113,7 @@ def plot_trajectories(
                 x=x_exterior,
                 y=y_exterior,
                 mode="lines",
-                line=dict(color="red"),
+                line={"color": "red"},
                 name="exterior",
             )
         )
@@ -122,20 +122,20 @@ def plot_trajectories(
                 x=x_interior,
                 y=y_interior,
                 mode="lines",
-                line=dict(color="red"),
+                line={"color": "red"},
                 name="interior",
             )
         )
-    xmin = np.min(x_exterior)
-    xmax = np.max(x_exterior)
-    ymin = np.min(y_exterior) - 0.5
-    ymax = np.max(y_exterior) + 0.5
+    np.min(x_exterior)
+    np.max(x_exterior)
+    np.min(y_exterior) - 0.5
+    np.max(y_exterior) + 0.5
     fig.update_layout(
         title=f" Trajectories: {num_agents} | M: {num_unique_males} | F: {num_unique_females} | N: {num_unique_unknowns}",
         xaxis_title="X",
         yaxis_title="Y",
-        xaxis=dict(scaleanchor="y"),  # , range=[xmin, xmax]),
-        yaxis=dict(scaleratio=1),  # , range=[ymin, ymax]),
+        xaxis={"scaleanchor": "y"},  # , range=[xmin, xmax]),
+        yaxis={"scaleratio": 1},  # , range=[ymin, ymax]),
         showlegend=False,
     )
 
@@ -146,7 +146,7 @@ def plot_trajectories(
         yref="paper",
         showarrow=False,
         text="<span style='color:green;'>Green: Male</span>, <span style='color:blue;'>Blue: Female</span>",
-        font=dict(size=12),
+        font={"size": 12},
         align="center",
     )
     return fig
@@ -172,8 +172,8 @@ def plot_time_series(
         go.Scatter(
             x=data["frame"] / fps,
             y=density,
-            line=dict(color="blue"),
-            marker=dict(color="blue"),
+            line={"color": "blue"},
+            marker={"color": "blue"},
             mode="lines",
         ),
         row=1,
@@ -184,8 +184,8 @@ def plot_time_series(
         go.Scatter(
             x=speed["time"].loc[ss_index:],
             y=speed["speed"].loc[ss_index:],
-            line=dict(color="blue"),
-            marker=dict(color="blue"),
+            line={"color": "blue"},
+            marker={"color": "blue"},
             mode="lines",
         ),
         row=1,
@@ -214,7 +214,7 @@ def plot_fundamental_diagram(
         go.Scatter(
             x=density[::50],
             y=speed[::50],
-            marker=dict(color="blue"),
+            marker={"color": "blue"},
             mode="markers",
         ),
     )
@@ -255,11 +255,11 @@ def plot_fundamental_diagram_all(country_data) -> go.Figure:
             go.Scatter(
                 x=density[::50],
                 y=speed[::50],
-                marker=dict(
-                    color=colors[country],
-                    opacity=0.5,
-                    symbol=marker_shapes[i % len(marker_shapes)],
-                ),
+                marker={
+                    "color": colors[country],
+                    "opacity": 0.5,
+                    "symbol": marker_shapes[i % len(marker_shapes)],
+                },
                 mode="markers",
                 name=f"{country}",
                 showlegend=True,
@@ -308,7 +308,7 @@ def plot_rudina_fd(countries, fps=100):
             for file_path in files:
                 df = pd.read_csv(
                     file_path,
-                    sep="\s+",
+                    sep=r"\s+",
                     comment="#",
                     names=["rho", "velocity"],
                 )
@@ -320,7 +320,7 @@ def plot_rudina_fd(countries, fps=100):
             go.Scatter(
                 x=combined_df[country]["rho"][::fps],
                 y=combined_df[country]["velocity"][::fps],
-                marker=dict(color=colors[country]),
+                marker={"color": colors[country]},
                 mode="markers",
                 name=f"{country}",
                 showlegend=True,
@@ -418,7 +418,7 @@ def plot_agent_and_neighbors(
             x=x_exterior,
             y=y_exterior,
             mode="lines",
-            line=dict(color="red"),
+            line={"color": "red"},
             name="exterior",
             showlegend=False,
         )
@@ -428,7 +428,7 @@ def plot_agent_and_neighbors(
             x=x_interior,
             y=y_interior,
             mode="lines",
-            line=dict(color="red"),
+            line={"color": "red"},
             name="interior",
             showlegend=False,
         )
@@ -439,13 +439,12 @@ def plot_agent_and_neighbors(
             x=x_middle,
             y=y_middle,
             mode="lines",
-            line=dict(color="black"),
+            line={"color": "black"},
             name="middle",
             showlegend=False,
         )
     )
 
-    rped = 0.1
 
     data0 = rdata[rdata["frame"] == frame]
     agent_data = rdata[(rdata["id"] == agent) & (rdata["frame"] == frame)]
@@ -459,7 +458,7 @@ def plot_agent_and_neighbors(
             go.Scatter(
                 x=[x],
                 y=[y],
-                marker=dict(size=20),
+                marker={"size": 20},
                 name=f"ID: {i:0.0f}",
                 line_color="black",
                 showlegend=False,
@@ -492,7 +491,7 @@ def plot_agent_and_neighbors(
         mode="lines",
         fill="toself",
         name=f"ConvexHull for pedestrian {agent}",
-        line=dict(color="LightSeaGreen", width=2),
+        line={"color": "LightSeaGreen", "width": 2},
     )
 
     fig.append_trace(polygon, row=1, col=1)
@@ -503,7 +502,7 @@ def plot_agent_and_neighbors(
                 x=[x],
                 y=[y],
                 name=f"{nt}: {ni:0.0f}",
-                marker=dict(size=20),
+                marker={"size": 20},
                 line_color=color[nt],
                 showlegend=True,
             )
@@ -515,11 +514,11 @@ def plot_agent_and_neighbors(
                     x=[x],
                     y=[y],
                     name=f"{nt}: {ni:0.0f}",
-                    marker=dict(
-                        size=20,
-                        color="rgba(255,255,255,0)",
-                        line=dict(color=color[nt], width=2),
-                    ),
+                    marker={
+                        "size": 20,
+                        "color": "rgba(255,255,255,0)",
+                        "line": {"color": color[nt], "width": 2},
+                    },
                     mode="markers+lines",
                     showlegend=False,
                 )
@@ -533,7 +532,7 @@ def plot_agent_and_neighbors(
                 y=[y_agent],
                 fillcolor="red",
                 name=f"Agent: {agent:0.0f}",
-                marker=dict(size=20),
+                marker={"size": 20},
                 line_color="firebrick",
                 showlegend=True,
             )
@@ -545,11 +544,11 @@ def plot_agent_and_neighbors(
                     y=[agent_fake[1]],
                     # fillcolor="blue",
                     name=f"Agent: {agent:0.0f}",
-                    marker=dict(
-                        size=20,
-                        color="rgba(255,255,255,0)",
-                        line=dict(color="firebrick", width=2),
-                    ),
+                    marker={
+                        "size": 20,
+                        "color": "rgba(255,255,255,0)",
+                        "line": {"color": "firebrick", "width": 2},
+                    },
                     # line_color="blue",
                     showlegend=False,
                     mode="markers+lines",
@@ -595,17 +594,16 @@ def plot_x_y_trace(x, y, title, xlabel, ylabel, color, name, line_property):
     #         line=dict(width=4, dash="dash", color="gray"),
     #     )
 
-    trace = go.Scatter(
+    return go.Scatter(
         x=x,
         y=y,
         mode="lines",
-        line=dict(width=3, color=color, dash=line_property),
+        line={"width": 3, "color": color, "dash": line_property},
         fill="none",
         showlegend=True,
         name=name,
     )
 
-    return trace
 
 
 def plot_x_y(x, y, title, xlabel, ylabel, threshold=0):
@@ -625,7 +623,7 @@ def plot_x_y(x, y, title, xlabel, ylabel, threshold=0):
             mode="lines",
             showlegend=True,
             name="Social Distance = 1.5 m",
-            line=dict(width=4, dash="dash", color="gray"),
+            line={"width": 4, "dash": "dash", "color": "gray"},
         )
         fig.append_trace(trace_threshold, row=1, col=1)
 
@@ -634,7 +632,7 @@ def plot_x_y(x, y, title, xlabel, ylabel, threshold=0):
         y=y,
         mode="lines",
         showlegend=False,
-        line=dict(width=3, color="blue"),
+        line={"width": 3, "color": "blue"},
         fill="none",
     )
 

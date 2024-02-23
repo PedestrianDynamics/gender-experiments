@@ -8,7 +8,7 @@ from typing import Dict, List
 
 import streamlit as st
 import pandas as pd
-import enhance_data
+
 import fundamental_diagram
 import helper as hp
 import proximity_analysis
@@ -141,4 +141,5 @@ if __name__ == "__main__":
         proximity_analysis.run_tab3(selected_file)
 
     with tab4:
-        enhance_data.run_tab4(do_rotate)
+        st.info("Will be deleted soon!")
+    #     enhance_data.run_tab4(do_rotate)

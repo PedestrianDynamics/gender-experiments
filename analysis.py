@@ -1,4 +1,3 @@
-import os
 import time
 
 import numpy as np
@@ -72,7 +71,7 @@ def calculate_individual_density_csv(data):
 
     # Create a dataframe with frame and individual density
 
-    frame_density_data = pd.DataFrame(
+    return pd.DataFrame(
         {
             "frame": data["frame"],
             "id": data["id"],
@@ -80,7 +79,6 @@ def calculate_individual_density_csv(data):
         }
     )
 
-    return frame_density_data
 
 
 def calculate_union_area_shapely(data: DataFrame, R: float = 0.75) -> float:
@@ -149,11 +147,10 @@ def calculate_steady_state(data, window_size, threshold, diff_const):
     rolling_variance = rate_of_change.rolling(window=window_size).var()
 
     # Find where the variance falls below the threshold
-    steady_state_index = rolling_variance[
+    return rolling_variance[
         rolling_variance < threshold
     ].first_valid_index()
 
-    return steady_state_index
 
 
 def density_speed_time_series_micro(

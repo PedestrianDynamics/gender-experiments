@@ -35,11 +35,11 @@ def density_speed_documentation():
     )
     st.write(
         """
-        where $\Delta x$ and $\Delta y$ represent the displacements in the $x$ and $y$ directions, respectively, and $\Delta t$ is the difference in frame indices used for the calculation.
+        where $\\Delta x$ and $\\Delta y$ represent the displacements in the $x$ and $y$ directions, respectively, and $\\Delta t$ is the difference in frame indices used for the calculation.
 
         - Compute Distance Traveled: The distance traveled between the frames is computed using the Pythagorean theorem, which combines the displacements in both directions:
         $$
-        \\text{distance} = \sqrt{\Delta x^2 + \Delta y^2}.
+        \\text{distance} = \\sqrt{\\Delta x^2 + \\Delta y^2}.
         $$
         - Calculate Speed: Finally, the speed is calculated as the ratio of the distance traveled to the time
         """

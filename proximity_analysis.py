@@ -179,7 +179,7 @@ def run_tab3(selected_file: str):
                             go.Scatter(
                                 x=frames,
                                 y=y_col,
-                                marker=dict(color=color),
+                                marker={"color": color},
                                 mode="lines",
                                 name=title_text,
                                 showlegend=True,
@@ -191,7 +191,7 @@ def run_tab3(selected_file: str):
                     xaxis_title="frame",
                     yaxis_title=r"Distance / m",
                     # xaxis=dict(scaleanchor="y"),  # , range=[xmin, xmax]),
-                    yaxis=dict(scaleratio=1, range=[0, 6]),
+                    yaxis={"scaleratio": 1, "range": [0, 6]},
                     showlegend=True,
                 )
                 hp.show_fig(fig, html=True)
@@ -205,7 +205,7 @@ def run_tab3(selected_file: str):
                 st.markdown(
                     ":information_source: **The mean distance between pairs of the same gender is equal to the mean distance between pairs of different genders.**"
                 )
-                st.latex("p <= 0.05 \\rightarrow \\text{ reject}\; H_0")
+                st.latex("p <= 0.05 \\rightarrow \\text{ reject}\\; H_0")
 
                 for country in ["aus", "ger", "jap", "chn"]:
                     msg = ""

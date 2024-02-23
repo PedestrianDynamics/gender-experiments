@@ -132,15 +132,15 @@ def run_tab1(msg, country: str, selected_file: str):
                         First, we define an oval (black line) with the following specifications:
                         - Two semi-circles with radius $r=1.65$ m.
                         - Two linear segments a length $l=2$ m.
-                        - Resolution of the linear segments is $\delta x = 0.05$ m
-                        - Resolution of the angular setup is  $\delta \phi = \\frac{0.005}{r}$ m
+                        - Resolution of the linear segments is $\\delta x = 0.05$ m
+                        - Resolution of the angular setup is  $\\delta \\phi = \\frac{0.005}{r}$ m
 
                         With this we can calculate the distance between two points $p_1$ and $p_2$ with two methods:
                         - **Method 1 (Euklidean)**: Just calculate the direct distance between two points. $d_1=|p_1-p_2|$
-                        - **Method 2 (Arc)**: Project the points on the oval, getting $p_1^\prime$ and $p_2^\prime$.
-                        Then calculate the distance as $d_2 =  \sum_i |p_i - p_{i+1} |,$ where $p_i$ are points on the arc between $p_1^\prime$ and $p_2^\prime$.
+                        - **Method 2 (Arc)**: Project the points on the oval, getting $p_1^\\prime$ and $p_2^\\prime$.
+                        Then calculate the distance as $d_2 =  \\sum_i |p_i - p_{i+1} |,$ where $p_i$ are points on the arc between $p_1^\\prime$ and $p_2^\\prime$.
 
-                        **Note**: in the graph $p_1^\prime$ and $p_2^\prime$ are depicted as circles.
+                        **Note**: in the graph $p_1^\\prime$ and $p_2^\\prime$ are depicted as circles.
                         """
                     )
                 # if selected_file == "ger/mix_random_4_22.csv":

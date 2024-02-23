@@ -1,4 +1,3 @@
-import glob
 import itertools
 import re
 import time
@@ -49,8 +48,7 @@ def load_file(file: str) -> pedpy.TrajectoryData:
     hp.set_column_types(data, column_types)
 
     fps = hp.calculate_fps(data)
-    trajectory_data = pedpy.TrajectoryData(data=data, frame_rate=fps)
-    return trajectory_data
+    return pedpy.TrajectoryData(data=data, frame_rate=fps)
 
 
 def filter_frames(data: pd.DataFrame, nagents: int) -> pd.DataFrame:
@@ -70,9 +68,8 @@ def filter_frames(data: pd.DataFrame, nagents: int) -> pd.DataFrame:
     frames_with_all_agents = frame_counts[frame_counts >= nagents].index
 
     # Filter the original DataFrame based on the selected frames
-    cleaned_data = data[data["frame"].isin(frames_with_all_agents)]
+    return data[data["frame"].isin(frames_with_all_agents)]
 
-    return cleaned_data
 
 
 def calculate_circular_distance_and_gender_pal(data: pd.DataFrame) -> pd.DataFrame:
