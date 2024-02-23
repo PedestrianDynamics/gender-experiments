@@ -4,15 +4,36 @@ tab2: Fundamental diagram
 """
 
 import glob
+import os
 import pickle
 from pathlib import Path
-import os
+
+import pandas as pd
 import streamlit as st
 
 import analysis as al
 import docs
 import helper as hp
 import plots as pl
+
+
+def load_or_calculate_fd(country: float, dv: float, diff_const: float) -> pd.DataFrame:
+    """Load density calculation from file or calculate."""
+    precalculated_file = f"app_data/density_micro_{country}.pkl"
+    if not Path(precalculated_file).exists():
+        result = al.fundamental_diagram_micro(country, dv, diff_const)
+        with open(precalculated_file, "wb") as f:
+            pickle.dump(result, f)
+    else:
+        print(f"load precalculated file {precalculated_file}")
+        with open(precalculated_file, "rb") as f:
+            result = pickle.load(f)
+
+    if result.empty:
+        st.error("Something went south.")
+        st.stop()
+
+    return result
 
 
 def run_tab2(country: str, selected_file: str):
@@ -45,21 +66,15 @@ def run_tab2(country: str, selected_file: str):
                 except Exception as e:
                     st.error(f"Error deleting {file_path}: {e}")
 
-        if calculations == "micro_fd_rudina":
-            countries = c1.multiselect("Country", st.session_state.config.countries)
-            fps = c2.slider("fps", 25, 500, 100, 25, help="skip so many points")
-            fig = pl.plot_rudina_fd(countries, fps)
-            st.plotly_chart(fig)
-        else:
-            dv = c2.slider(
-                r"$\Delta t$",
-                1,
-                100,
-                10,
-                5,
-                help="To calculate the displacement over a specified number of frames. See Eq. (1)",
-            )
-            diff_const = c2.slider("diff_const", 1, 500, 5, 1, help="window steady state")
+        dv = c2.slider(
+            r"$\Delta t$",
+            1,
+            100,
+            10,
+            5,
+            help="To calculate the displacement over a specified number of frames. See Eq. (1)",
+        )
+        diff_const = c2.slider("diff_const", 1, 500, 5, 1, help="window steady state")
 
         if calculations == "time_series":
             al.density_speed_time_series_micro(country, selected_file, dv, diff_const)
@@ -67,21 +82,13 @@ def run_tab2(country: str, selected_file: str):
         if calculations == calculations == "FD":
             all_data = {}
             st.divider()
-            countries = [country for country in st.session_state.config.countries if country != "pal"]
+            countries = [
+                country
+                for country in st.session_state.config.countries
+                if country != "pal"
+            ]
             for country in st.session_state.config.countries:
-                precalculated_file = f"app_data/density_micro_{country}.pkl"
-                if not Path(precalculated_file).exists():
-                    result = al.fundamental_diagram_micro(country, dv, diff_const)
-                    with open(precalculated_file, "wb") as f:
-                        pickle.dump(result, f)
-                else:
-                    print(f"load precalculated file {precalculated_file}")
-                    with open(precalculated_file, "rb") as f:
-                        result = pickle.load(f)
-
-                if result.empty:
-                    st.error("Something went south.")
-                    st.stop()
+                result = load_or_calculate_fd(country, dv, diff_const)
                 all_data[country] = (
                     result["individual_density"],
                     result["speed"],
@@ -93,6 +100,8 @@ def run_tab2(country: str, selected_file: str):
                 options=countries,
                 default=countries,
             )
-            filtered_country_data = {country: all_data[country] for country in selected_countries}
+            filtered_country_data = {
+                country: all_data[country] for country in selected_countries
+            }
             fig = pl.plot_fundamental_diagram_all(filtered_country_data)
             hp.show_fig(fig, html=True)
