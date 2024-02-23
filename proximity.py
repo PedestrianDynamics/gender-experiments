@@ -116,20 +116,42 @@ def calculate_circular_distance_and_gender_pal(data: pd.DataFrame) -> pd.DataFra
         for frame in frames_with_both_neighbors:
             frame_data = group[group["frame"] == frame]
             distances_to_prev = np.linalg.norm(
-                frame_data[["x", "y"]].values - grouped_data.get_group(prev_id)[grouped_data.get_group(prev_id)["frame"] == frame][["x", "y"]].values,
+                frame_data[["x", "y"]].values
+                - grouped_data.get_group(prev_id)[
+                    grouped_data.get_group(prev_id)["frame"] == frame
+                ][["x", "y"]].values,
                 axis=1,
             )
-            gender_of_prev = grouped_data.get_group(prev_id).loc[grouped_data.get_group(prev_id)["frame"] == frame, "gender"].values[0]
+            gender_of_prev = (
+                grouped_data.get_group(prev_id)
+                .loc[grouped_data.get_group(prev_id)["frame"] == frame, "gender"]
+                .values[0]
+            )
             distances_to_next = np.linalg.norm(
-                frame_data[["x", "y"]].values - grouped_data.get_group(next_id)[grouped_data.get_group(next_id)["frame"] == frame][["x", "y"]].values,
+                frame_data[["x", "y"]].values
+                - grouped_data.get_group(next_id)[
+                    grouped_data.get_group(next_id)["frame"] == frame
+                ][["x", "y"]].values,
                 axis=1,
             )
-            gender_of_next = grouped_data.get_group(next_id).loc[grouped_data.get_group(next_id)["frame"] == frame, "gender"].values[0]
+            gender_of_next = (
+                grouped_data.get_group(next_id)
+                .loc[grouped_data.get_group(next_id)["frame"] == frame, "gender"]
+                .values[0]
+            )
 
-            data.loc[mask & (data["frame"] == frame), "distance_to_prev_neighbor"] = distances_to_prev
-            data.loc[mask & (data["frame"] == frame), "gender_of_prev_neighbor"] = gender_of_prev
-            data.loc[mask & (data["frame"] == frame), "distance_to_next_neighbor"] = distances_to_next
-            data.loc[mask & (data["frame"] == frame), "gender_of_next_neighbor"] = gender_of_next
+            data.loc[mask & (data["frame"] == frame), "distance_to_prev_neighbor"] = (
+                distances_to_prev
+            )
+            data.loc[mask & (data["frame"] == frame), "gender_of_prev_neighbor"] = (
+                gender_of_prev
+            )
+            data.loc[mask & (data["frame"] == frame), "distance_to_next_neighbor"] = (
+                distances_to_next
+            )
+            data.loc[mask & (data["frame"] == frame), "gender_of_next_neighbor"] = (
+                gender_of_next
+            )
 
     return data
 
@@ -166,11 +188,15 @@ def calculate_circular_distance_and_gender_vect(data: pd.DataFrame) -> pd.DataFr
             continue
         # Calculate distances and genders for previous neighbors
         prev_data = data.loc[data["id"] == prev_id]
-        distances_to_prev = np.linalg.norm(id_data[["x", "y"]].values - prev_data[["x", "y"]].values, axis=1)
+        distances_to_prev = np.linalg.norm(
+            id_data[["x", "y"]].values - prev_data[["x", "y"]].values, axis=1
+        )
         gender_of_prev = prev_data["gender"].astype(int).values
         # Calculate distances and genders for next neighbors
         next_data = data[data["id"] == next_id]
-        distances_to_next = np.linalg.norm(id_data[["x", "y"]].values - next_data[["x", "y"]].values, axis=1)
+        distances_to_next = np.linalg.norm(
+            id_data[["x", "y"]].values - next_data[["x", "y"]].values, axis=1
+        )
         gender_of_next = next_data["gender"].astype(int).values
         # Enhance the data with the new columns
         data.loc[mask, "distance_to_prev_neighbor"] = distances_to_prev
@@ -216,14 +242,18 @@ def calculate_circular_distance_and_gender_arc(data: pd.DataFrame) -> pd.DataFra
         distances_to_prev = []
         distances_to_next = []
         for p1, p2 in zip(id_data[["x", "y"]].values, prev_data[["x", "y"]].values):
-            distance, _, _ = hp.sum_distances_between_agents_on_path(p1, p2, middle_path, path_distances)
+            distance, _, _ = hp.sum_distances_between_agents_on_path(
+                p1, p2, middle_path, path_distances
+            )
             distances_to_prev.append(distance)
 
         gender_of_prev = prev_data["gender"].astype(int).values
         # Calculate distances and genders for next neighbors
         next_data = data[data["id"] == next_id]
         for p1, p2 in zip(id_data[["x", "y"]].values, next_data[["x", "y"]].values):
-            distance, _, _ = hp.sum_distances_between_agents_on_path(p1, p2, middle_path, path_distances)
+            distance, _, _ = hp.sum_distances_between_agents_on_path(
+                p1, p2, middle_path, path_distances
+            )
             distances_to_next.append(distance)
 
         gender_of_next = next_data["gender"].astype(int).values
@@ -260,7 +290,9 @@ def init_gender_code(filename: str) -> str:
     return name
 
 
-def calculate_proximity_analysis(country: str, filename: str, data: pd.DataFrame, fps: int = 25) -> List[Dict]:
+def calculate_proximity_analysis(
+    country: str, filename: str, data: pd.DataFrame, fps: int = 25
+) -> List[Dict]:
     """
     Performs proximity analysis on given data of agents.
     Filtering by frames and categorizing
@@ -366,7 +398,9 @@ def calculate_with_joblib(init_data: InitData):
 
     nproc = -1
     print(f"Running tasks in parallel {len(tasks)} with {nproc} proc...")
-    results = Parallel(n_jobs=nproc)(delayed(process_task)(task) for task in tqdm(tasks))
+    results = Parallel(n_jobs=nproc)(
+        delayed(process_task)(task) for task in tqdm(tasks)
+    )
     # for task in tasks:
     #     process_task(task)
 

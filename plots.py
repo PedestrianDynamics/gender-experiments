@@ -445,7 +445,6 @@ def plot_agent_and_neighbors(
         )
     )
 
-
     data0 = rdata[rdata["frame"] == frame]
     agent_data = rdata[(rdata["id"] == agent) & (rdata["frame"] == frame)]
 
@@ -603,7 +602,6 @@ def plot_x_y_trace(x, y, title, xlabel, ylabel, color, name, line_property):
         showlegend=True,
         name=name,
     )
-
 
 
 def plot_x_y(x, y, title, xlabel, ylabel, threshold=0):

@@ -1,3 +1,5 @@
+"""Analysis module."""
+
 import time
 
 import numpy as np
@@ -41,7 +43,8 @@ def calculate_speed(data: DataFrame, dv: int) -> DataFrame:
     return data
 
 
-def calculate_individual_density_csv(data):
+def calculate_individual_density_csv(data: pd.DataFrame) -> pd.DataFrame:
+    """Calculate Voronoi density."""
     # Replace None values with NaN
     columns = [
         "same_gender_proximity_prev",
@@ -49,10 +52,6 @@ def calculate_individual_density_csv(data):
         "diff_gender_proximity_prev",
         "diff_gender_proximity_next",
     ]
-    # data.loc[:, "same_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
-    # data.loc[:, "same_gender_proximity_next"].replace({None: np.nan}, inplace=True)
-    # data.loc[:, "diff_gender_proximity_prev"].replace({None: np.nan}, inplace=True)
-    # data.loc[:, "diff_gender_proximity_next"].replace({None: np.nan}, inplace=True)
     data.loc[:, columns].replace({None: np.nan}, inplace=True)
 
     # Calculate half sum distances
@@ -78,7 +77,6 @@ def calculate_individual_density_csv(data):
             "individual_density": individual_density,
         }
     )
-
 
 
 def calculate_union_area_shapely(data: DataFrame, R: float = 0.75) -> float:
@@ -136,9 +134,10 @@ def calculate_instantaneous_density_per_frame(data: DataFrame, fps: int) -> Data
     return pd.DataFrame(density_results)
 
 
-def calculate_steady_state(data, window_size, threshold, diff_const):
-    """Calculate the rate of change (first derivative)"""
-
+def calculate_steady_state(
+    data: pd.DataFrame, window_size: float, threshold: float, diff_const: float
+) -> int:
+    """Calculate the rate of change (first derivative)."""
     # data = data.fillna(method="ffill") # depcretated
     data.ffill()
     rate_of_change = data.diff(diff_const)
@@ -147,10 +146,7 @@ def calculate_steady_state(data, window_size, threshold, diff_const):
     rolling_variance = rate_of_change.rolling(window=window_size).var()
 
     # Find where the variance falls below the threshold
-    return rolling_variance[
-        rolling_variance < threshold
-    ].first_valid_index()
-
+    return rolling_variance[rolling_variance < threshold].first_valid_index()
 
 
 def density_speed_time_series_micro(
@@ -206,8 +202,8 @@ def density_speed_time_series_micro(
         st.plotly_chart(fig)
 
 
-def fundamental_diagram_micro(country, dv, diff_const):
-
+def fundamental_diagram_micro(country: str, dv: float, diff_const: float):
+    """Calculate FD from results csv file."""
     result_csv = st.session_state.config.proximity_results["path"]
     url = st.session_state.config.proximity_results["url"]
     all_merged_df = pd.DataFrame()

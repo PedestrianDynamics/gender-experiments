@@ -1,11 +1,12 @@
-""" Run all calculations/visualisation of tab2
+"""Run all calculations/visualisation of tab2.
 
 tab2: Fundamental diagram
 """
 
+import glob
 import pickle
 from pathlib import Path
-
+import os
 import streamlit as st
 
 import analysis as al
@@ -15,6 +16,7 @@ import plots as pl
 
 
 def run_tab2(country: str, selected_file: str):
+    """Contain main logic of tab2: FD diagram."""
     do_calculations = st.toggle("Activate", key="tab2", value=False)
     docs_expander = st.expander("Documentation (click to expand)", expanded=False)
     with docs_expander:
@@ -30,6 +32,19 @@ def run_tab2(country: str, selected_file: str):
                 "FD",
             ],
         )
+        if c1.button(
+            "Delete files",
+            help="To improve efficiency, certain density and speed values are pre-loaded rather than dynamically computed. By using this button, you have the option to remove these pre-loaded files, allowing for fresh calculations to be initiated from the beginning.",
+        ):
+            precalculated_files_pattern = "app_data/*.pkl"
+            files_to_delete = glob.glob(precalculated_files_pattern)
+            for file_path in files_to_delete:
+                try:
+                    os.remove(file_path)
+                    st.toast(f"Deleted {file_path}", icon="✅")
+                except Exception as e:
+                    st.error(f"Error deleting {file_path}: {e}")
+
         if calculations == "micro_fd_rudina":
             countries = c1.multiselect("Country", st.session_state.config.countries)
             fps = c2.slider("fps", 25, 500, 100, 25, help="skip so many points")
@@ -44,9 +59,7 @@ def run_tab2(country: str, selected_file: str):
                 5,
                 help="To calculate the displacement over a specified number of frames. See Eq. (1)",
             )
-            diff_const = c2.slider(
-                "diff_const", 1, 500, 5, 1, help="window steady state"
-            )
+            diff_const = c2.slider("diff_const", 1, 500, 5, 1, help="window steady state")
 
         if calculations == "time_series":
             al.density_speed_time_series_micro(country, selected_file, dv, diff_const)
@@ -54,11 +67,7 @@ def run_tab2(country: str, selected_file: str):
         if calculations == calculations == "FD":
             all_data = {}
             st.divider()
-            countries = [
-                country
-                for country in st.session_state.config.countries
-                if country != "pal"
-            ]
+            countries = [country for country in st.session_state.config.countries if country != "pal"]
             for country in st.session_state.config.countries:
                 precalculated_file = f"app_data/density_micro_{country}.pkl"
                 if not Path(precalculated_file).exists():
@@ -70,6 +79,9 @@ def run_tab2(country: str, selected_file: str):
                     with open(precalculated_file, "rb") as f:
                         result = pickle.load(f)
 
+                if result.empty:
+                    st.error("Something went south.")
+                    st.stop()
                 all_data[country] = (
                     result["individual_density"],
                     result["speed"],
@@ -81,8 +93,6 @@ def run_tab2(country: str, selected_file: str):
                 options=countries,
                 default=countries,
             )
-            filtered_country_data = {
-                country: all_data[country] for country in selected_countries
-            }
+            filtered_country_data = {country: all_data[country] for country in selected_countries}
             fig = pl.plot_fundamental_diagram_all(filtered_country_data)
             hp.show_fig(fig, html=True)

@@ -217,28 +217,44 @@ def generate_oval_shape_points(
     # Generate points for the first segment
     segment_points = generate_segment_points(start, dx, length, radius, threshold)
     for p in segment_points:
-        points, selected_points, last_selected = append_point_if_threshold_met(points, selected_points, p, last_selected, threshold)
+        points, selected_points, last_selected = append_point_if_threshold_met(
+            points, selected_points, p, last_selected, threshold
+        )
 
     # Generate points for the first half circle
-    circle_points = generate_half_circle_points(center2, radius, dphi, -np.pi / 2, np.pi / 2)
+    circle_points = generate_half_circle_points(
+        center2, radius, dphi, -np.pi / 2, np.pi / 2
+    )
     for p in circle_points:
-        points, selected_points, last_selected = append_point_if_threshold_met(points, selected_points, p, last_selected, threshold)
+        points, selected_points, last_selected = append_point_if_threshold_met(
+            points, selected_points, p, last_selected, threshold
+        )
 
     # Generate points for the second segment
-    segment_points = generate_segment_points(start, dx, length, radius, threshold, is_second_segment=True)
+    segment_points = generate_segment_points(
+        start, dx, length, radius, threshold, is_second_segment=True
+    )
     for p in segment_points:
-        points, selected_points, last_selected = append_point_if_threshold_met(points, selected_points, p, last_selected, threshold)
+        points, selected_points, last_selected = append_point_if_threshold_met(
+            points, selected_points, p, last_selected, threshold
+        )
 
     # Generate points for the second half circle
-    circle_points = generate_half_circle_points(center1, radius, dphi, np.pi / 2, 3 * np.pi / 2 - dphi)
+    circle_points = generate_half_circle_points(
+        center1, radius, dphi, np.pi / 2, 3 * np.pi / 2 - dphi
+    )
     for p in circle_points:
-        points, selected_points, last_selected = append_point_if_threshold_met(points, selected_points, p, last_selected, threshold)
+        points, selected_points, last_selected = append_point_if_threshold_met(
+            points, selected_points, p, last_selected, threshold
+        )
 
     # Final adjustments
     if dist(selected_points[-1], start) < threshold:
         selected_points.pop()
     if num_points > len(selected_points):
-        print(f"Warning: Requested {num_points} points, but only {len(selected_points)} can be provided.")
+        print(
+            f"Warning: Requested {num_points} points, but only {len(selected_points)} can be provided."
+        )
 
     selected_points = selected_points[:num_points]
     return points, selected_points
@@ -374,7 +390,9 @@ def rename_columns(data: pd.DataFrame, mapping: dict[str, str]) -> pd.DataFrame:
 def set_column_types(data: pd.DataFrame, col_types: dict[str, Any]) -> pd.DataFrame:
     """Set the types of the dataframe columns based on the given column types."""
     # Ensure columns are in data before type casting
-    valid_types = {col: dtype for col, dtype in col_types.items() if col in data.columns}
+    valid_types = {
+        col: dtype for col, dtype in col_types.items() if col in data.columns
+    }
     return data.astype(valid_types)
 
 
@@ -414,7 +432,9 @@ def load_file(file: str) -> pedpy.TrajectoryData:
     return pedpy.TrajectoryData(data=data, frame_rate=fps)
 
 
-def rotate_trajectories(df: pd.DataFrame, shift_x: float, shift_y: float, angle_degrees: float) -> pd.DataFrame:
+def rotate_trajectories(
+    df: pd.DataFrame, shift_x: float, shift_y: float, angle_degrees: float
+) -> pd.DataFrame:
     """
     Rotates the x and y coordinates in the dataframe around a center point by a specified angle.
 
@@ -436,13 +456,25 @@ def rotate_trajectories(df: pd.DataFrame, shift_x: float, shift_y: float, angle_
 
     df_rotated = df.copy()
 
-    df_rotated["x"] = shift_x + center_x + x_shifted * np.cos(angle_radians) - y_shifted * np.sin(angle_radians)
-    df_rotated["y"] = shift_y + center_y + x_shifted * np.sin(angle_radians) + y_shifted * np.cos(angle_radians)
+    df_rotated["x"] = (
+        shift_x
+        + center_x
+        + x_shifted * np.cos(angle_radians)
+        - y_shifted * np.sin(angle_radians)
+    )
+    df_rotated["y"] = (
+        shift_y
+        + center_y
+        + x_shifted * np.sin(angle_radians)
+        + y_shifted * np.cos(angle_radians)
+    )
 
     return df_rotated
 
 
-def get_neighbors_at_frame(frame: int, df: pd.DataFrame, k: int) -> Tuple[npt.NDArray, npt.NDArray]:
+def get_neighbors_at_frame(
+    frame: int, df: pd.DataFrame, k: int
+) -> Tuple[npt.NDArray, npt.NDArray]:
     """
     Get the distances and indices of the k nearest neighbors for each point at a given frame.
 
@@ -486,8 +518,12 @@ def get_neighbors_special_agent_data(
 
     # Extract points, speeds, and ids
     points = at_frame[["x", "y"]].to_numpy()
-    point_agent = df[(df["frame"] == frame) & (df["id"] == agent)][["x", "y"]].to_numpy()
-    point_agent_future = df[(df["frame"] == frame + 50) & (df["id"] == agent)][["x", "y"]].to_numpy()
+    point_agent = df[(df["frame"] == frame) & (df["id"] == agent)][
+        ["x", "y"]
+    ].to_numpy()
+    point_agent_future = df[(df["frame"] == frame + 50) & (df["id"] == agent)][
+        ["x", "y"]
+    ].to_numpy()
 
     Ids = at_frame["id"].to_numpy()
     neighbor_type = ["next", "prev"]
@@ -503,8 +539,12 @@ def get_neighbors_special_agent_data(
         return np.array([]), np.array([]), 0, np.array([]), np.array([])
 
     if frame == first_frame:
-        distance_now = (neighbors[0][0] - point_agent[0][0]) ** 2 + (neighbors[0][1] - point_agent[0][1]) ** 2
-        distance_future = (neighbors[0][0] - point_agent_future[0][0]) ** 2 + (neighbors[0][1] - point_agent_future[0][1]) ** 2
+        distance_now = (neighbors[0][0] - point_agent[0][0]) ** 2 + (
+            neighbors[0][1] - point_agent[0][1]
+        ) ** 2
+        distance_future = (neighbors[0][0] - point_agent_future[0][0]) ** 2 + (
+            neighbors[0][1] - point_agent_future[0][1]
+        ) ** 2
 
         if distance_future > distance_now:
             # neighbors = neighbors[::-1]
@@ -580,8 +620,12 @@ def update_row(
 
 
 def handle_prev_next_neighbors(data, frame, next_, prev, ids):
-    pos_next = data.loc[(data["frame"] == frame) & (data["id"] == next_), ["x", "y"]].values
-    pos_prev = data.loc[(data["frame"] == frame) & (data["id"] == prev), ["x", "y"]].values
+    pos_next = data.loc[
+        (data["frame"] == frame) & (data["id"] == next_), ["x", "y"]
+    ].values
+    pos_prev = data.loc[
+        (data["frame"] == frame) & (data["id"] == prev), ["x", "y"]
+    ].values
     if pos_next.any():
         pos_next = pos_next[0]
 
@@ -704,9 +748,13 @@ def plot_neighbors_analysis(selected_file, data, ids, exterior, interior, middle
     is_prev_in_df = "prev" in data.columns
     is_next_in_df = "next" in data.columns
 
-    prev0, next0, data = initialise_prev_next(is_prev_in_df, is_next_in_df, data, agent, frames)
+    prev0, next0, data = initialise_prev_next(
+        is_prev_in_df, is_next_in_df, data, agent, frames
+    )
     frame, next_, prev = handle_user_input(n0, n1, n3, frames, prev0, next0)
-    neighbors, neighbors_ids, neighbor_type, next_, prev = handle_prev_next_neighbors(data, frame, next_, prev, ids)
+    neighbors, neighbors_ids, neighbor_type, next_, prev = handle_prev_next_neighbors(
+        data, frame, next_, prev, ids
+    )
 
     fig = pl.plot_agent_and_neighbors(
         agent,
@@ -806,7 +854,12 @@ def project_position_to_path(position, path):
 
 
 def precompute_path_distances(path):
-    return np.array([np.linalg.norm(np.array(path[i]) - np.array(path[i + 1])) for i in range(len(path) - 1)])
+    return np.array(
+        [
+            np.linalg.norm(np.array(path[i]) - np.array(path[i + 1]))
+            for i in range(len(path) - 1)
+        ]
+    )
 
 
 def sum_distances_between_agents_on_path(agent1_pos, agent2_pos, path, path_distances):
@@ -833,7 +886,9 @@ def sum_distances_between_agents_on_path(agent1_pos, agent2_pos, path, path_dist
     #     for i in list(range(index2, len(path) - 1)) + list(range(0, index1))
     # ]
     # loop_around_distance_sum = sum(loop_around_dist_list)
-    loop_around_distance_sum = np.sum(path_distances[index2:]) + np.sum(path_distances[:index1])
+    loop_around_distance_sum = np.sum(path_distances[index2:]) + np.sum(
+        path_distances[:index1]
+    )
     # Choose the shorter distance
     distance_sum = min(direct_distance_sum, loop_around_distance_sum)
     # distance_sum += distance1 + distance2
