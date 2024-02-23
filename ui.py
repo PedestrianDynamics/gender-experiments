@@ -1,9 +1,14 @@
+"""Module for UI organisation."""
+
 from pathlib import Path
+from typing import Tuple
 
 import streamlit as st
+from streamlit.delta_generator import DeltaGenerator
 
 
-def init_page_config():
+def init_page_config() -> None:
+    """Set up information that show on the webpage."""
     st.set_page_config(
         page_title="Single-file experiments with different gender and countries",
         page_icon="📊",
@@ -17,7 +22,8 @@ def init_page_config():
     )
 
 
-def init_app_looks():
+def init_app_looks() -> None:
+    """Add badges to sidebar."""
     path = Path(__file__)
     ROOT_DIR = path.parent.absolute()
 
@@ -32,7 +38,9 @@ def init_app_looks():
     st.sidebar.image(f"{ROOT_DIR}/logo.png", use_column_width=True)
 
 
-def init_sidebar():
+def init_sidebar() -> (
+    Tuple[str, DeltaGenerator, DeltaGenerator, DeltaGenerator, DeltaGenerator]
+):
     """Init sidebar and tabs."""
     c1, c2 = st.sidebar.columns((1.8, 0.2))
     flag = c2.empty()
@@ -45,7 +53,7 @@ def init_sidebar():
         ]
     )
 
-    country = c1.selectbox("Select a country:", st.session_state.config.countries)
+    country = str(c1.selectbox("Select a country:", st.session_state.config.countries))
     if "jap" in country:
         flag.write(":flag-jp:")
     if "aus" in country:

@@ -1,18 +1,30 @@
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+"""Collection of ploting functionalities."""
+
+from typing import Any, Dict, TypeAlias, Union, List
+
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
+from plotly.subplots import make_subplots
+from scipy import spatial
+from shapely import Polygon
+
 import helper as hp
 
-from shapely import Polygon
-import glob
-from scipy import spatial
+st_column: TypeAlias = st.delta_generator.DeltaGenerator
 
 
 def plot_trajectories(
-    data: pd.DataFrame, framerate: int, uid: int, exterior, interior, plot_parcour
+    data: pd.DataFrame,
+    framerate: int,
+    uid: Union[int | float | None],
+    exterior: Polygon,
+    interior: Polygon,
+    plot_parcour: bool,
 ) -> go.Figure:
+    """Plot trajectories."""
     fig = go.Figure()
     c1, c2, c3 = st.columns((1, 1, 1))
     num_agents = len(np.unique(data["id"]))
@@ -40,13 +52,6 @@ def plot_trajectories(
     x_interior, y_interior = Polygon(interior).exterior.xy
     x_interior = list(x_interior)
     y_interior = list(y_interior)
-
-    # rotated_data = hp.rotate_trajectories(
-    #     data,
-    #     st.session_state.center_x,
-    #     st.session_state.center_y,
-    #     st.session_state.angle_degrees,
-    # )
     rotated_data = data
     # For each unique id, plot a trajectory
     if uid is not None:
@@ -153,8 +158,9 @@ def plot_trajectories(
 
 
 def plot_time_series(
-    data: pd.DataFrame, speed: pd.DataFrame, fps: int, ss_index: int, key_density
+    data: pd.DataFrame, speed: pd.DataFrame, fps: int, ss_index: int, key_density: str
 ) -> go.Figure:
+    """Plot time series of density and frame side by side."""
     density = data[key_density]
     fig = make_subplots(
         rows=1,
@@ -206,8 +212,9 @@ def plot_time_series(
 
 
 def plot_fundamental_diagram(
-    country, density: pd.DataFrame, speed: pd.DataFrame
+    country: str, density: pd.DataFrame, speed: pd.DataFrame
 ) -> go.Figure:
+    """Plot FD density vs speed."""
     fig = go.Figure()
 
     fig.add_trace(
@@ -237,11 +244,10 @@ def plot_fundamental_diagram(
     return fig
 
 
-def plot_fundamental_diagram_all(country_data) -> go.Figure:
+def plot_fundamental_diagram_all(country_data: Dict[str, Any]) -> go.Figure:
+    """Plot FD for all countries."""
     fig = go.Figure()
-
-    rmax = -1
-    vmax = -1
+    vmax = -1.0
 
     colors_const = ["blue", "red", "green", "magenta", "black"]
     marker_shapes = ["circle", "square", "diamond", "cross", "x-thin"]  # Example shapes
@@ -265,12 +271,10 @@ def plot_fundamental_diagram_all(country_data) -> go.Figure:
                 showlegend=True,
             )
         )
-        rmax = max(rmax, np.max(density))
         vmax = max(vmax, np.max(speed))
         vmin = min(vmax, np.min(speed))
 
     vmax += 0.05
-    rmax += 0.05
     vmin -= 0.05
 
     # vmax = 2.0
@@ -284,77 +288,18 @@ def plot_fundamental_diagram_all(country_data) -> go.Figure:
     return fig
 
 
-def plot_rudina_fd(countries, fps=100):
-    fig = make_subplots(
-        rows=1,
-        cols=1,
-        subplot_titles=("Density - Speed"),
-    )
-    rmax = -1
-    vmax = -1
-    rmin = 100
-    vmin = 100
-
-    colors_const = ["blue", "red", "green", "magenta", "black"]
-    colors = {}
-    for country, color in zip(st.session_state.config.countries, colors_const):
-        colors[country] = color
-
-    combined_df = {}
-    for country in countries:
-        files = glob.glob(f"./rho_speed/{country}/2ColData/*.txt")
-        df_list = []
-        with st.spinner(f"loading files of {country}"):
-            for file_path in files:
-                df = pd.read_csv(
-                    file_path,
-                    sep=r"\s+",
-                    comment="#",
-                    names=["rho", "velocity"],
-                )
-                df_list.append(df)
-
-        combined_df[country] = pd.concat(df_list, ignore_index=True)
-
-        fig.add_trace(
-            go.Scatter(
-                x=combined_df[country]["rho"][::fps],
-                y=combined_df[country]["velocity"][::fps],
-                marker={"color": colors[country]},
-                mode="markers",
-                name=f"{country}",
-                showlegend=True,
-                opacity=0.5,
-            ),
-            row=1,
-            col=1,
-        )
-        rmax = max(rmax, np.max(combined_df[country]["rho"]))
-        vmax = max(vmax, np.max(combined_df[country]["velocity"]))
-        rmin = min(rmin, np.min(combined_df[country]["rho"]))
-        vmin = min(vmin, np.min(combined_df[country]["velocity"]))
-        rmax = 8
-    fig.update_yaxes(
-        range=[vmin - 0.5, vmax + 0.5], title_text="Speed / m/s", row=1, col=1
-    )
-    fig.update_xaxes(
-        range=[rmin - 0.5, rmax + 0.5], title_text="Density / 1/m/m", row=1, col=1
-    )
-    return fig
-
-
 def plot_agent_and_neighbors(
-    agent,
-    frame,
-    rdata,
-    neighbors,
-    neighbors_ids,
-    exterior,
-    interior,
-    middle_path,
-    neighbor_type,
-):
-
+    agent: int,
+    frame: int,
+    rdata: pd.DataFrame,
+    neighbors: npt.NDArray[np.float64],
+    neighbors_ids: List[int],
+    exterior: Polygon,
+    interior: Polygon,
+    middle_path: Polygon,
+    neighbor_type: List[str],
+) -> go.Figure:
+    """Plot agent and neighbors at <frame>."""
     agent_data = rdata[(rdata["id"] == agent) & (rdata["frame"] == frame)]
 
     X0 = neighbors[:, 0]
@@ -362,7 +307,7 @@ def plot_agent_and_neighbors(
     color = {"prev": "blue", "next": "green"}
     dists = []
     dists2 = []
-    agent_fake = []
+    agent_fake = np.array([])
     X_fake = []
     Y_fake = []
 
@@ -463,18 +408,6 @@ def plot_agent_and_neighbors(
                 showlegend=False,
             )
         )
-    #     fig.add_shape(
-    #         type="circle",
-    #         xref="x",
-    #         yref="y",
-    #         x0=x - rped,
-    #         y0=y - rped,
-    #         x1=x + rped,
-    #         y1=y + rped,
-    #         fillcolor="Gray",
-    #         line_color="lightgray",
-    #     )
-
     if len(neighbors) > 2:
         hull = spatial.ConvexHull(neighbors)
         X00 = neighbors[hull.vertices, 0]
@@ -553,18 +486,6 @@ def plot_agent_and_neighbors(
                     mode="markers+lines",
                 )
             )
-    # fig.add_shape(
-    #     type="circle",
-    #     xref="x",
-    #     yref="y",
-    #     x0=x_agent - rped,
-    #     y0=y_agent - rped,
-    #     x1=x_agent + rped,
-    #     y1=y_agent + rped,
-    #     fillcolor="red",
-    #     name=f"Agent: {agent:0.0f}",
-    #     line_color="firebrick",
-    # )
 
     eps = 0.2
     fig.update_yaxes(
@@ -581,18 +502,18 @@ def plot_agent_and_neighbors(
     return fig
 
 
-def plot_x_y_trace(x, y, title, xlabel, ylabel, color, name, line_property):
-
+def plot_x_y_trace(
+    x: npt.NDArray[np.float64],
+    y: npt.NDArray[np.float64],
+    title: str,
+    xlabel: str,
+    ylabel: str,
+    color: str,
+    name: str,
+    line_property: str,
+) -> go.Figure:
+    """Plot two arrays."""
     x = np.unique(x)
-    # if threshold:
-    #     trace_threshold = go.Scatter(
-    #         x=[x[0], x[-1]],
-    #         y=[threshold, threshold],
-    #         mode="lines",
-    #         name="Social Distance = 1.5 m",
-    #         line=dict(width=4, dash="dash", color="gray"),
-    #     )
-
     return go.Scatter(
         x=x,
         y=y,
@@ -602,37 +523,3 @@ def plot_x_y_trace(x, y, title, xlabel, ylabel, color, name, line_property):
         showlegend=True,
         name=name,
     )
-
-
-def plot_x_y(x, y, title, xlabel, ylabel, threshold=0):
-
-    x = np.unique(x)
-    fig = make_subplots(
-        rows=1,
-        cols=1,
-        subplot_titles=[f"<b>{title}</b>"],
-        x_title=xlabel,
-        y_title=ylabel,
-    )
-    if threshold:
-        trace_threshold = go.Scatter(
-            x=[x[0], x[-1]],
-            y=[threshold, threshold],
-            mode="lines",
-            showlegend=True,
-            name="Social Distance = 1.5 m",
-            line={"width": 4, "dash": "dash", "color": "gray"},
-        )
-        fig.append_trace(trace_threshold, row=1, col=1)
-
-    trace = go.Scatter(
-        x=x,
-        y=y,
-        mode="lines",
-        showlegend=False,
-        line={"width": 3, "color": "blue"},
-        fill="none",
-    )
-
-    fig.append_trace(trace, row=1, col=1)
-    return fig

@@ -1,7 +1,7 @@
 import streamlit as st
 
 
-def density_speed_documentation():
+def density_speed_documentation() -> None:
     st.write(
         r"""
                 ## Density:

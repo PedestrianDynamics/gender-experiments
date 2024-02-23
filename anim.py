@@ -16,7 +16,6 @@ import numpy as np
 import pandas as pd
 import pedpy
 import plotly.graph_objects as go
-import streamlit as st
 from plotly.graph_objs import Figure, Scatter
 from plotly.graph_objs.layout import Shape
 from shapely import Polygon
@@ -293,7 +292,7 @@ def _get_processed_frame_data(data_df: pd.DataFrame, frame_num: int, max_agents:
 def animate(
     data_df: pd.DataFrame,
     area: pedpy.WalkableArea,
-    color_mode,
+    color_mode: str,
     *,
     width: int = 800,
     height: int = 800,

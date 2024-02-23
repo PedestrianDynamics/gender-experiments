@@ -15,10 +15,9 @@ from typing import TypeAlias
 st_column: TypeAlias = st.delta_generator.DeltaGenerator
 
 
-def run_tab1(msg: st_column, country: str, selected_file: str):
+def run_tab1(msg: st_column, country: str, selected_file: str) -> None:
     """First tab. Plot original data, animatoin, neighborhood."""
     c1, c2 = st.columns((1, 1))
-    do_rotate = False
     exterior, interior, middle_path = hp.generate_parcour()
     walkable_area = pedpy.WalkableArea(difference(Polygon(exterior), Polygon(interior)))
     msg.write("")
@@ -53,7 +52,7 @@ def run_tab1(msg: st_column, country: str, selected_file: str):
             if do_plot_trajectories:
                 c1, c2, c3 = st.columns((1, 1, 1))
                 plot_parcour = c1.checkbox("Parcour", value=True)
-                framerate = c2.slider("Every nth frame", 1, 100, 40, 10)
+                framerate = int(c2.slider("Every nth frame", 1, 100, 40, 10))
 
                 uid = c3.number_input(
                     "Insert id of pedestrian",
@@ -103,24 +102,22 @@ def run_tab1(msg: st_column, country: str, selected_file: str):
             elapsed_time = end_time - start_time
             print(f"Time taken to plot trajectories: {elapsed_time:.2f} seconds")
             if do_animate:
-                if do_rotate:
-                    rotated_data = hp.rotate_trajectories(
-                        data,
-                        st.session_state.center_x,
-                        st.session_state.center_y,
-                        st.session_state.angle_degrees,
-                    )
-
-                    rotated_trajectory_data = pedpy.TrajectoryData(
-                        rotated_data, trajectory_data.frame_rate
-                    )
-                else:
-                    rotated_trajectory_data = pedpy.TrajectoryData(
-                        data, trajectory_data.frame_rate
-                    )
+                trajectory_data = pedpy.TrajectoryData(data, trajectory_data.frame_rate)
+                data_with_speed = pedpy.compute_individual_speed(
+                    traj_data=trajectory_data,
+                    frame_step=5,
+                    speed_calculation=pedpy.SpeedCalculation.BORDER_SINGLE_SIDED,
+                )
+                data_with_speed = data_with_speed.merge(
+                    trajectory_data.data,
+                    on=["id", "frame"],
+                    how="left",
+                )
+                color_mode = str(st.radio("Color mode", ["Speed", "Gender"]))
                 anm = animate(
-                    rotated_trajectory_data,
+                    data_with_speed,
                     walkable_area,
+                    color_mode=color_mode,
                     width=500,
                     height=500,
                     every_nth_frame=100,
@@ -128,5 +125,3 @@ def run_tab1(msg: st_column, country: str, selected_file: str):
                     title_note="(<span style='color:green;'>M</span>, <span style='color:blue;'>F</span>)",
                 )
                 st.plotly_chart(anm)
-
-    return do_rotate

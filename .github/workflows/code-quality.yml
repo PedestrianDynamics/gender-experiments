@@ -30,7 +30,7 @@ jobs:
         run: ruff .
       - name: Format with Black
         run: |
-          black --diff $(git ls-files '*.py')
+          black --check $(git ls-files '*.py')
       - name: Check with Mypy
         run: |
           mypy --strict $(git ls-files '*.py')

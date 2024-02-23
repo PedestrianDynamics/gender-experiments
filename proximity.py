@@ -3,7 +3,7 @@ import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Any, Tuple
 import os
 import numpy as np
 import pandas as pd
@@ -21,8 +21,8 @@ print(f"distances {len(path_distances)}")
 
 @dataclass
 class InitData:
-    countries: list
-    files: dict
+    countries: List[str]
+    files: Dict[str, List[str]]
     result_csv: Path
     fps: int
 
@@ -292,7 +292,7 @@ def init_gender_code(filename: str) -> str:
 
 def calculate_proximity_analysis(
     country: str, filename: str, data: pd.DataFrame, fps: int = 25
-) -> List[Dict]:
+) -> List[Dict[str, Any]]:
     """
     Performs proximity analysis on given data of agents.
     Filtering by frames and categorizing
@@ -373,18 +373,21 @@ def calculate_proximity_analysis(
     return proximity_analysis_res
 
 
-def unpack_and_process(args):
+def unpack_and_process(args: Any) -> List[Dict[str, Any]]:
     return calculate_proximity_analysis(*args)
 
 
-def prepare_data(country, selected_file, fps):
+def prepare_data(
+    country: str, selected_file: str, fps: int
+) -> Tuple[str, str, pd.DataFrame, int]:
+    """Load file and make pedpy.datatrajectory."""
     trajectory_data = load_file(selected_file)
     data = trajectory_data.data
     return country, selected_file, data, fps
 
 
-def calculate_with_joblib(init_data: InitData):
-    # Prepare tasks
+def calculate_with_joblib(init_data: InitData) -> pd.DataFrame:
+    """Run calculations with in parallel."""
 
     tasks = []
     for country in init_data.countries:
@@ -393,7 +396,7 @@ def calculate_with_joblib(init_data: InitData):
             tasks.append(prepare_data(country, filename, init_data.fps))
 
     # Define a function to be executed in parallel
-    def process_task(task):
+    def process_task(task: List[Any]) -> List[Dict[str, Any]]:
         return unpack_and_process(task)
 
     nproc = -1
@@ -406,11 +409,8 @@ def calculate_with_joblib(init_data: InitData):
 
     print(f"Done running tasks in parallel {len(tasks)} ...")
     # Return the final results
-    flattened_results = list(itertools.chain.from_iterable(results))
-    flattened_results = pd.DataFrame(flattened_results)
-    print(init_data.result_csv)
+    flattened_results = pd.DataFrame(list(itertools.chain.from_iterable(results)))
     flattened_results.to_pickle(init_data.result_csv)
-
     return flattened_results
 
 

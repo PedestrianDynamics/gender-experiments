@@ -1,13 +1,13 @@
 """Main entry point to the app."""
 
 import glob
-from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
-import streamlit as st
 import pandas as pd
+import streamlit as st
+from streamlit.delta_generator import DeltaGenerator
 
 import fundamental_diagram
 import helper as hp
@@ -21,17 +21,16 @@ class DataConfig:
     """Datastructure for the app."""
 
     rename_mapping: Dict[str, str]
-    column_types: Dict[str, str]
+    column_types: Dict[str, Any]  # actually its a type
     countries: List[str]
     # Arc distance
-    proximity_results: Dict[str, Path] = field(default_factory=dict)
+    proximity_results: Dict[str, Any] = field(default_factory=dict)
     # Euklidean distance
-    proximity_results0: Dict[str, Path] = field(default_factory=dict)
+    proximity_results0: Dict[str, Any] = field(default_factory=dict)
 
     files: Dict[str, List[str]] = field(default_factory=dict)
-    data: Dict[str, List] = field(default_factory=lambda: defaultdict(list))
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize the DataConfig instance by retrieving files for each country."""
         # direct distance results
         self.proximity_results0["path"] = Path(
@@ -58,7 +57,7 @@ class DataConfig:
             self.files[country] = glob.glob(f"{country}/*.csv")
 
 
-def init_session_state(msg):
+def init_session_state(msg: DeltaGenerator) -> None:
     """Init session_state. throughout the app."""
     if "file_changed" not in st.session_state:
         st.session_state.file_changed = ""
@@ -94,10 +93,6 @@ def init_session_state(msg):
                 "y": float,
             },
             countries=[
-                # "enhanced_aus",
-                # "enhanced_ger",
-                # "enhanced_jap",
-                # "enhanced_chn",
                 "aus",
                 "ger",
                 "jap",
@@ -126,13 +121,13 @@ if __name__ == "__main__":
     )
     file_names = [f.split("/")[-1] for f in files]
     sorted_file_names = sorted(file_names, key=hp.sorting_key)
-    selected_file = st.sidebar.radio(
-        "Select a file", sorted_file_names, horizontal=True
+    selected_file = str(
+        st.sidebar.radio("Select a file", sorted_file_names, horizontal=True)
     )
     selected_file = country + "/" + selected_file
 
     with tab1:
-        do_rotate = show_data.run_tab1(msg, country, selected_file)
+        show_data.run_tab1(msg, country, selected_file)
 
     with tab2:
         fundamental_diagram.run_tab2(country, selected_file)

@@ -9,11 +9,12 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import pedpy
-import requests  # ignore type: checking
+import requests  # type: ignore
 import streamlit as st
 from plotly.graph_objs import Figure
-from scipy.spatial import KDTree
+
 from shapely.geometry import Polygon
+import plotly.graph_objects as go
 
 import plots as pl
 
@@ -38,68 +39,6 @@ def download_zipped_directory(zipped_path: str) -> None:
             file_name=os.path.basename(zipped_path),
             mime="application/zip",
         )
-
-
-def set_rotation_variables(selected_file, country):
-    ger_substrings_to_check = [
-        "female",
-        "20_19",
-        "16_18",
-        "40_11",
-        "8_16",
-        "8_17",
-        "32_11",
-        "36_11",
-        "4_11",
-        "4_12",
-        "4_13",
-        "4_15",
-        "4_14",
-    ]
-    aus_substrings_to_check = ["female", "mix_sorted_40_01", "mix_random_41_01"]
-    if country == "ger":
-        if any(substring in selected_file for substring in ger_substrings_to_check):
-            st.session_state.center_x = 3.1
-            st.session_state.center_y = 3
-            st.session_state.angle_degrees = 90
-        else:
-            st.session_state.center_x = 3.1
-            st.session_state.center_y = -3
-            st.session_state.angle_degrees = 90
-
-    if country == "aus":
-        if any(substring in selected_file for substring in aus_substrings_to_check):
-            st.session_state.center_x = 1.7
-            st.session_state.center_y = -0.2
-            st.session_state.angle_degrees = 85
-        else:
-            st.session_state.center_x = 1.8
-            st.session_state.center_y = -6.3
-            st.session_state.angle_degrees = 89
-
-    if country == "chn":
-        if "female" in selected_file:
-            st.session_state.center_x = 0.1
-            st.session_state.center_y = 0
-            st.session_state.angle_degrees = 87
-        elif "mix_random" in selected_file:
-            st.session_state.center_x = 0.1
-            st.session_state.center_y = 0
-            st.session_state.angle_degrees = 85
-        else:
-            st.session_state.center_x = 0.3
-            st.session_state.center_y = 0
-            st.session_state.angle_degrees = 90
-
-    if country == "jap":
-        st.session_state.center_x = 0
-        st.session_state.center_y = 0
-        st.session_state.angle_degrees = 0
-
-    if country == "pal":
-        st.session_state.center_x = -1.5
-        st.session_state.center_y = 0
-        st.session_state.angle_degrees = 0
 
 
 def download_csv(url: str, destination: Union[str, Path]) -> None:
@@ -154,7 +93,7 @@ def dist(p1: Point, p2: Point) -> float:
     Returns:
     - The Euclidean distance between point1 and point2.
     """
-    return ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
+    return float(((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5)
 
 
 def append_point_if_threshold_met(
@@ -266,7 +205,7 @@ def generate_segment_points(
     length: float,
     radius: float,
     threshold: float,
-    is_second_segment=False,
+    is_second_segment: bool = False,
 ) -> List[Point]:
     """
     Generate points along a linear segment.
@@ -324,7 +263,7 @@ def generate_half_circle_points(
     return circle_points
 
 
-def generate_parcour():
+def generate_parcour() -> Tuple[Polygon, Polygon, Polygon]:
     _, exterior = generate_oval_shape_points(
         num_points=100,
         radius=1.65 + 0.4,
@@ -432,85 +371,19 @@ def load_file(file: str) -> pedpy.TrajectoryData:
     return pedpy.TrajectoryData(data=data, frame_rate=fps)
 
 
-def rotate_trajectories(
-    df: pd.DataFrame, shift_x: float, shift_y: float, angle_degrees: float
-) -> pd.DataFrame:
-    """
-    Rotates the x and y coordinates in the dataframe around a center point by a specified angle.
-
-    Parameters:
-    df (pd.DataFrame): Dataframe containing the trajectories with columns 'x' and 'y'.
-    center_x (float): x-coordinate of the center of rotation.
-    center_y (float): y-coordinate of the center of rotation.
-    angle_degrees (float): Angle in degrees by which to rotate the trajectories.
-
-    Returns:
-    pd.DataFrame: A new dataframe with rotated coordinates.
-    """
-    angle_radians = np.radians(angle_degrees)
-
-    center_x = 0
-    center_y = 0
-    x_shifted = df["x"] - center_x
-    y_shifted = df["y"] - center_y
-
-    df_rotated = df.copy()
-
-    df_rotated["x"] = (
-        shift_x
-        + center_x
-        + x_shifted * np.cos(angle_radians)
-        - y_shifted * np.sin(angle_radians)
-    )
-    df_rotated["y"] = (
-        shift_y
-        + center_y
-        + x_shifted * np.sin(angle_radians)
-        + y_shifted * np.cos(angle_radians)
-    )
-
-    return df_rotated
-
-
-def get_neighbors_at_frame(
-    frame: int, df: pd.DataFrame, k: int
-) -> Tuple[npt.NDArray, npt.NDArray]:
-    """
-    Get the distances and indices of the k nearest neighbors for each point at a given frame.
-
-    Parameters:
-    frame (int): The frame number to filter data.
-    df (DataFrame): The DataFrame containing the data.
-                    It should have columns for 'frame', 'x', and 'y' coordinates.
-    k (int): The number of nearest neighbors to find.
-
-    Returns:
-    Tuple[np.ndarray, np.ndarray]: A tuple containing two arrays. The first array
-                                   contains the distances to the k nearest neighbors for each point,
-                                   and the second array contains the indices of these neighbors.
-    """
-    # Filter the DataFrame for the specified frame
-    at_frame = df[df["frame"] == frame]
-
-    # Extract points as a 2D NumPy array
-    points = at_frame[["x", "y"]].to_numpy()
-
-    # Use KDTree for finding nearest neighbors
-    tree = KDTree(points)
-    if k < len(points):
-        nearest_dist, nearest_ind = tree.query(points, k)
-        return nearest_dist, nearest_ind
-
-    return np.array([]), np.array([])
-
-
 def get_neighbors_special_agent_data(
     agent: int,
     frame: int,
     df: pd.DataFrame,
-    nearest_dist: np.ndarray,
-    nearest_ind: np.ndarray,
-) -> Tuple[np.ndarray, np.ndarray, float, np.ndarray, np.ndarray]:
+    nearest_dist: npt.NDArray[np.float64],
+    nearest_ind: npt.NDArray[np.int_],
+) -> Tuple[
+    npt.NDArray[np.float64],
+    npt.NDArray[np.int_],
+    float,
+    npt.NDArray[np.float64],
+    List[str],
+]:
     # Filter DataFrame for the specified fram
     frames = df["frame"].to_numpy()
     first_frame = frames[0]
@@ -536,7 +409,7 @@ def get_neighbors_special_agent_data(
         neighbors = np.array([points[i] for i in neighbors_ind])
         neighbors_ids = np.array([Ids[i] for i in neighbors_ind])
     else:
-        return np.array([]), np.array([]), 0, np.array([]), np.array([])
+        return np.array([]), np.array([]), 0, np.array([]), []
 
     if frame == first_frame:
         distance_now = (neighbors[0][0] - point_agent[0][0]) ** 2 + (
@@ -599,7 +472,7 @@ def update_row(
     prev: int,
     data: pd.DataFrame,
     agent: int,
-    add: st_column,
+    add: bool,
 ) -> pd.DataFrame:
     correct = (next_ != next0) or (prev0 != prev)
     if next_ != next0:
@@ -619,7 +492,9 @@ def update_row(
     return data
 
 
-def handle_prev_next_neighbors(data, frame, next_, prev, ids):
+def handle_prev_next_neighbors(
+    data: pd.DataFrame, frame: int, next_: int, prev: int, ids: npt.NDArray[np.int_]
+) -> Tuple[npt.NDArray[Any], List[int], List[str], int, int]:
     pos_next = data.loc[
         (data["frame"] == frame) & (data["id"] == next_), ["x", "y"]
     ].values
@@ -633,9 +508,9 @@ def handle_prev_next_neighbors(data, frame, next_, prev, ids):
         pos_prev = pos_prev[0]
 
     if next_ < min(ids):
-        next_ = np.nan
+        next_ = np.nan  # type: ignore
     if prev < min(ids):
-        prev = np.nan
+        prev = np.nan  # type: ignore
 
     neighbors_ids = [next_, prev]
     neighbor_type = ["next", "prev"]
@@ -659,7 +534,7 @@ def handle_prev_next_neighbors(data, frame, next_, prev, ids):
     return neighbors, neighbors_ids, neighbor_type, next_, prev
 
 
-def init_neighbors(data: pd.DataFrame, frames: np.ndarray) -> pd.DataFrame:
+def init_neighbors(data: pd.DataFrame, frames: npt.NDArray[np.int_]) -> pd.DataFrame:
     """Initialize neighbors for each agent in the dataset."""
     st.info("Initializing neighbors...")
     for fr in frames:
@@ -685,31 +560,43 @@ def handle_user_input(
     next0: int,
 ) -> Tuple[int, int, int]:
     """Return frame, prev and next for correction."""
-    frame = n3.number_input(
-        "Frame",
-        int(frames[0]),
-        int(np.max(frames)),
-        int(frames[0]),
-        step=10,
-        help="Frame at which to display a snapshot of the neighbors",
+    frame = int(
+        n3.number_input(
+            "Frame",
+            int(frames[0]),
+            int(np.max(frames)),
+            int(frames[0]),
+            step=10,
+            help="Frame at which to display a snapshot of the neighbors",
+        )
     )
 
-    prev = n0.number_input(
-        "prev",
-        value=prev0,
-        format="%d",
+    prev = int(
+        n0.number_input(
+            "prev",
+            value=prev0,
+            format="%d",
+        )
     )
 
-    next_ = n1.number_input(
-        "next",
-        value=next0,
-        format="%d",
+    next_ = int(
+        n1.number_input(
+            "next",
+            value=next0,
+            format="%d",
+        )
     )
 
     return frame, next_, prev
 
 
-def initialise_prev_next(is_prev_in_df, is_next_in_df, data, agent, frames):
+def initialise_prev_next(
+    is_prev_in_df: bool,
+    is_next_in_df: bool,
+    data: pd.DataFrame,
+    agent: int,
+    frames: npt.NDArray[np.int_],
+) -> Tuple[int, int, pd.DataFrame]:
     next0 = -1
     prev0 = -1
     if is_prev_in_df and is_next_in_df:
@@ -731,17 +618,26 @@ def initialise_prev_next(is_prev_in_df, is_next_in_df, data, agent, frames):
     return prev0, next0, data
 
 
-def plot_neighbors_analysis(selected_file, data, ids, exterior, interior, middle_path):
+def plot_neighbors_analysis(
+    selected_file: str,
+    data: pd.DataFrame,
+    ids: npt.NDArray[np.int_],
+    exterior: Polygon,
+    interior: Polygon,
+    middle_path: Polygon,
+) -> Tuple[go.Figure, pd.DataFrame]:
     # st.dataframe(data)
 
     n0, n1, n2, n3 = st.columns((1, 1, 1, 1))
-    agent = n2.number_input(
-        "Agent",
-        min_value=int(min(ids)),
-        max_value=int(max(ids)),
-        value=int(min(ids)),
-        placeholder=f"Type a number in [{int(min(ids))}, {int(max(ids))}]",
-        format="%d",
+    agent = int(
+        n2.number_input(
+            "Agent",
+            min_value=int(min(ids)),
+            max_value=int(max(ids)),
+            value=int(min(ids)),
+            placeholder=f"Type a number in [{int(min(ids))}, {int(max(ids))}]",
+            format="%d",
+        )
     )
 
     frames = data["frame"].to_numpy()
@@ -834,26 +730,28 @@ def show_fig(fig: Figure, html: bool = False, height: int = 500) -> None:
     if not html:
         st.plotly_chart(fig)
     else:
-        st.components.v1.html(fig.to_html(include_mathjax="cdn"), height=height)
+        st.components.v1.html(fig.to_html(include_mathjax="cdn"), height=height)  # type: ignore
 
 
 # implement pagination to show large dataframe
-def increment_page_start(page_size):
+def increment_page_start(page_size: int) -> None:
     st.session_state.page_start += page_size
 
 
-def decrement_page_start(page_size):
+def decrement_page_start(page_size: int) -> None:
     st.session_state.page_start -= page_size
 
 
-def project_position_to_path(position, path):
+def project_position_to_path(
+    position: npt.NDArray[np.float64], path: Polygon
+) -> Tuple[np.int_, np.float64]:
     """Project a position onto the path by finding the point with the minimum Δx and Δy differences."""
     delta_sum = [np.linalg.norm(position - p) for p in path]
     closest_point_index = np.argmin(delta_sum)
     return closest_point_index, delta_sum[closest_point_index]
 
 
-def precompute_path_distances(path):
+def precompute_path_distances(path: Polygon) -> npt.NDArray[np.float64]:
     return np.array(
         [
             np.linalg.norm(np.array(path[i]) - np.array(path[i + 1]))
@@ -862,34 +760,25 @@ def precompute_path_distances(path):
     )
 
 
-def sum_distances_between_agents_on_path(agent1_pos, agent2_pos, path, path_distances):
+def sum_distances_between_agents_on_path(
+    agent1_pos: npt.NDArray[np.float64],
+    agent2_pos: npt.NDArray[np.float64],
+    path: Polygon,
+    path_distances: npt.NDArray[np.float64],
+) -> Tuple[float, npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """Calculate the distance between two agents by summing the distances between points on the path that lie between them."""
     index1, _ = project_position_to_path(agent1_pos, path)
     index2, _ = project_position_to_path(agent2_pos, path)
     np.linalg.norm(agent1_pos - path[index1])
     np.linalg.norm(agent2_pos - path[index2])
     p1, p2 = path[index1], path[index2]
-    #    st.info((index1, index2))
     # Ensure index1 is smaller than index2 for simplicity
     if index1 > index2:
         index1, index2 = index2, index1
     direct_distance_sum = np.sum(path_distances[index1:index2])
-    # direct_dist_list = [
-    #     np.sqrt((path[i][0] - path[i + 1][0]) ** 2 + (path[i][1] - path[i + 1][1]) ** 2)
-    #     for i in range(index1, index2)
-    # ]
-    # direct_distance_sum = sum(direct_dist_list)  #
-
-    # Calculate loop-around distance
-    # loop_around_dist_list = [
-    #     np.sqrt((path[i][0] - path[i + 1][0]) ** 2 + (path[i][1] - path[i + 1][1]) ** 2)
-    #     for i in list(range(index2, len(path) - 1)) + list(range(0, index1))
-    # ]
-    # loop_around_distance_sum = sum(loop_around_dist_list)
     loop_around_distance_sum = np.sum(path_distances[index2:]) + np.sum(
         path_distances[:index1]
     )
     # Choose the shorter distance
     distance_sum = min(direct_distance_sum, loop_around_distance_sum)
-    # distance_sum += distance1 + distance2
     return distance_sum, p1, p2

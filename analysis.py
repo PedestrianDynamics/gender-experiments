@@ -98,7 +98,7 @@ def calculate_union_area_shapely(data: DataFrame, R: float = 0.75) -> float:
     # print(union_of_circles)
     # print("----")
     # Calculate and return the area of the union
-    return union_of_circles.area
+    return float(union_of_circles.area)
 
 
 def calculate_instantaneous_density_per_frame(data: DataFrame, fps: int) -> DataFrame:
@@ -146,12 +146,12 @@ def calculate_steady_state(
     rolling_variance = rate_of_change.rolling(window=window_size).var()
 
     # Find where the variance falls below the threshold
-    return rolling_variance[rolling_variance < threshold].first_valid_index()
+    return int(rolling_variance[rolling_variance < threshold].first_valid_index())
 
 
 def density_speed_time_series_micro(
     country: str, filename: str, dv: int, diff_const: int
-):
+) -> None:
     """Calculate the individual density (Voronoi 1D) and show it."""
     msg = st.empty()
     trajectory_data = hp.load_file(filename)
@@ -202,7 +202,7 @@ def density_speed_time_series_micro(
         st.plotly_chart(fig)
 
 
-def fundamental_diagram_micro(country: str, dv: float, diff_const: float):
+def fundamental_diagram_micro(country: str, dv: int, diff_const: int) -> pd.DataFrame:
     """Calculate FD from results csv file."""
     result_csv = st.session_state.config.proximity_results["path"]
     url = st.session_state.config.proximity_results["url"]

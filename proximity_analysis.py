@@ -1,10 +1,11 @@
-""" Run logic for tab3.
+"""Run logic for tab3.
 
 tab3: proximity analysis.
 """
 
 import subprocess
 import time
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -34,7 +35,8 @@ def run_proximity_script() -> None:
     st.info(f"Running time: {elapsed_time/60:.2} min")
 
 
-def prepare_loaded_data(do_analysis):
+def prepare_loaded_data(do_analysis: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Doanload or read csv file with rtresults and populated dataframes."""
     if do_analysis == "load_gender_analysis_(Euklidean)":
         result_csv = st.session_state.config.proximity_results0["path"]
         csv_url = st.session_state.config.proximity_results0["url"]
@@ -74,11 +76,13 @@ def prepare_loaded_data(do_analysis):
 def show_dataframe_ui(proximity_df: pd.DataFrame) -> None:
     """Create UI and show data, pagewise."""
     col1, col2, col3 = st.columns((0.3, 0.3, 0.3))
-    page_size = col3.number_input(
-        "Number of rows",
-        value=100,
-        min_value=100,
-        max_value=int(len(proximity_df) / 2),
+    page_size = int(
+        col3.number_input(
+            "Number of rows",
+            value=100,
+            min_value=100,
+            max_value=int(len(proximity_df) / 2),
+        )
     )
 
     with col1:
@@ -104,7 +108,7 @@ def show_dataframe_ui(proximity_df: pd.DataFrame) -> None:
 
 def calculate_and_plot_times_series(
     proximity_df: pd.DataFrame,
-    selected_file,
+    selected_file: str,
 ) -> None:
     """Calculate Distances to neighbors and plot time series."""
     ids = proximity_df["id"].unique()
@@ -295,19 +299,21 @@ def box_plots(proximity_melted: pd.DataFrame) -> None:
         hp.show_fig(fig)
 
 
-def run_tab3(selected_file: str):
+def run_tab3(selected_file: str) -> None:
     """Run the main logic of proximity analysis."""
     tab3_on = st.toggle("Activate", value=False)
     if tab3_on:
-        do_analysis = st.radio(
-            "Choose option",
-            [
-                "load_gender_analysis_(Euklidean)",
-                "load_gender_analysis_(Arc)",
-                # "calculate_gender_analysis",
-                # "plot_existing_data",
-            ],
-            horizontal=True,
+        do_analysis = str(
+            st.radio(
+                "Choose option",
+                [
+                    "load_gender_analysis_(Euklidean)",
+                    "load_gender_analysis_(Arc)",
+                    # "calculate_gender_analysis",
+                    # "plot_existing_data",
+                ],
+                horizontal=True,
+            )
         )
 
         if do_analysis == "calculate_gender_analysis":
