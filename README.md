@@ -1,4 +1,5 @@
 # Gender-experiments
+[![gender-experiments-world](https://github.com/PedestrianDynamics/gender-experiments/actions/workflows/code-quality.yml/badge.svg)](https://github.com/PedestrianDynamics/gender-experiments/actions/workflows/code-quality.yml)
 [![Open Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gender-experiments.streamlit.app/)
 
 The file naming convention is structured as follows:
