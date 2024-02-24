@@ -32,15 +32,14 @@ def init_app_looks() -> None:
     repo_name = f"[![Repo]({gh})]({repo})"
     c1, c2 = st.sidebar.columns((1.2, 0.5))
     c2.markdown(repo_name, unsafe_allow_html=True)
-    c1.write(
-        "[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7697604.svg)](https://doi.org/10.5281/zenodo.7697604)"
-    )
+    # TODO: update till after the release
+    # c1.write(
+    #     "[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7697604.svg)](https://doi.org/10.5281/zenodo.7697604)"
+    # )
     st.sidebar.image(f"{ROOT_DIR}/logo.png", use_column_width=True)
 
 
-def init_sidebar() -> (
-    Tuple[str, DeltaGenerator, DeltaGenerator, DeltaGenerator, DeltaGenerator]
-):
+def init_sidebar() -> Tuple[str, DeltaGenerator, DeltaGenerator, DeltaGenerator, DeltaGenerator]:
     """Init sidebar and tabs."""
     c1, c2 = st.sidebar.columns((1.8, 0.2))
     flag = c2.empty()
