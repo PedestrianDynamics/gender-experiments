@@ -158,7 +158,7 @@ def plot_trajectories(
 
 
 def plot_time_series(
-    data: pd.DataFrame, speed: pd.DataFrame, fps: int, ss_index: int, key_density: str
+    data: pd.DataFrame, speed: pd.DataFrame, fps: int, key_density: str
 ) -> go.Figure:
     """Plot time series of density and frame side by side."""
     density = data[key_density]
@@ -167,7 +167,7 @@ def plot_time_series(
         cols=2,
         subplot_titles=(
             f"Mean density: {np.mean(density):.2f} (+- {np.std(density):.2f}) 1/m/m",
-            f"Mean speed: {np.mean(speed['speed']):.2f} (+- {np.std(speed['speed']):.2f}) / m/s",
+            f"Mean speed: {np.mean(speed):.2f} (+- {np.std(speed):.2f}) / m/s",
         ),
     )
     # st.dataframe(data)
@@ -188,8 +188,8 @@ def plot_time_series(
 
     fig.add_trace(
         go.Scatter(
-            x=speed["time"].loc[ss_index:],
-            y=speed["speed"].loc[ss_index:],
+            x=speed.index / fps,
+            y=speed,
             line={"color": "blue"},
             marker={"color": "blue"},
             mode="lines",
@@ -200,7 +200,7 @@ def plot_time_series(
 
     rmin = 0  # np.min(data["instantaneous_density"]) - 0.5
     rmax = 5  # np.max(data["instantaneous_density"]) + 0.5
-    vmax = np.max(speed["speed"]) + 0.5
+    vmax = np.max(speed) + 0.5
     fig.update_layout(
         xaxis_title="Time / s",
         showlegend=False,

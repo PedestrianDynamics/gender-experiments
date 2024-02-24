@@ -5,9 +5,10 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pedpy as pp
 import streamlit as st
 from pandas import DataFrame
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 
 import utils.helper as hp
@@ -155,12 +156,19 @@ def density_speed_time_series_micro(
     """Calculate the individual density (Voronoi 1D) and show it."""
     msg = st.empty()
     trajectory_data = hp.load_file(filename)
-    rotated_data = trajectory_data.data
+    eps = 0.5
+    xmin = trajectory_data.data["x"].min() - eps
+    xmax = trajectory_data.data["x"].max() + eps
+    ymin = trajectory_data.data["y"].min() - eps
+    ymax = trajectory_data.data["y"].max() + eps
+    measurement_area = pp.MeasurementArea(
+        Polygon([[xmin, ymin], [xmin, ymax], [xmax, ymax], [xmax, ymin]])
+    )
     result_csv = st.session_state.config.proximity_results["path"]
 
     if not result_csv.exists():
         msg.warning(f"{result_csv} does not exist yet!")
-        with st.status("Downloading ...", expanded=True):
+        with st.status(f"Downloading {result_csv}...", expanded=True):
             hp.download_csv(
                 st.session_state.config.proximity_results["url"],
                 st.session_state.config.proximity_results["path"],
@@ -179,14 +187,22 @@ def density_speed_time_series_micro(
         density = calculate_individual_density_csv(filter_df)
         #       cd.dataframe(density)
         msg.info("calculate speed")
-        speed = calculate_speed(rotated_data, dv)
-
-        # cs.dataframe(speed.loc[:, ["frame", "id", "speed"]])
+        # speed = calculate_speed(data, dv)
+        speed = pp.compute_individual_speed(
+            traj_data=trajectory_data,
+            frame_step=dv,
+            speed_calculation=pp.SpeedCalculation.BORDER_SINGLE_SIDED,
+        )
+        mean_speed = pp.compute_mean_speed_per_frame(
+            traj_data=trajectory_data,
+            individual_speed=speed,
+            measurement_area=measurement_area,
+        )
         msg.info("calculate speed steady state")
         steady_state_index = calculate_steady_state(
-            speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
+            mean_speed, window_size=5, threshold=0.1, diff_const=diff_const
         )
-        speed = speed.iloc[steady_state_index:]
+        mean_speed = mean_speed.iloc[steady_state_index:-steady_state_index]
 
         end_time = time.time()
         elapsed_time = end_time - start_time
@@ -195,9 +211,8 @@ def density_speed_time_series_micro(
         )
         fig = pl.plot_time_series(
             density,
-            speed,
+            mean_speed,
             trajectory_data.frame_rate,
-            steady_state_index,
             "individual_density",
         )
         st.plotly_chart(fig)
