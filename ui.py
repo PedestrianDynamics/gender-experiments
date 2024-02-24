@@ -39,7 +39,9 @@ def init_app_looks() -> None:
     st.sidebar.image(f"{ROOT_DIR}/logo.png", use_column_width=True)
 
 
-def init_sidebar() -> Tuple[str, DeltaGenerator, DeltaGenerator, DeltaGenerator, DeltaGenerator]:
+def init_sidebar() -> (
+    Tuple[str, DeltaGenerator, DeltaGenerator, DeltaGenerator, DeltaGenerator]
+):
     """Init sidebar and tabs."""
     c1, c2 = st.sidebar.columns((1.8, 0.2))
     flag = c2.empty()

@@ -1,4 +1,4 @@
-"""Data structure, loading files and initialising session_state"""
+"""Data structure, loading files and initialising session_state."""
 
 import glob
 from dataclasses import dataclass, field
@@ -27,7 +27,9 @@ class DataConfig:
     def __post_init__(self) -> None:
         """Initialize the DataConfig instance by retrieving files for each country."""
         # direct distance results
-        self.proximity_results0["path"] = Path("app_data/proximity_analysis_results0.csv")
+        self.proximity_results0["path"] = Path(
+            "app_data/proximity_analysis_results0.csv"
+        )
         self.proximity_results0["url"] = "https://go.fzj.de/proximity_results0"
 
         self.proximity_results["path"] = Path("app_data/proximity_analysis_results.csv")
@@ -46,7 +48,7 @@ class DataConfig:
         of file paths as values.
         """
         for country in self.countries:
-            self.files[country] = glob.glob(f"{country}/*.csv")
+            self.files[country] = glob.glob(f"data/{country}/*.csv")
 
 
 def init_session_state(msg: DeltaGenerator) -> None:
