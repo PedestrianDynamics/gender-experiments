@@ -1,6 +1,7 @@
-"""Analysis module."""
+"""Measurements of density, speed."""
 
 import time
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -9,9 +10,8 @@ from pandas import DataFrame
 from shapely.geometry import Point
 from shapely.ops import unary_union
 
-import analysis as al
-import helper as hp
-import plots as pl
+import utils.helper as hp
+import visualization.plots as pl
 
 
 def calculate_speed(data: DataFrame, dv: int) -> DataFrame:
@@ -172,17 +172,18 @@ def density_speed_time_series_micro(
     #    cs, cd = st.columns((1, 1))
     with st.spinner(f"Calculating {country} ..."):
         start_time = time.time()
-        filter_df = df[(df["country"] == country) & (df["file"] == filename)]
+        new_path = "/".join(Path(filename).parts[1:])
+        filter_df = df[(df["country"] == country) & (df["file"] == new_path)]
         # st.info(f"{file}")
         # st.dataframe(filter_df)
-        density = al.calculate_individual_density_csv(filter_df)
+        density = calculate_individual_density_csv(filter_df)
         #       cd.dataframe(density)
         msg.info("calculate speed")
-        speed = al.calculate_speed(rotated_data, dv)
+        speed = calculate_speed(rotated_data, dv)
 
         # cs.dataframe(speed.loc[:, ["frame", "id", "speed"]])
         msg.info("calculate speed steady state")
-        steady_state_index = al.calculate_steady_state(
+        steady_state_index = calculate_steady_state(
             speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
         )
         speed = speed.iloc[steady_state_index:]
@@ -200,58 +201,6 @@ def density_speed_time_series_micro(
             "individual_density",
         )
         st.plotly_chart(fig)
-
-
-def fundamental_diagram_micro(country: str, dv: int, diff_const: int) -> pd.DataFrame:
-    """Calculate FD from results csv file."""
-    result_csv = st.session_state.config.proximity_results["path"]
-    url = st.session_state.config.proximity_results["url"]
-    all_merged_df = pd.DataFrame()
-    if not result_csv.exists():
-        st.warning(f"{result_csv} does not exist yet!")
-        with st.status("Downloading ...", expanded=True):
-            hp.download_csv(url, result_csv)
-
-    if result_csv.exists():
-        st.info(f"Reading file {result_csv}")
-        df = pd.read_csv(result_csv)
-    c1, c2 = st.columns((1, 1))
-    with st.status(f"Calculating {country} ...", expanded=True):
-        msg = st.empty()
-        start_time = time.time()
-        for filename in st.session_state.config.files[country]:
-            try:
-                msg.info(f"{filename}")
-                trajectory_data = hp.load_file(filename)
-                data = trajectory_data.data
-
-                filter_df = df[(df["country"] == country) & (df["file"] == filename)]
-
-                density = al.calculate_individual_density_csv(filter_df)
-                speed = al.calculate_speed(data, dv)
-                steady_state_index = al.calculate_steady_state(
-                    speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
-                )
-                speed_df = speed.loc[:, ["frame", "id", "speed"]].iloc[
-                    steady_state_index:
-                ]
-
-                # Data consistency check (example)
-                if not density.empty and not speed_df.empty:
-                    merged_df = pd.merge(density, speed_df, on=["id", "frame"])
-                    all_merged_df = pd.concat(
-                        [all_merged_df, merged_df], ignore_index=True
-                    )
-                else:
-                    msg.warning(
-                        f"Empty DataFrame encountered for {filename}. Skipping merge."
-                    )
-            except Exception as e:
-                msg.error(f"Error processing {filename}: {e}")
-
-    end_time = time.time()
-    msg.info(f"Finished with {filename} in {end_time-start_time:.2f} s")
-    return all_merged_df
 
 
 # def kde():

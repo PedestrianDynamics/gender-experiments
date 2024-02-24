@@ -1,16 +1,15 @@
-""" Show general results, including ploting, animation, ..."""
+"""Show general results, including ploting, animation, ..."""
 
 import time
+from typing import TypeAlias
 
 import pedpy
 import streamlit as st
 from shapely import Polygon, difference
 
-import helper as hp
-import plots as pl
-from anim import animate
-
-from typing import TypeAlias
+import utils.helper as hp
+import visualization.plots as pl
+from visualization.anim import animate
 
 st_column: TypeAlias = st.delta_generator.DeltaGenerator
 

@@ -1,17 +1,18 @@
 import itertools
+import os
 import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Any, Tuple
-import os
+from typing import Any, Dict, List, Tuple
+
 import numpy as np
 import pandas as pd
 import pedpy
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
-import helper as hp
+import utils.helper as hp
 
 _, _, middle_path = hp.generate_parcour()
 print(f"middle_path {len(middle_path)}")

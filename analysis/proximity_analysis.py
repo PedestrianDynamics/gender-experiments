@@ -5,6 +5,7 @@ tab3: proximity analysis.
 
 import subprocess
 import time
+from pathlib import Path
 from typing import Tuple
 
 import numpy as np
@@ -15,8 +16,8 @@ import streamlit as st
 from plotly.subplots import make_subplots
 from scipy import stats
 
-import helper as hp
-import plots as pl
+import utils.helper as hp
+import visualization.plots as pl
 
 
 # TODO: This should not be run on hosted app.
@@ -120,7 +121,10 @@ def calculate_and_plot_times_series(
         placeholder=f"Type a number in [{int(min(ids))}, {int(max(ids))}]",
         format="%d",
     )
-    condition = ((proximity_df["id"] == uid) & (proximity_df["file"] == selected_file),)
+
+    # Remove the first part of the path ('data/') and keep the rest ('country/csv-file.csv')
+    new_path = "/".join(Path(selected_file).parts[1:])
+    condition = ((proximity_df["id"] == uid) & (proximity_df["file"] == new_path),)
     field_name = {
         "same_gender_proximity_next": "same next",
         "same_gender_proximity_prev": "same  prev",
@@ -333,7 +337,7 @@ def run_tab3(selected_file: str) -> None:
             plot_pdf = c2.checkbox(
                 "PDF", value=False, help="PDF function for distances"
             )
-            debug = c3.checkbox(
+            calculate_time_series = c3.checkbox(
                 "Time-series",
                 value=False,
                 help="Plot times series of distance per file",
@@ -345,7 +349,7 @@ def run_tab3(selected_file: str) -> None:
             )
             if show_dataframe:
                 show_dataframe_ui(proximity_df)
-            if debug:
+            if calculate_time_series:
                 calculate_and_plot_times_series(
                     proximity_df,
                     selected_file,

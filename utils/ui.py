@@ -24,9 +24,9 @@ def init_page_config() -> None:
 
 def init_app_looks() -> None:
     """Add badges to sidebar."""
-    path = Path(__file__)
-    ROOT_DIR = path.parent.absolute()
-
+    current_file_path = Path(__file__)
+    ROOT_DIR = current_file_path.parent.parent.absolute()
+    logo_path = ROOT_DIR / "images" / "logo.png"
     gh = "https://badgen.net/badge/icon/GitHub?icon=github&label"
     repo = "https://github.com/PedestrianDynamics/gender-experiments"
     repo_name = f"[![Repo]({gh})]({repo})"
@@ -36,7 +36,7 @@ def init_app_looks() -> None:
     # c1.write(
     #     "[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7697604.svg)](https://doi.org/10.5281/zenodo.7697604)"
     # )
-    st.sidebar.image(f"{ROOT_DIR}/logo.png", use_column_width=True)
+    st.sidebar.image(str(logo_path), use_column_width=True)
 
 
 def init_sidebar() -> (

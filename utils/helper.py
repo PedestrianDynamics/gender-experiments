@@ -3,20 +3,19 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Any, List, Tuple, Union, TypeAlias
+from typing import Any, List, Tuple, TypeAlias, Union
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import pedpy
+import plotly.graph_objects as go
 import requests  # type: ignore
 import streamlit as st
 from plotly.graph_objs import Figure
-
 from shapely.geometry import Polygon
-import plotly.graph_objects as go
 
-import plots as pl
+import visualization.plots as pl
 
 Point: TypeAlias = Tuple[float, float]
 st_column: TypeAlias = st.delta_generator.DeltaGenerator
@@ -31,7 +30,7 @@ def zip_directory(path_to_directory: Path) -> str:
 
 
 def download_zipped_directory(zipped_path: str) -> None:
-    """Creates a download button for the zipped file."""
+    """Create a download button for the zipped file."""
     with open(zipped_path, "rb") as file:
         st.download_button(
             label="Download ZIP",
@@ -43,8 +42,9 @@ def download_zipped_directory(zipped_path: str) -> None:
 
 def download_csv(url: str, destination: Union[str, Path]) -> None:
     """
-    Downloads a CSV file from a specified URL and saves it to a given destination,
-    displaying the download progress in a Streamlit app.
+    Download a CSV file from a specified URL and saves it to a given destination.
+
+    Display the download progress in a Streamlit app.
 
     Args:
         url (str): The URL of the CSV file to download.

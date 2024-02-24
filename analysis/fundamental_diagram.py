@@ -6,22 +6,80 @@ tab2: Fundamental diagram
 import glob
 import os
 import pickle
+import time
 from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
-import analysis as al
-import docs
-import helper as hp
-import plots as pl
+import utils.helper as hp
+import visualization.plots as pl
+from analysis.measurement import (
+    calculate_individual_density_csv,
+    calculate_speed,
+    calculate_steady_state,
+    density_speed_time_series_micro,
+)
+from utils.docs import density_speed_documentation
+
+
+def fundamental_diagram_micro(country: str, dv: int, diff_const: int) -> pd.DataFrame:
+    """Calculate FD from results csv file."""
+    result_csv = st.session_state.config.proximity_results["path"]
+    url = st.session_state.config.proximity_results["url"]
+    all_merged_df = pd.DataFrame()
+    if not result_csv.exists():
+        st.warning(f"{result_csv} does not exist yet!")
+        with st.status("Downloading ...", expanded=True):
+            hp.download_csv(url, result_csv)
+
+    if result_csv.exists():
+        st.info(f"Reading file {result_csv}")
+        df = pd.read_csv(result_csv)
+    c1, c2 = st.columns((1, 1))
+    with st.status(f"Calculating {country} ...", expanded=True):
+        msg = st.empty()
+        start_time = time.time()
+        for filename in st.session_state.config.files[country]:
+            try:
+                msg.info(f"{filename}")
+                trajectory_data = hp.load_file(filename)
+                data = trajectory_data.data
+
+                filter_df = df[(df["country"] == country) & (df["file"] == filename)]
+
+                density = calculate_individual_density_csv(filter_df)
+                speed = calculate_speed(data, dv)
+                steady_state_index = calculate_steady_state(
+                    speed["speed"], window_size=5, threshold=0.1, diff_const=diff_const
+                )
+                speed_df = speed.loc[:, ["frame", "id", "speed"]].iloc[
+                    steady_state_index:
+                ]
+
+                # Data consistency check (example)
+                if not density.empty and not speed_df.empty:
+                    merged_df = pd.merge(density, speed_df, on=["id", "frame"])
+                    all_merged_df = pd.concat(
+                        [all_merged_df, merged_df], ignore_index=True
+                    )
+                else:
+                    msg.warning(
+                        f"Empty DataFrame encountered for {filename}. Skipping merge."
+                    )
+            except Exception as e:
+                msg.error(f"Error processing {filename}: {e}")
+
+    end_time = time.time()
+    msg.info(f"Finished with {filename} in {end_time-start_time:.2f} s")
+    return all_merged_df
 
 
 def load_or_calculate_fd(country: str, dv: int, diff_const: int) -> pd.DataFrame:
     """Load density calculation from file or calculate."""
     precalculated_file = f"app_data/density_micro_{country}.pkl"
     if not Path(precalculated_file).exists():
-        result = al.fundamental_diagram_micro(country, dv, diff_const)
+        result = fundamental_diagram_micro(country, dv, diff_const)
         with open(precalculated_file, "wb") as f:
             pickle.dump(result, f)
     else:
@@ -41,7 +99,7 @@ def run_tab2(country: str, selected_file: str) -> None:
     do_calculations = st.toggle("Activate", key="tab2", value=False)
     docs_expander = st.expander("Documentation (click to expand)", expanded=False)
     with docs_expander:
-        docs.density_speed_documentation()
+        density_speed_documentation()
     c0, c1, c2 = st.columns((1, 1, 1))
     if do_calculations:
         c2.write("**Speed calculation parameters**")
@@ -81,16 +139,11 @@ def run_tab2(country: str, selected_file: str) -> None:
         )
 
         if calculations == "time_series":
-            al.density_speed_time_series_micro(country, selected_file, dv, diff_const)
+            density_speed_time_series_micro(country, selected_file, dv, diff_const)
 
         if calculations == calculations == "FD":
             all_data = {}
             st.divider()
-            countries = [
-                country
-                for country in st.session_state.config.countries
-                if country != "pal"
-            ]
             for country in st.session_state.config.countries:
                 result = load_or_calculate_fd(country, dv, diff_const)
                 all_data[country] = (
@@ -101,8 +154,8 @@ def run_tab2(country: str, selected_file: str) -> None:
             st.markdown("**Fundamental diagram**")
             selected_countries = st.multiselect(
                 "Select countries to display:",
-                options=countries,
-                default=countries,
+                options=st.session_state.config.countries,
+                default=st.session_state.config.countries,
             )
             filtered_country_data = {
                 country: all_data[country] for country in selected_countries
