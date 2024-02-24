@@ -29,7 +29,7 @@ if __name__ == "__main__":
     )
     data_dir = Path("data")
     country_dir = data_dir / country
-    selected_file = country_dir / selected_file
+    selected_file = str(country_dir / selected_file)
 
     with tab1:
         run_tab1(msg, country, selected_file)
