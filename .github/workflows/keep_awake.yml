@@ -1,0 +1,12 @@
+name: Keep App Awake
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # Runs every 30 minutes
+
+jobs:
+  wakeup:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Visit Streamlit App
+      run: curl https://gender-experiments.streamlit.app/
