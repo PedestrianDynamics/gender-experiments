@@ -474,6 +474,7 @@ def update_row(
     agent: int,
     add: bool,
 ) -> pd.DataFrame:
+    """Write changed row in data frame."""
     correct = (next_ != next0) or (prev0 != prev)
     if next_ != next0:
         what_changed = next_
@@ -495,6 +496,7 @@ def update_row(
 def handle_prev_next_neighbors(
     data: pd.DataFrame, frame: int, next_: int, prev: int, ids: npt.NDArray[np.int_]
 ) -> Tuple[npt.NDArray[Any], List[int], List[str], int, int]:
+    """Handle neighborhood since some data are not circular."""
     pos_next = data.loc[
         (data["frame"] == frame) & (data["id"] == next_), ["x", "y"]
     ].values

@@ -23,8 +23,6 @@ from analysis.measurement import (  # calculate_speed,
 )
 from utils.docs import density_speed_documentation
 
-msg = st.empty()
-
 
 def fundamental_diagram_all_countries(
     method: str, df: pd.DataFrame, dv: int, diff_const: int
@@ -59,6 +57,7 @@ def fundamental_diagram_micro(
 ) -> pd.DataFrame:
     """Calculate FD from results csv file."""
     all_merged_df = pd.DataFrame()
+    msg = st.empty()
     c1, c2 = st.columns((1, 1))
     with msg.status(f"Calculating {country} ...", expanded=False):
         start_time = time.time()
