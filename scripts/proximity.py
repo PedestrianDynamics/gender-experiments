@@ -28,7 +28,6 @@ from utils.helper import (
     sum_distances_between_agents_on_path,
 )
 
-
 _, _, middle_path = generate_parcour()
 print(f"middle_path {len(middle_path)}")
 path_distances = precompute_path_distances(middle_path)
@@ -45,7 +44,6 @@ class InitData:
 
 def load_file(file: str) -> pedpy.TrajectoryData:
     """Load and processes a file to create a TrajectoryData object."""
-
     data = pd.read_csv(file)
     rename_mapping = {
         "ID": "id",

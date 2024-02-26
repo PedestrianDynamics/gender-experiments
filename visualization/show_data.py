@@ -105,13 +105,15 @@ def run_tab1(msg: st_column, country: str, selected_file: str) -> None:
                     how="left",
                 )
                 color_mode = str(st.radio("Color mode", ["Speed", "Gender"]))
-                every_nth_frame = st.number_input(
-                    "Every nth frame",
-                    value=50,
-                    min_value=1,
-                    max_value=100,
-                    placeholder="Every nth frame",
-                    format="%d",
+                every_nth_frame = int(
+                    st.number_input(
+                        "Every nth frame",
+                        value=50,
+                        min_value=1,
+                        max_value=100,
+                        placeholder="Every nth frame",
+                        format="%d",
+                    )
                 )
                 anm = animate(
                     data_with_speed,
