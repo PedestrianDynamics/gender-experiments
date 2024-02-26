@@ -17,10 +17,8 @@ import streamlit as st
 import utils.helper as hp
 import visualization.plots as pl
 from analysis.measurement import (  # calculate_speed,
-    calculate_individual_density_csv,
-    calculate_steady_state,
-    density_speed_time_series_micro,
-)
+    calculate_individual_density_csv, calculate_steady_state,
+    density_speed_time_series_micro)
 from utils.docs import density_speed_documentation
 
 

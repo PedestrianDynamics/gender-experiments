@@ -5,9 +5,9 @@ from pathlib import Path
 import streamlit as st
 
 from analysis.fundamental_diagram import run_tab2
-from analysis.proximity_analysis import run_tab3
+from analysis.proximity_analysis import run_proximity_script, run_tab3
 from data.datafactory import init_session_state
-from utils.helper import get_numbers_country, sorting_key
+from utils.helper import get_numbers_country, is_running_locally, sorting_key
 from utils.ui import init_app_looks, init_page_config, init_sidebar
 from visualization.show_data import run_tab1
 
@@ -42,4 +42,14 @@ if __name__ == "__main__":
 
     with tab4:
         st.info("Will be deleted soon!")
-    #     enhance_data.run_tab4(do_rotate)
+        if not is_running_locally():
+            st.warning(
+                """
+                This calculation is disabled when running in a deployed environment.\n
+                You should run the app locally:
+                """
+            )
+            st.code("streamlit run app.py")
+
+        if is_running_locally():
+            run_proximity_script()

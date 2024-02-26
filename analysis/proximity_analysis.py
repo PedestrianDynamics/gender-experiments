@@ -24,10 +24,8 @@ import visualization.plots as pl
 def run_proximity_script() -> None:
     """Run proximity script."""
     start_time = time.time()
-    with st.status("Calculating ...", expanded=True):
-        result = subprocess.run(
-            ["python", "proximity.py"], capture_output=True, text=True
-        )
+    with st.status("Calculating ...", expanded=False):
+        result = subprocess.run(["python", "scripts/proximity.py"], capture_output=True, text=True)
         if result.stderr:
             st.error(result.stderr)
 
@@ -171,9 +169,7 @@ def calculate_ttest(proximity_df: pd.DataFrame) -> None:
         ["female", "male", "mix_random", "mix_sorted", "all"],
         horizontal=True,
     )
-    st.markdown(
-        ":information_source: **The mean distance between pairs of the same gender is equal to the mean distance between pairs of different genders.**"
-    )
+    st.markdown(":information_source: **The mean distance between pairs of the same gender is equal to the mean distance between pairs of different genders.**")
     st.latex("p <= 0.05 \\rightarrow \\text{ reject}\\; H_0")
 
     for country in st.session_state.config.countries:
@@ -183,30 +179,18 @@ def calculate_ttest(proximity_df: pd.DataFrame) -> None:
             filtered_data = proximity_df[proximity_df["country"] == country]
         else:
             # Otherwise, filter by both country and type
-            filtered_data = proximity_df[
-                (proximity_df["country"] == country) & (proximity_df["type"] == type_)
-            ]
+            filtered_data = proximity_df[(proximity_df["country"] == country) & (proximity_df["type"] == type_)]
         # st.dataframe(filtered_data)
         with st.status(
             f"Calculating T-tests for **<{country}>** and **<{type_}>**",
             expanded=True,
         ):
-            same_gender_distances_next = filtered_data[
-                "same_gender_proximity_next"
-            ].dropna()
-            diff_gender_distances_next = filtered_data[
-                "diff_gender_proximity_next"
-            ].dropna()
-            same_gender_distances_prev = filtered_data[
-                "same_gender_proximity_prev"
-            ].dropna()
-            diff_gender_distances_prev = filtered_data[
-                "diff_gender_proximity_prev"
-            ].dropna()
+            same_gender_distances_next = filtered_data["same_gender_proximity_next"].dropna()
+            diff_gender_distances_next = filtered_data["diff_gender_proximity_next"].dropna()
+            same_gender_distances_prev = filtered_data["same_gender_proximity_prev"].dropna()
+            diff_gender_distances_prev = filtered_data["diff_gender_proximity_prev"].dropna()
             # Perform a T-test
-            t_stat_next, p_val_next = stats.ttest_ind(
-                same_gender_distances_next, diff_gender_distances_next
-            )
+            t_stat_next, p_val_next = stats.ttest_ind(same_gender_distances_next, diff_gender_distances_next)
             t_stat_prev, p_val_prev = stats.ttest_ind(
                 same_gender_distances_prev,
                 diff_gender_distances_prev,
@@ -236,18 +220,13 @@ def calculate_and_plot_pdf_distances(proximity_melted: pd.DataFrame) -> None:
             y_title="PDF",
         )
         msg = f"{country}\n"
-        for (type_, name), color in zip(
-            type_name.items(), ["blue", "crimson", "green", "magenta"]
-        ):
+        for (type_, name), color in zip(type_name.items(), ["blue", "crimson", "green", "magenta"]):
             line_property = "solid" if type_.endswith("next") else "dash"
             if line_property == "dash":
                 if type_.startswith("diff"):
                     line_property = "dot"
 
-            filtered_data = proximity_melted.loc[
-                (proximity_melted["country"] == country)
-                & (proximity_melted["category"] == type_)
-            ]
+            filtered_data = proximity_melted.loc[(proximity_melted["country"] == country) & (proximity_melted["category"] == type_)]
             filtered_data = filtered_data.loc[filtered_data["distance"] != 0]
 
             distances = np.unique(filtered_data["distance"])
@@ -322,21 +301,14 @@ def run_tab3(selected_file: str) -> None:
 
         if do_analysis == "calculate_gender_analysis":
             run_proximity_script()
-        if (
-            do_analysis == "load_gender_analysis_(Euklidean)"
-            or do_analysis == "load_gender_analysis_(Arc)"
-        ):
+        if do_analysis == "load_gender_analysis_(Euklidean)" or do_analysis == "load_gender_analysis_(Arc)":
             proximity_df, proximity_melted = prepare_loaded_data(do_analysis)
             st.divider()
             c0, c1, c2, c3, c4, c5 = st.columns(6)
             st.divider()
             show_dataframe = c0.checkbox("Show data", value=False)
-            ttest = c1.checkbox(
-                "T-test", value=False, help="Perform ttest on the distances."
-            )
-            plot_pdf = c2.checkbox(
-                "PDF", value=False, help="PDF function for distances"
-            )
+            ttest = c1.checkbox("T-test", value=False, help="Perform ttest on the distances.")
+            plot_pdf = c2.checkbox("PDF", value=False, help="PDF function for distances")
             calculate_time_series = c3.checkbox(
                 "Time-series",
                 value=False,

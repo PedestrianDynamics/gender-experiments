@@ -36,16 +36,10 @@ def run_tab1(msg: st_column, country: str, selected_file: str) -> None:
             display = rc0.checkbox("Data", value=False, help="Display data table")
             if display:
                 st.dataframe(trajectory_data.data.loc[:, columns_to_display])
-            do_plot_trajectories = rc1.checkbox(
-                "Plot", value=False, help="Plot trajectories"
-            )
+            do_plot_trajectories = rc1.checkbox("Plot", value=False, help="Plot trajectories")
 
-            do_animate = rc2.checkbox(
-                "Animation", value=False, help="Visualise movement of trajecories"
-            )
-            get_neighborhood = rc3.checkbox(
-                "Neighbors", value=True, help="Calculate and visualize neighbors"
-            )
+            do_animate = rc2.checkbox("Animation", value=False, help="Visualise movement of trajecories")
+            get_neighborhood = rc3.checkbox("Neighbors", value=True, help="Calculate and visualize neighbors")
 
             ids = data["id"].unique()
             if do_plot_trajectories:
@@ -62,9 +56,7 @@ def run_tab1(msg: st_column, country: str, selected_file: str) -> None:
                     format="%d",
                 )
 
-                fig = pl.plot_trajectories(
-                    data, framerate, uid, exterior, interior, plot_parcour
-                )
+                fig = pl.plot_trajectories(data, framerate, uid, exterior, interior, plot_parcour)
 
                 st.plotly_chart(fig)
             # neighborhood
@@ -113,13 +105,21 @@ def run_tab1(msg: st_column, country: str, selected_file: str) -> None:
                     how="left",
                 )
                 color_mode = str(st.radio("Color mode", ["Speed", "Gender"]))
+                every_nth_frame = st.number_input(
+                    "Every nth frame",
+                    value=50,
+                    min_value=1,
+                    max_value=100,
+                    placeholder="Every nth frame",
+                    format="%d",
+                )
                 anm = animate(
                     data_with_speed,
                     walkable_area,
                     color_mode=color_mode,
                     width=500,
                     height=500,
-                    every_nth_frame=100,
+                    every_nth_frame=every_nth_frame,
                     radius=0.1,  # 0.75
                     title_note="(<span style='color:green;'>M</span>, <span style='color:blue;'>F</span>)",
                 )

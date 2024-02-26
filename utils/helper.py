@@ -15,10 +15,17 @@ import streamlit as st
 from plotly.graph_objs import Figure
 from shapely.geometry import Polygon
 
-import visualization.plots as pl
+from visualization import plots as pl
 
 Point: TypeAlias = Tuple[float, float]
 st_column: TypeAlias = st.delta_generator.DeltaGenerator
+
+
+def is_running_locally() -> bool:
+    """Check if the Streamlit app is running locally."""
+    streamlit_server = "/mount/src/gender-experiments"
+    current_working_directory = os.getcwd()
+    return current_working_directory != streamlit_server
 
 
 def zip_directory(path_to_directory: Path) -> str:
@@ -156,44 +163,28 @@ def generate_oval_shape_points(
     # Generate points for the first segment
     segment_points = generate_segment_points(start, dx, length, radius, threshold)
     for p in segment_points:
-        points, selected_points, last_selected = append_point_if_threshold_met(
-            points, selected_points, p, last_selected, threshold
-        )
+        points, selected_points, last_selected = append_point_if_threshold_met(points, selected_points, p, last_selected, threshold)
 
     # Generate points for the first half circle
-    circle_points = generate_half_circle_points(
-        center2, radius, dphi, -np.pi / 2, np.pi / 2
-    )
+    circle_points = generate_half_circle_points(center2, radius, dphi, -np.pi / 2, np.pi / 2)
     for p in circle_points:
-        points, selected_points, last_selected = append_point_if_threshold_met(
-            points, selected_points, p, last_selected, threshold
-        )
+        points, selected_points, last_selected = append_point_if_threshold_met(points, selected_points, p, last_selected, threshold)
 
     # Generate points for the second segment
-    segment_points = generate_segment_points(
-        start, dx, length, radius, threshold, is_second_segment=True
-    )
+    segment_points = generate_segment_points(start, dx, length, radius, threshold, is_second_segment=True)
     for p in segment_points:
-        points, selected_points, last_selected = append_point_if_threshold_met(
-            points, selected_points, p, last_selected, threshold
-        )
+        points, selected_points, last_selected = append_point_if_threshold_met(points, selected_points, p, last_selected, threshold)
 
     # Generate points for the second half circle
-    circle_points = generate_half_circle_points(
-        center1, radius, dphi, np.pi / 2, 3 * np.pi / 2 - dphi
-    )
+    circle_points = generate_half_circle_points(center1, radius, dphi, np.pi / 2, 3 * np.pi / 2 - dphi)
     for p in circle_points:
-        points, selected_points, last_selected = append_point_if_threshold_met(
-            points, selected_points, p, last_selected, threshold
-        )
+        points, selected_points, last_selected = append_point_if_threshold_met(points, selected_points, p, last_selected, threshold)
 
     # Final adjustments
     if dist(selected_points[-1], start) < threshold:
         selected_points.pop()
     if num_points > len(selected_points):
-        print(
-            f"Warning: Requested {num_points} points, but only {len(selected_points)} can be provided."
-        )
+        print(f"Warning: Requested {num_points} points, but only {len(selected_points)} can be provided.")
 
     selected_points = selected_points[:num_points]
     return points, selected_points
@@ -329,9 +320,7 @@ def rename_columns(data: pd.DataFrame, mapping: dict[str, str]) -> pd.DataFrame:
 def set_column_types(data: pd.DataFrame, col_types: dict[str, Any]) -> pd.DataFrame:
     """Set the types of the dataframe columns based on the given column types."""
     # Ensure columns are in data before type casting
-    valid_types = {
-        col: dtype for col, dtype in col_types.items() if col in data.columns
-    }
+    valid_types = {col: dtype for col, dtype in col_types.items() if col in data.columns}
     return data.astype(valid_types)
 
 
@@ -391,12 +380,8 @@ def get_neighbors_special_agent_data(
 
     # Extract points, speeds, and ids
     points = at_frame[["x", "y"]].to_numpy()
-    point_agent = df[(df["frame"] == frame) & (df["id"] == agent)][
-        ["x", "y"]
-    ].to_numpy()
-    point_agent_future = df[(df["frame"] == frame + 50) & (df["id"] == agent)][
-        ["x", "y"]
-    ].to_numpy()
+    point_agent = df[(df["frame"] == frame) & (df["id"] == agent)][["x", "y"]].to_numpy()
+    point_agent_future = df[(df["frame"] == frame + 50) & (df["id"] == agent)][["x", "y"]].to_numpy()
 
     Ids = at_frame["id"].to_numpy()
     neighbor_type = ["next", "prev"]
@@ -412,12 +397,8 @@ def get_neighbors_special_agent_data(
         return np.array([]), np.array([]), 0, np.array([]), []
 
     if frame == first_frame:
-        distance_now = (neighbors[0][0] - point_agent[0][0]) ** 2 + (
-            neighbors[0][1] - point_agent[0][1]
-        ) ** 2
-        distance_future = (neighbors[0][0] - point_agent_future[0][0]) ** 2 + (
-            neighbors[0][1] - point_agent_future[0][1]
-        ) ** 2
+        distance_now = (neighbors[0][0] - point_agent[0][0]) ** 2 + (neighbors[0][1] - point_agent[0][1]) ** 2
+        distance_future = (neighbors[0][0] - point_agent_future[0][0]) ** 2 + (neighbors[0][1] - point_agent_future[0][1]) ** 2
 
         if distance_future > distance_now:
             # neighbors = neighbors[::-1]
@@ -437,9 +418,13 @@ def get_neighbors_special_agent_data(
 
 def save_changes(selected_file: str, data: pd.DataFrame) -> None:
     """Save changes to file."""
-    directory = Path("enhanced_" + selected_file.split("/")[0])
+    path_parts = Path(selected_file).parts
+    original_directory = Path(*path_parts[:-1])
+    directory = Path(str(original_directory) + "_enhanced")
+    filename = Path(path_parts[-1])
+    st.info(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    newfile = f"enhanced_{selected_file}"
+    newfile = directory / filename
     st.warning(newfile)
     rename_mapping = {
         "id": "ID",
@@ -493,16 +478,10 @@ def update_row(
     return data
 
 
-def handle_prev_next_neighbors(
-    data: pd.DataFrame, frame: int, next_: int, prev: int, ids: npt.NDArray[np.int_]
-) -> Tuple[npt.NDArray[Any], List[int], List[str], int, int]:
+def handle_prev_next_neighbors(data: pd.DataFrame, frame: int, next_: int, prev: int, ids: npt.NDArray[np.int_]) -> Tuple[npt.NDArray[Any], List[int], List[str], int, int]:
     """Handle neighborhood since some data are not circular."""
-    pos_next = data.loc[
-        (data["frame"] == frame) & (data["id"] == next_), ["x", "y"]
-    ].values
-    pos_prev = data.loc[
-        (data["frame"] == frame) & (data["id"] == prev), ["x", "y"]
-    ].values
+    pos_next = data.loc[(data["frame"] == frame) & (data["id"] == next_), ["x", "y"]].values
+    pos_prev = data.loc[(data["frame"] == frame) & (data["id"] == prev), ["x", "y"]].values
     if pos_next.any():
         pos_next = pos_next[0]
 
@@ -646,13 +625,9 @@ def plot_neighbors_analysis(
     is_prev_in_df = "prev" in data.columns
     is_next_in_df = "next" in data.columns
 
-    prev0, next0, data = initialise_prev_next(
-        is_prev_in_df, is_next_in_df, data, agent, frames
-    )
+    prev0, next0, data = initialise_prev_next(is_prev_in_df, is_next_in_df, data, agent, frames)
     frame, next_, prev = handle_user_input(n0, n1, n3, frames, prev0, next0)
-    neighbors, neighbors_ids, neighbor_type, next_, prev = handle_prev_next_neighbors(
-        data, frame, next_, prev, ids
-    )
+    neighbors, neighbors_ids, neighbor_type, next_, prev = handle_prev_next_neighbors(data, frame, next_, prev, ids)
 
     fig = pl.plot_agent_and_neighbors(
         agent,
@@ -745,9 +720,7 @@ def decrement_page_start(page_size: int) -> None:
     st.session_state.page_start -= page_size
 
 
-def project_position_to_path(
-    position: npt.NDArray[np.float64], path: Polygon
-) -> Tuple[np.int_, np.float64]:
+def project_position_to_path(position: npt.NDArray[np.float64], path: Polygon) -> Tuple[np.int_, np.float64]:
     """Project a position onto the path by finding the point with the minimum Δx and Δy differences."""
     delta_sum = [np.linalg.norm(position - p) for p in path]
     closest_point_index = np.argmin(delta_sum)
@@ -756,12 +729,7 @@ def project_position_to_path(
 
 def precompute_path_distances(path: Polygon) -> npt.NDArray[np.float64]:
     """Eucleadian distance."""
-    return np.array(
-        [
-            np.linalg.norm(np.array(path[i]) - np.array(path[i + 1]))
-            for i in range(len(path) - 1)
-        ]
-    )
+    return np.array([np.linalg.norm(np.array(path[i]) - np.array(path[i + 1])) for i in range(len(path) - 1)])
 
 
 def sum_distances_between_agents_on_path(
@@ -780,9 +748,7 @@ def sum_distances_between_agents_on_path(
     if index1 > index2:
         index1, index2 = index2, index1
     direct_distance_sum = np.sum(path_distances[index1:index2])
-    loop_around_distance_sum = np.sum(path_distances[index2:]) + np.sum(
-        path_distances[:index1]
-    )
+    loop_around_distance_sum = np.sum(path_distances[index2:]) + np.sum(path_distances[:index1])
     # Choose the shorter distance
     distance_sum = min(direct_distance_sum, loop_around_distance_sum)
     return distance_sum, p1, p2
