@@ -29,9 +29,9 @@ from utils.helper import (
 )
 
 _, _, middle_path = generate_parcour()
-print(f"middle_path {len(middle_path)}")
+# print(f"middle_path {len(middle_path)}")
 path_distances = precompute_path_distances(middle_path)
-print(f"distances {len(path_distances)}")
+# print(f"distances {len(path_distances)}")
 
 
 @dataclass
@@ -87,7 +87,8 @@ def filter_frames(data: pd.DataFrame, nagents: int) -> pd.DataFrame:
 
 def calculate_circular_distance_and_gender_pal(data: pd.DataFrame) -> pd.DataFrame:
     """
-    Calculate the distance to the nearest neighbors based on preprocessed neighbor information,
+    Calculate the distance to the nearest neighbors based on preprocessed neighbor information.
+
     considering the spatial arrangement, and include the gender of these neighbors.
 
     This function is designed for pal experiments, since in these experiments
@@ -102,7 +103,6 @@ def calculate_circular_distance_and_gender_pal(data: pd.DataFrame) -> pd.DataFra
     """
     # Ensure DataFrame is sorted by frame
     data = data.sort_values(by="frame")
-
     # Group data by id
     grouped_data = data.groupby("id")
 
@@ -346,7 +346,8 @@ def calculate_proximity_analysis(
     country: str, filename: str, data: pd.DataFrame, fps: int = 25
 ) -> List[Dict[str, Any]]:
     """
-    Performs proximity analysis on given data of agents.
+    Perform proximity analysis on given data of agents.
+
     Filtering by frames and categorizing
     by gender proximity for each agent within the selected frames.
 
@@ -366,7 +367,10 @@ def calculate_proximity_analysis(
         'gender_of_next_neighbor', 'gender_of_prev_neighbor', 'distance_to_next_neighbor',
         and 'distance_to_prev_neighbor' columns.
     """
-    if country != "pal":
+
+    pp = Path(filename).parts
+    country_short = Path(pp[-2]).name
+    if country_short != "pal":
         method = "arc"
         if method == "merge":
             processed_data = compute_distance_merge(data)
@@ -384,7 +388,11 @@ def calculate_proximity_analysis(
         fps = 1
 
     proximity_analysis_res = []
-    # print(processed_data)
+    if processed_data.empty:
+        print("========")
+        print(filename)
+        print(processed_data)
+        print("========")
     frames_to_include = set(range(0, processed_data["frame"].max(), fps))
 
     # Filter the DataFrame to only include the desired frames
@@ -392,6 +400,8 @@ def calculate_proximity_analysis(
 
     # Now iterate over the filtered DataFrame
     name = init_gender_code(filename)
+    pp = Path(filename).parts
+    country_file = Path(pp[-2]) / Path(pp[-1]).name
     for i, row in filtered_data.iterrows():
         # for i, row in processed_data.iterrows():
         # Check proximity with the next neighbor
@@ -419,7 +429,7 @@ def calculate_proximity_analysis(
         proximity_analysis_res.append(
             {
                 "country": country,
-                "file": filename,
+                "file": country_file,
                 "type": name,
                 "id": row["id"],
                 "frame": row["frame"],
@@ -448,11 +458,12 @@ def prepare_data(
 
 def calculate_with_joblib(init_data: InitData) -> pd.DataFrame:
     """Run calculations with in parallel."""
-
     tasks = []
     for country in init_data.countries:
-        print(f"prepare tasks: {country}")
-        for filename in init_data.files[country]:
+        key = Path(country).name
+        print(f"prepare tasks: {country} with {key}")
+
+        for filename in init_data.files[key]:
             tasks.append(prepare_data(country, filename, init_data.fps))
 
     # Define a function to be executed in parallel
@@ -495,7 +506,8 @@ def init() -> InitData:
     ]
     files = {}
     for country in countries:
-        files[country] = [str(path) for path in Path(country).glob("*.csv")]
+        key = Path(country).name
+        files[key] = [str(path) for path in Path(country).glob("*.csv")]
 
     return InitData(countries=countries, files=files, result_csv=result_csv, fps=fps)
 
