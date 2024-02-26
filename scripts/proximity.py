@@ -20,13 +20,9 @@ if parent_dir not in sys.path:
     print(parent_dir)
     sys.path.append(parent_dir)
 
-from utils.helper import (
-    calculate_fps,
-    generate_parcour,
-    precompute_path_distances,
-    set_column_types,
-    sum_distances_between_agents_on_path,
-)
+from utils.helper import (calculate_fps, generate_parcour,
+                          precompute_path_distances, set_column_types,
+                          sum_distances_between_agents_on_path)
 
 _, _, middle_path = generate_parcour()
 print(f"middle_path {len(middle_path)}")
