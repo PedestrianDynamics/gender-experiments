@@ -29,7 +29,5 @@ run_tool ruff "check"
 # Sort imports
 run_tool isort "check"
 
-# The uncompromising code formatter
-run_tool black ""
 
 echo "All checks and formatting done."
