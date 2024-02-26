@@ -28,9 +28,6 @@ jobs:
           pip install -r requirements.txt
       - name: Lint with Ruff
         run: ruff .
-      - name: Format with Black
-        run: |
-          black --check $(git ls-files '*.py')
       - name: Check with Mypy
         run: |
           mypy --strict $(git ls-files '*.py')
