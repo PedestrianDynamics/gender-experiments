@@ -73,6 +73,9 @@ def download_csv(url: str, destination: Union[str, Path]) -> None:
     # Total size in bytes.
     total_size = int(response.headers.get("content-length", 0))
     logging.info(f"Got <{total_size}>.")
+    if total_size == 0:
+        st.error(f"Could not download file from {url}.")
+        st.stop()
 
     block_size = 1024  # 1 Kbyte
     progress_bar = st.progress(0)
