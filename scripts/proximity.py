@@ -428,7 +428,7 @@ def calculate_proximity_analysis(
 
         proximity_analysis_res.append(
             {
-                "country": country,
+                "country": country_short,
                 "file": country_file,
                 "type": name,
                 "id": row["id"],

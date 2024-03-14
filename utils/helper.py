@@ -1,5 +1,6 @@
 """Collection of some helpful functions."""
 
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -14,7 +15,6 @@ import requests  # type: ignore
 import streamlit as st
 from plotly.graph_objs import Figure
 from shapely.geometry import Polygon
-
 from visualization import plots as pl
 
 Point: TypeAlias = Tuple[float, float]
@@ -69,9 +69,11 @@ def download_csv(url: str, destination: Union[str, Path]) -> None:
     """
     # Send a GET request
     response = requests.get(url, stream=True)
-
+    logging.info(f"requesting from {url}...")
     # Total size in bytes.
     total_size = int(response.headers.get("content-length", 0))
+    logging.info(f"Got <{total_size}>.")
+
     block_size = 1024  # 1 Kbyte
     progress_bar = st.progress(0)
     progress_status = st.empty()
