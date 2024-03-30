@@ -48,5 +48,5 @@ if __name__ == "__main__":
             )
             st.code("streamlit run app.py")
 
-        if is_running_locally():
-            run_proximity_script()
+        # if is_running_locally():
+        #     run_proximity_script()

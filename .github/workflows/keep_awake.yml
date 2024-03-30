@@ -2,7 +2,7 @@ name: Schedule New Commit
 
 on:
   schedule:
-    - cron:  '0 0 * * *'  # Runs at midnight UTC every day
+    - cron:  '0 6 * * 1' # Runs at 6:00 AM every Monday
 
 jobs:
   commit-and-push:
