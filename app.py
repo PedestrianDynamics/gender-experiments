@@ -1,11 +1,12 @@
 """Main entry point to the app."""
 
 from pathlib import Path
-import logging
+
 import streamlit as st
 from utils.logger_config import setup_logging
 from analysis.fundamental_diagram import run_tab2
-from analysis.proximity_analysis import run_proximity_script, run_tab3
+
+# from analysis.proximity_analysis import run_proximity_script, run_tab3
 from data.datafactory import init_session_state
 from utils.helper import get_numbers_country, is_running_locally, sorting_key
 from utils.ui import init_app_looks, init_page_config, init_sidebar
