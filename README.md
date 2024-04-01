@@ -64,7 +64,12 @@ streamlit run app.py
 
 ## ACKNOWLEDGMENT
 
-Acknowledgments are greatly appreciated. 
-Feel free to include a sentence in the README.md file to acknowledge any individuals or entities you wish to recognize, and consider mentioning a project number, especially if funding is involved.
+We thank all the colleagues who helped with the organization of the experiments and extraction of the trajectories, as well as the curation of the data. Special thanks go to Alica Kandler for the curation and data quality of the German data, Reza Shahbad for managing the logistics of the experiments conducted in Australia, and Maziar Yazdani for the curation of the Australian data and Shi Dongdong (experiments in China).
 
+Claudio Feliciani and Xiaolu Jia express their gratitude for the funding received through the JST-Mirai Program grant numbers JPMJMI20D1 and the JSPS KAKENHI grant numbers JP20K14992, JP23K13521, and JP21K14377. They also appreciate the support from www.jikken-baito.com and the Meguro Senior Employment Center in recruiting participants.
 
+Milad Haghani acknowledges the support from the Australian Research Council, with grant number DE210100440.
+
+Jian Ma acknowledges funding provided by the National Natural Science Foundation of China (Nos. 72104205) and the National Key Research and Development Program of China (No. 2022YFC3005205).
+
+The German experiment, detailed at \url{https://doi.org/10.34735/ped.2021.2}, was part of an experimental series for the CroMa and CrowdDNA projects. These experiments took place at the Mitsubishi Electric Halle in Düsseldorf, Germany, in 2021.
