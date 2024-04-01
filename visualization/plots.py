@@ -10,7 +10,7 @@ import streamlit as st
 from plotly.subplots import make_subplots
 from scipy import spatial
 from shapely import Polygon
-
+import matplotlib.pyplot as plt
 import utils.helper as hp
 
 st_column: TypeAlias = st.delta_generator.DeltaGenerator
@@ -157,9 +157,54 @@ def plot_trajectories(
     return fig
 
 
-def plot_time_series(
-    data: pd.DataFrame, speed: pd.DataFrame, fps: int, key_density: str
-) -> go.Figure:
+def plot_trajectories_matplotlib(data: pd.DataFrame, framerate: int, exterior: Polygon, interior: Polygon, figname: str, plot_parcour) -> plt.Figure:
+    """Plot trajectories using Matplotlib."""
+    fig, ax = plt.subplots(figsize=(5, 5))
+
+    gender_map = {1: "Female", 2: "Male"}  # , 0: "N", -1: "E"}
+    gender_colors = {
+        1: "blue",  # Assuming 1 is for female
+        2: "green",  # Assuming 2 is for male
+        0: "black",  # non binary
+        -1: "yellow",
+    }
+
+    # Plot exterior and interior polygons
+    custom_lines = [plt.Line2D([0], [0], color=color, lw=4) for color in gender_colors.values()]
+    if plot_parcour:
+        x_exterior, y_exterior = Polygon(exterior).exterior.xy
+        x_interior, y_interior = Polygon(interior).exterior.xy
+        ax.plot(x_exterior, y_exterior, color="black", label="Exterior")
+        ax.plot(x_interior, y_interior, color="black", label="Interior")
+        ax.legend(custom_lines, [f"{desc}" for gender, desc in gender_map.items()], loc="upper center", bbox_to_anchor=(0.5, 1.130), ncol=2)
+    else:
+        ax.legend(custom_lines, [f"{desc}" for gender, desc in gender_map.items()], loc="upper center", bbox_to_anchor=(0.5, 1.5), ncol=2)
+    ax.set_xlabel(r"$x\; /\;m$", fontsize=16)
+    ax.set_ylabel(r"$y\; /\;m$", fontsize=16)
+    ax.set_aspect("equal", "box")
+
+    # Plot each unique ID's trajectory
+    for uid, group_df in data.groupby("id"):
+        color_choice = gender_colors[group_df["gender"].iloc[0]]
+        gender = gender_map[group_df["gender"].iloc[0]]
+        ax.plot(group_df["x"][::framerate], group_df["y"][::framerate], lw=0.09, alpha=0.4, color=color_choice, label=f"ID {uid}, {gender}")
+
+    # Customize plot
+    # ax.set_xlabel("X")
+    # ax.set_ylabel("Y")
+    ax.set_aspect("equal", "box")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.axis("off")
+
+    # Create custom legends for gender colors
+
+    plt.savefig(figname, bbox_inches="tight", pad_inches=0.0)
+    plt.tight_layout()
+    return fig
+
+
+def plot_time_series(data: pd.DataFrame, speed: pd.DataFrame, fps: int, key_density: str) -> go.Figure:
     """Plot time series of density and frame side by side."""
     density = data[key_density]
     fig = make_subplots(
@@ -211,9 +256,7 @@ def plot_time_series(
     return fig
 
 
-def plot_fundamental_diagram(
-    country: str, density: pd.DataFrame, speed: pd.DataFrame
-) -> go.Figure:
+def plot_fundamental_diagram(country: str, density: pd.DataFrame, speed: pd.DataFrame) -> go.Figure:
     """Plot FD density vs speed."""
     fig = go.Figure()
 
@@ -320,9 +363,7 @@ def plot_agent_and_neighbors(
         y_agent = agent_data.iloc[0]["y"]
 
         for i, (x, y, ni, nt) in enumerate(zip(X0, Y0, neighbors_ids, neighbor_type)):
-            dists.append(
-                np.linalg.norm(np.array([x_agent, y_agent]) - np.array([x, y]))
-            )
+            dists.append(np.linalg.norm(np.array([x_agent, y_agent]) - np.array([x, y])))
             d, p1, p2 = hp.sum_distances_between_agents_on_path(
                 np.array([x_agent, y_agent]),
                 np.array([x, y]),
