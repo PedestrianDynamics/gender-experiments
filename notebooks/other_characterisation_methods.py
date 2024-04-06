@@ -70,13 +70,15 @@ def calculate_data_frame_pair_dist(
         if N_ids > 1:
             x_values = frame_df[X_COL].values
             y_values = frame_df[Y_COL].values
+            #x_values =   np.zeros_like(x_values)
+            y_values =   np.zeros_like(x_values)
             coordinates = np.stack((x_values, y_values), axis=-1)
             # Calculate pairwise distances for the current frame using cdist
-            frame_distances = cdist(coordinates, coordinates, metric="euclidean")
+            frame_distances = cdist(coordinates, coordinates, metric="cityblock")#euclidean
 
             # Extract the upper triangle without the diagonal
             distances_upper_triangle = frame_distances[np.triu_indices_from(frame_distances, k=1)]
 
             distances_list.extend(distances_upper_triangle)
-
+    #print(np.array(distances_list))
     return np.array(distances_list)

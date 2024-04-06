@@ -335,7 +335,7 @@ def calculate_fps(data: pd.DataFrame) -> int:
     return int(round(1 / mean_diff))
 
 
-def load_file(file: str) -> pedpy.TrajectoryData:
+def load_file(file: str, sep: str = ",") -> pedpy.TrajectoryData:
     """Loads and processes a file to create a TrajectoryData object.
 
     This function reads a CSV file into a pandas DataFrame, renames columns according
@@ -358,7 +358,7 @@ def load_file(file: str) -> pedpy.TrajectoryData:
       the data DataFrame and the frame rate (fps) for initialization.
     """
 
-    data = pd.read_csv(file)
+    data = pd.read_csv(file, sep=sep)
     rename_columns(data, st.session_state.config.rename_mapping)
     set_column_types(data, st.session_state.config.column_types)
     fps = calculate_fps(data)
