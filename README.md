@@ -72,4 +72,4 @@ Milad Haghani acknowledges the support from the Australian Research Council, wit
 
 Jian Ma acknowledges funding provided by the National Natural Science Foundation of China (Nos. 72104205) and the National Key Research and Development Program of China (No. 2022YFC3005205).
 
-The German experiment, detailed at \url{https://doi.org/10.34735/ped.2021.2}, was part of an experimental series for the CroMa and CrowdDNA projects. These experiments took place at the Mitsubishi Electric Halle in Düsseldorf, Germany, in 2021.
+The German experiment, detailed at https://doi.org/10.34735/ped.2021.2, was part of an experimental series for the CroMa and CrowdDNA projects. These experiments took place at the Mitsubishi Electric Halle in Düsseldorf, Germany, in 2021.
