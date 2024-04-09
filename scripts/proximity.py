@@ -60,7 +60,7 @@ def load_file(file: str) -> pedpy.TrajectoryData:
     }
     data.rename(columns=rename_mapping, inplace=True)
     set_column_types(data, column_types)
-    print(data.columns)
+
     fps = calculate_fps(data)
     return pedpy.TrajectoryData(data=data, frame_rate=fps)
 
@@ -336,8 +336,8 @@ def calculate_proximity_analysis(country: str, filename: str, data: pd.DataFrame
 
     pp = Path(filename).parts
     country_short = Path(pp[-2]).name
-    if False or country_short != "pal":
-        method = "arc"
+    if country_short != "pal":
+        method = "vect"
         if method == "merge":
             processed_data = compute_distance_merge(data)
         elif method == "vect":
@@ -460,11 +460,11 @@ def init() -> InitData:
     print(f"Created directory {result_csv}")
     fps = 25  # For distance calculations, calculate every fps-frame
     countries = [
-        f"{parent_dir}/data/linear/aus",
+        # f"{parent_dir}/data/linear/aus",
         f"{parent_dir}/data/linear/ger",
         f"{parent_dir}/data/linear/jap",
         f"{parent_dir}/data/linear/chn",
-        f"{parent_dir}/data/linear/pal",
+        # f"{parent_dir}/data/linear/pal",
     ]
     files = {}
     for country in countries:
