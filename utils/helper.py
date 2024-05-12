@@ -263,13 +263,14 @@ def generate_parcour() -> Tuple[Polygon, Polygon, Polygon]:
     _, exterior = generate_oval_shape_points(
         num_points=100,
         radius=1.65 + 0.4,
+        length=2.3,
         start=(-1, -2),
         threshold=0.2,
     )
     _, interior = generate_oval_shape_points(
         num_points=50,
         radius=1.65 - 0.4,
-        length=2,
+        length=2.3,
         start=(-1, -1.2),
         threshold=0.2,
     )
