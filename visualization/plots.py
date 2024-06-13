@@ -198,7 +198,7 @@ def plot_trajectories_matplotlib(data: pd.DataFrame, framerate: int, exterior: P
     ax.axis("off")
 
     # Create custom legends for gender colors
-
+    print(figname)
     plt.savefig(figname, bbox_inches="tight", pad_inches=0.0)
     plt.tight_layout()
     return fig

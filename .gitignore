@@ -163,3 +163,7 @@ cython_debug/
 /app_data/
 /check.sh
 /experimenting.ipynb
+*.pdf
+.vscode
+*.json
+*env
