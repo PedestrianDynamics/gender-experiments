@@ -455,16 +455,16 @@ def init() -> InitData:
         InitData: A data class containing initialized data including countries, files dictionary, result CSV path, and FPS.
     """
     print("Enter Init")
-    result_csv = Path(f"{parent_dir}/app_data/proximity_analysis_results_linear.csv")
+    result_csv = Path(f"{parent_dir}/app_data/proximity_analysis_results.csv")
     result_csv.parent.mkdir(parents=True, exist_ok=True)
     print(f"Created directory {result_csv}")
     fps = 25  # For distance calculations, calculate every fps-frame
     countries = [
-        # f"{parent_dir}/data/linear/aus",
-        f"{parent_dir}/data/linear/ger",
-        f"{parent_dir}/data/linear/jap",
-        f"{parent_dir}/data/linear/chn",
-        # f"{parent_dir}/data/linear/pal",
+        f"{parent_dir}/data/aus",
+        f"{parent_dir}/data/ger",
+        f"{parent_dir}/data/jap",
+        f"{parent_dir}/data/chn",
+        f"{parent_dir}/data/pal",
     ]
     files = {}
     for country in countries:
