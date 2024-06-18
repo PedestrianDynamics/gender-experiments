@@ -16,6 +16,7 @@ import streamlit as st
 from plotly.graph_objs import Figure
 from shapely.geometry import Polygon
 from visualization import plots as pl
+import streamlit.components.v1 as components
 
 Point: TypeAlias = Tuple[float, float]
 st_column: TypeAlias = st.delta_generator.DeltaGenerator
@@ -713,7 +714,7 @@ def show_fig(fig: Figure, html: bool = False, height: int = 500) -> None:
     if not html:
         st.plotly_chart(fig)
     else:
-        st.components.v1.html(fig.to_html(include_mathjax="cdn"), height=height)  # type: ignore
+        components.html(fig.to_html(include_mathjax="cdn"), height=height)  # type: ignore
 
 
 def increment_page_start(page_size: int) -> None:
