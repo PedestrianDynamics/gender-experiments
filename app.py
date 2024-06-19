@@ -7,7 +7,7 @@ from utils.logger_config import setup_logging
 from analysis.fundamental_diagram import run_tab2
 
 # from analysis.proximity_analysis import run_proximity_script,
-from analysis.proximity_analysis import run_tab3
+from analysis.proximity_analysis import run_tab3, run_pair_distribution
 from data.datafactory import init_session_state
 from utils.helper import get_numbers_country, is_running_locally, sorting_key
 from utils.ui import init_app_looks, init_page_config, init_sidebar
@@ -40,15 +40,17 @@ if __name__ == "__main__":
         run_tab3(selected_file)
 
     with tab4:
-        st.info("Will be deleted soon!")
-        if not is_running_locally():
-            st.warning(
-                """
-                This calculation is disabled when running in a deployed environment.\n
-                You should run the app locally:
-                """
-            )
-            st.code("streamlit run app.py")
+        run_pair_distribution(selected_file)
 
-        # if is_running_locally():
-        #     run_proximity_script()
+    #     st.info("Will be deleted soon!")
+    #     if not is_running_locally():
+    #         st.warning(
+    #             """
+    #             This calculation is disabled when running in a deployed environment.\n
+    #             You should run the app locally:
+    #             """
+    #         )
+    #         st.code("streamlit run app.py")
+
+    # if is_running_locally():
+    #     run_proximity_script()

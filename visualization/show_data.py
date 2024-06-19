@@ -59,7 +59,7 @@ def run_tab1(msg: st_column, country: str, selected_file: str) -> None:
                 # st.info(figname)
                 fig = pl.plot_trajectories(data, framerate, uid, exterior, interior, plot_parcour)
                 fig_plt = pl.plot_trajectories_matplotlib(data, framerate, exterior, interior, figname=figname, plot_parcour=plot_parcour)
-                st.pyplot(fig_plt)
+                # st.pyplot(fig_plt)
                 st.plotly_chart(fig)
             # neighborhood
             if get_neighborhood and len(ids) > 2:
