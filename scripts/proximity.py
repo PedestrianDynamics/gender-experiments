@@ -89,10 +89,11 @@ def calculate_circular_distance_and_gender_pal(data: pd.DataFrame) -> pd.DataFra
     """
     Calculate the distance to the nearest neighbors based on preprocessed neighbor information.
 
-    considering the spatial arrangement, and include the gender of these neighbors.
+    This function is special for pal data, since these data are linear and
 
     This function is designed for pal experiments, since in these experiments
     agents enter and leave the experiment area, unlike the other experiments.
+    Agents may not have neighbors (id_neighbor == -1)
 
     Parameters:
     data (DataFrame): A pandas DataFrame containing the columns 'id', 'gender', 'x', and 'y'.
@@ -119,7 +120,10 @@ def calculate_circular_distance_and_gender_pal(data: pd.DataFrame) -> pd.DataFra
         mask = data["id"] == id_
         prev_id = group["prev"].iloc[0]
         next_id = group["next"].iloc[0]
+        # some agents do not have neighbors.
         if np.isnan(prev_id) or np.isnan(next_id):
+            continue
+        if prev_id == -1 or next_id == -1:
             continue
 
         frames_with_both_neighbors = set(group["frame"]).intersection(
@@ -337,6 +341,9 @@ def calculate_proximity_analysis(country: str, filename: str, data: pd.DataFrame
     pp = Path(filename).parts
     country_short = Path(pp[-2]).name
     if country_short != "pal":
+        print("WARNINNG in calculate_proximity_analysis(): method={method} is hard-coded")
+        # merge and vect are basically the same, just testing which implementation is faster
+        # arc uses a different calculation of distances based on arc.
         method = "vect"
         if method == "merge":
             processed_data = compute_distance_merge(data)
@@ -457,7 +464,7 @@ def init() -> InitData:
     print("Enter Init")
     result_csv = Path(f"{parent_dir}/app_data/proximity_analysis_results.csv")
     result_csv.parent.mkdir(parents=True, exist_ok=True)
-    print(f"Created directory {result_csv}")
+    print(f"Created file: {result_csv}")
     fps = 25  # For distance calculations, calculate every fps-frame
     countries = [
         f"{parent_dir}/data/aus",
