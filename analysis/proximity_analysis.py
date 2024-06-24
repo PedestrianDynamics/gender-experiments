@@ -310,9 +310,8 @@ def plot_category(file, min_hight_peaks=1, randomisation_stacking=1):
         fig.add_trace(go.Scatter(x=[r_peak, r_peak], y=[0, g_peak], mode="lines", line=dict(color="gray", dash="dash", width=1), opacity=0.5, showlegend=False))
 
     # Update layout
-
     fig.update_layout(xaxis_title=r"r / m", yaxis_title=r"g(r)", width=800, height=600)
-
+    fig.update_yaxes(range=[0, 5])
     st.info(f"First peak: {r_peaks[0]:.2f} m, Distance to second pick = {r_peaks[1] - r_peaks[0]:.2f} m")
     st.plotly_chart(fig)
 
