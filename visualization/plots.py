@@ -511,7 +511,7 @@ def plot_agent_and_neighbors(
                 showlegend=True,
             )
         )
-        if show_fake:
+        if show_fake and agent_fake:
             fig.add_trace(
                 go.Scatter(
                     x=[agent_fake[0]],
