@@ -341,10 +341,10 @@ def calculate_proximity_analysis(country: str, filename: str, data: pd.DataFrame
     pp = Path(filename).parts
     country_short = Path(pp[-2]).name
     if country_short != "pal":
-        print("WARNINNG in calculate_proximity_analysis(): method={method} is hard-coded")
+        # print(f"WARNINNG in calculate_proximity_analysis(): method={method} is hard-coded")
         # merge and vect are basically the same, just testing which implementation is faster
         # arc uses a different calculation of distances based on arc.
-        method = "vect"
+        method = "arc"
         if method == "merge":
             processed_data = compute_distance_merge(data)
         elif method == "vect":
@@ -462,7 +462,7 @@ def init() -> InitData:
         InitData: A data class containing initialized data including countries, files dictionary, result CSV path, and FPS.
     """
     print("Enter Init")
-    result_csv = Path(f"{parent_dir}/app_data/proximity_analysis_results.csv")
+    result_csv = Path(f"{parent_dir}/app_data/proximity_analysis_results_arc.csv")
     result_csv.parent.mkdir(parents=True, exist_ok=True)
     print(f"Created file: {result_csv}")
     fps = 25  # For distance calculations, calculate every fps-frame
