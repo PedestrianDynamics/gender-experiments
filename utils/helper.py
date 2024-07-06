@@ -714,7 +714,7 @@ def show_fig(fig: Figure, html: bool = False, height: int = 500) -> None:
     if not html:
         st.plotly_chart(fig)
     else:
-        components.html(fig.to_html(include_mathjax="cdn"), height=height)  # type: ignore
+        components.html(fig.to_html(include_mathjax="cdn"), height=height)
 
 
 def increment_page_start(page_size: int) -> None:
