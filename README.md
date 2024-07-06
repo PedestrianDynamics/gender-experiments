@@ -6,13 +6,12 @@
 
 
 ## Data
-
 Single-file movement experiments conducted under comparable conditions across five distinct countries:
-- Australia, 
-- China, 
-- Japan, 
-- Germany, 
-- Palestine. 
+- 🇦🇺 Australia
+- 🇨🇳 China
+- 🇯🇵 Japan, 
+- 🇩🇪 Germany, 
+- 🇵🇸 Palestine. 
 
 The primary variable altered in these experiments are density (number of people increased gradually) and the gender composition, which includes categories such as male-only, female-only, randomly mixed, and alternatively mixed runs. 
 
