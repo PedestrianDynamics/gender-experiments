@@ -1,47 +1,20 @@
 # Gender-experiments
 [![gender-experiments-world](https://github.com/PedestrianDynamics/gender-experiments/actions/workflows/code-quality.yml/badge.svg)](https://github.com/PedestrianDynamics/gender-experiments/actions/workflows/code-quality.yml)
 [![Open Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gender-experiments.streamlit.app/)
+[![DOI:10.34735/ped.2024.1](https://img.shields.io/badge/DOI-10.34735/ped.2024.1-B31B1B.svg)](https://doi.org/10.34735/ped.2024.1)
 
-The file naming convention is structured as follows:
+## Data
 
+Single-file movement experiments conducted under comparable conditions across five distinct countries:
+- Australia, 
+- China, 
+- Japan, 
+- Germany, 
+- Palestine. 
 
-```bash
-country/type_people_repetition
-```
+The primary variable altered in these experiments are density (number of people increased gradually) and the gender composition, which includes categories such as male-only, female-only, randomly mixed, and alternatively mixed runs. 
 
-Here's what each component represents:
-
-- `country`: This signifies the country code, which could be one of the following: aus, chn, ger, jap, pal.
-- `type`: Indicates the type of composition, focusing on the gender mix within the data. 
-   Options include 
-   - female, 
-   - male, 
-   - mix_random, and 
-   - mix_sorted.
-- `people`: Reflects the total number of individuals within the course, represented by the actual count.
-- `repetition`: This is a numerical value that signifies the repetition number for a particular condition.
-
-## CSV FILE FORMAT
-
-The files adhere to the following column structure:
-
-
-```bash
-ID,gender,frame,t(s),x(m),y(m)
-```
-
-The columns are defined as follows:
-
-| Field    | Description                              |
-|----------|------------------------------------------|
-| ID       | An identifier for each entry.           |
-| next     | id of next neighbor (-1 is no neighbor)                      |
-| prev     | id of previous neighbor (-1 is no neighbor)                  |
-| gender   | Denotes the gender of the individual. 1 = female, 2 = male   |
-| frame    | Represents the frame number in the data.                 |
-| t(s)     | Indicates the time in seconds.                          |
-| x(m)     | Specifies the X-coordinate in meters.                         |
-| y(m)     | Specifies the Y-coordinate in meters.                        |
+A more detailed description of the data can be found here [![DOI:10.34735/ped.2024.1](https://img.shields.io/badge/DOI-10.34735/ped.2024.1-B31B1B.svg)](https://doi.org/10.34735/ped.2024.1)
 
 
 
