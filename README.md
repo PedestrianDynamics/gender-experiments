@@ -2,6 +2,8 @@
 [![gender-experiments-world](https://github.com/PedestrianDynamics/gender-experiments/actions/workflows/code-quality.yml/badge.svg)](https://github.com/PedestrianDynamics/gender-experiments/actions/workflows/code-quality.yml)
 [![Open Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gender-experiments.streamlit.app/)
 [![DOI:10.34735/ped.2024.1](https://img.shields.io/badge/DOI-10.34735/ped.2024.1-B31B1B.svg)](https://doi.org/10.34735/ped.2024.1)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12675716.svg)](https://doi.org/10.5281/zenodo.12675716)
+
 
 ## Data
 
@@ -14,7 +16,7 @@ Single-file movement experiments conducted under comparable conditions across fi
 
 The primary variable altered in these experiments are density (number of people increased gradually) and the gender composition, which includes categories such as male-only, female-only, randomly mixed, and alternatively mixed runs. 
 
-A more detailed description of the data can be found here [![DOI:10.34735/ped.2024.1](https://img.shields.io/badge/DOI-10.34735/ped.2024.1-B31B1B.svg)](https://doi.org/10.34735/ped.2024.1)
+A more detailed description of the data can be found [here](https://doi.org/10.34735/ped.2024.1).
 
 
 
