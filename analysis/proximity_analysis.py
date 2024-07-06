@@ -287,7 +287,7 @@ def run_pair_distribution(file: str) -> None:
     plot_category(file)
 
 
-def plot_category(file, min_hight_peaks=1, randomisation_stacking=1):
+def plot_category(file: str, min_hight_peaks: int = 1, randomisation_stacking: int = 1) -> None:
     """
     Plot pair distribution function.
 

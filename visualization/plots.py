@@ -12,6 +12,8 @@ from scipy import spatial
 from shapely import Polygon
 import matplotlib.pyplot as plt
 import utils.helper as hp
+from matplotlib.lines import Line2D
+from matplotlib.figure import Figure
 
 st_column: TypeAlias = st.delta_generator.DeltaGenerator
 
@@ -157,7 +159,7 @@ def plot_trajectories(
     return fig
 
 
-def plot_trajectories_matplotlib(data: pd.DataFrame, framerate: int, exterior: Polygon, interior: Polygon, figname: str, plot_parcour) -> plt.Figure:
+def plot_trajectories_matplotlib(data: pd.DataFrame, framerate: int, exterior: Polygon, interior: Polygon, figname: str, plot_parcour: bool) -> Figure:
     """Plot trajectories using Matplotlib."""
     fig, ax = plt.subplots(figsize=(5, 5))
 
@@ -170,7 +172,7 @@ def plot_trajectories_matplotlib(data: pd.DataFrame, framerate: int, exterior: P
     }
 
     # Plot exterior and interior polygons
-    custom_lines = [plt.Line2D([0], [0], color=color, lw=4) for color in gender_colors.values()]
+    custom_lines = [Line2D([0], [0], color=color, lw=4) for color in gender_colors.values()]
     if plot_parcour:
         x_exterior, y_exterior = Polygon(exterior).exterior.xy
         x_interior, y_interior = Polygon(interior).exterior.xy
