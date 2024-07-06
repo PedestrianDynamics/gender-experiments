@@ -27,7 +27,7 @@ jobs:
           pip install black mypy ruff
           pip install -r requirements.txt
       - name: Lint with Ruff
-        run: ruff .
+        run: ruff check .
       - name: Check with Mypy
         run: |
           mypy --strict $(git ls-files '*.py')
