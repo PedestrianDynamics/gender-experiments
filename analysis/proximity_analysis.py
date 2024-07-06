@@ -7,7 +7,6 @@ import subprocess
 import time
 from pathlib import Path
 from typing import Tuple
-import pedpy
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -15,7 +14,6 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 from scipy import stats
-import matplotlib.pyplot as plt
 import utils.helper as hp
 import visualization.plots as pl
 from scipy.signal import find_peaks
@@ -285,14 +283,16 @@ def box_plots(proximity_melted: pd.DataFrame) -> None:
 
 
 def run_pair_distribution(file: str) -> None:
+    """Call plot_category function."""
     plot_category(file)
 
 
 def plot_category(file, min_hight_peaks=1, randomisation_stacking=1):
     """
-    Plots a figure for one category across all countries focusing on minimum or maximum values.
-    """
+    Plot pair distribution function.
 
+    per category across all countries. focusing on minimum or maximum values.
+    """
     # fig, ax = plt.subplots(figsize=(5, 5))
     trajectory_data = hp.load_file(file, sep=",")
     fig = go.Figure()
@@ -303,11 +303,11 @@ def plot_category(file, min_hight_peaks=1, randomisation_stacking=1):
     peak_heights = pair_distribution[peaks]
 
     # Add scatter plot for r_peaks and pair_distribution[peaks]
-    fig.add_trace(go.Scatter(x=r_peaks, y=pair_distribution[peaks], mode="markers", marker=dict(color="gray"), name="Peaks"))
-    fig.add_trace(go.Scatter(x=radius_bins, y=pair_distribution, mode="lines", line=dict(color="gray", width=1.3), name="g(r)"))
+    fig.add_trace(go.Scatter(x=r_peaks, y=pair_distribution[peaks], mode="markers", marker={"color": "gray"}, name="Peaks"))
+    fig.add_trace(go.Scatter(x=radius_bins, y=pair_distribution, mode="lines", line={"color": "gray", "width": 1.3}, name="g(r)"))
     # Add lines from each peak to the x-axis
     for i, (r_peak, g_peak) in enumerate(zip(r_peaks, peak_heights)):
-        fig.add_trace(go.Scatter(x=[r_peak, r_peak], y=[0, g_peak], mode="lines", line=dict(color="gray", dash="dash", width=1), opacity=0.5, showlegend=False))
+        fig.add_trace(go.Scatter(x=[r_peak, r_peak], y=[0, g_peak], mode="lines", line={"color": "gray", "dash": "dash", "width": 1}, opacity=0.5, showlegend=False))
 
     # Update layout
     fig.update_layout(xaxis_title=r"r / m", yaxis_title=r"g(r)", width=800, height=600)

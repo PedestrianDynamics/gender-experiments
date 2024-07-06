@@ -9,7 +9,7 @@ from analysis.fundamental_diagram import run_tab2
 # from analysis.proximity_analysis import run_proximity_script,
 from analysis.proximity_analysis import run_tab3, run_pair_distribution
 from data.datafactory import init_session_state
-from utils.helper import get_numbers_country, is_running_locally, sorting_key
+from utils.helper import get_numbers_country, sorting_key
 from utils.ui import init_app_looks, init_page_config, init_sidebar
 from visualization.show_data import run_tab1
 
@@ -41,16 +41,3 @@ if __name__ == "__main__":
 
     with tab4:
         run_pair_distribution(selected_file)
-
-    #     st.info("Will be deleted soon!")
-    #     if not is_running_locally():
-    #         st.warning(
-    #             """
-    #             This calculation is disabled when running in a deployed environment.\n
-    #             You should run the app locally:
-    #             """
-    #         )
-    #         st.code("streamlit run app.py")
-
-    # if is_running_locally():
-    #     run_proximity_script()
