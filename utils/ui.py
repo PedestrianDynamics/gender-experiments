@@ -28,14 +28,18 @@ def init_app_looks() -> None:
     ROOT_DIR = current_file_path.parent.parent.absolute()
     logo_path = ROOT_DIR / "images" / "logo.png"
     gh = "https://badgen.net/badge/icon/GitHub?icon=github&label"
+    zenodo_badge = "[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12675716.svg)](https://doi.org/10.5281/zenodo.12675716)"
+    data_badge = "[![DOI:10.34735/ped.2024.1](https://img.shields.io/badge/DOI-10.34735/ped.2024.1-B31B1B.svg)](https://doi.org/10.34735/ped.2024.1)"
+
     repo = "https://github.com/PedestrianDynamics/gender-experiments"
     repo_name = f"[![Repo]({gh})]({repo})"
-    c1, c2 = st.sidebar.columns((1.2, 0.5))
+    c1, c2 = st.sidebar.columns((0.25, 0.8))
+    c1.write("**Code**")
+    c2.write(zenodo_badge)
+    c1.write("**Data**")
+    c2.write(data_badge)
+    c1.write("**Repository**")
     c2.markdown(repo_name, unsafe_allow_html=True)
-    # TODO: update till after the release
-    # c1.write(
-    #     "[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7697604.svg)](https://doi.org/10.5281/zenodo.7697604)"
-    # )
     st.sidebar.image(str(logo_path), use_column_width=True)
 
 
