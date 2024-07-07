@@ -37,11 +37,11 @@ def run_proximity_script() -> None:
 def prepare_loaded_data(do_analysis: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Download or read csv file with rtresults and populated dataframes."""
     if do_analysis == "load_gender_analysis_(Euklidean)":
-        result_csv = st.session_state.config.proximity_results0["path"]
-        csv_url = st.session_state.config.proximity_results0["url"]
+        result_csv = st.session_state.config.proximity_results_euc["path"]
+        csv_url = st.session_state.config.proximity_results_euc["url"]
     else:
-        result_csv = st.session_state.config.proximity_results["path"]
-        csv_url = st.session_state.config.proximity_results["url"]
+        result_csv = st.session_state.config.proximity_results_arc["path"]
+        csv_url = st.session_state.config.proximity_results_arc["url"]
 
     msg = st.empty()
 

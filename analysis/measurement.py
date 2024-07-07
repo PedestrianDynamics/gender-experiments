@@ -125,19 +125,13 @@ def calculate_instantaneous_density_per_frame(data: DataFrame, fps: int) -> Data
         #        print(num_pedestrians)
         #        print(total_union_area)
         #        print("---")
-        instantaneous_density = (
-            num_pedestrians / total_union_area if total_union_area else 0
-        )
-        density_results.append(
-            {"frame": frame, "instantaneous_density": instantaneous_density}
-        )
+        instantaneous_density = num_pedestrians / total_union_area if total_union_area else 0
+        density_results.append({"frame": frame, "instantaneous_density": instantaneous_density})
 
     return pd.DataFrame(density_results)
 
 
-def calculate_steady_state(
-    data: pd.DataFrame, window_size: float, threshold: float, diff_const: float
-) -> int:
+def calculate_steady_state(data: pd.DataFrame, window_size: float, threshold: float, diff_const: float) -> int:
     """Calculate the rate of change (first derivative)."""
     # data = data.fillna(method="ffill") # depcretated
     data.ffill()
@@ -150,9 +144,7 @@ def calculate_steady_state(
     return int(rolling_variance[rolling_variance < threshold].first_valid_index())
 
 
-def density_speed_time_series_micro(
-    country: str, filename: str, dv: int, diff_const: int
-) -> None:
+def density_speed_time_series_micro(country: str, filename: str, dv: int, diff_const: int) -> None:
     """Calculate the individual density (Voronoi 1D) and show it."""
     msg = st.empty()
     trajectory_data = hp.load_file(filename)
@@ -161,17 +153,15 @@ def density_speed_time_series_micro(
     xmax = trajectory_data.data["x"].max() + eps
     ymin = trajectory_data.data["y"].min() - eps
     ymax = trajectory_data.data["y"].max() + eps
-    measurement_area = pp.MeasurementArea(
-        Polygon([[xmin, ymin], [xmin, ymax], [xmax, ymax], [xmax, ymin]])
-    )
-    result_csv = st.session_state.config.proximity_results["path"]
+    measurement_area = pp.MeasurementArea(Polygon([[xmin, ymin], [xmin, ymax], [xmax, ymax], [xmax, ymin]]))
+    result_csv = st.session_state.config.proximity_results_euc["path"]
 
     if not result_csv.exists():
         msg.warning(f"{result_csv} does not exist yet!")
         with st.status(f"Downloading {result_csv}...", expanded=True):
             hp.download_csv(
-                st.session_state.config.proximity_results["url"],
-                st.session_state.config.proximity_results["path"],
+                st.session_state.config.proximity_results_euc["url"],
+                st.session_state.config.proximity_results_euc["path"],
             )
 
     if result_csv.exists():
@@ -199,16 +189,12 @@ def density_speed_time_series_micro(
             measurement_area=measurement_area,
         )
         msg.info("calculate speed steady state")
-        steady_state_index = calculate_steady_state(
-            mean_speed, window_size=5, threshold=0.1, diff_const=diff_const
-        )
+        steady_state_index = calculate_steady_state(mean_speed, window_size=5, threshold=0.1, diff_const=diff_const)
         mean_speed = mean_speed.iloc[steady_state_index:-steady_state_index]
 
         end_time = time.time()
         elapsed_time = end_time - start_time
-        msg.info(
-            f"Time taken to calculate speed and density micro: {elapsed_time:.2f} seconds"
-        )
+        msg.info(f"Time taken to calculate speed and density micro: {elapsed_time:.2f} seconds")
         fig = pl.plot_time_series(
             density,
             mean_speed,

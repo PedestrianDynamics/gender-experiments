@@ -18,25 +18,25 @@ class DataConfig:
     column_types: Dict[str, Any]  # actually its a type
     countries: List[str]
     # Arc distance
-    proximity_results: Dict[str, Any] = field(default_factory=dict)
+    proximity_results_arc: Dict[str, Any] = field(default_factory=dict)
     # Euklidean distance
-    proximity_results0: Dict[str, Any] = field(default_factory=dict)
+    proximity_results_euc: Dict[str, Any] = field(default_factory=dict)
 
     files: Dict[str, List[str]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         """Initialize the DataConfig instance by retrieving files for each country."""
         # direct distance results
-        self.proximity_results0["path"] = Path(
-            "app_data/proximity_analysis_results0.csv"
-        )
-        self.proximity_results0["url"] = "https://go.fzj.de/proximity_results0"
-
-        self.proximity_results["path"] = Path("app_data/proximity_analysis_results.csv")
-        self.proximity_results["url"] = "https://go.fzj.de/proximity_results"
+        # Euc
+        self.proximity_results_euc["path"] = Path("app_data/proximity_analysis_results_euc.csv")
+        self.proximity_results_euc["url"] = "https://go.fzj.de/proximity_results_euc"
+        # Arc
+        self.proximity_results_arc["path"] = Path("app_data/proximity_analysis_results_arc.csv")
+        self.proximity_results_arc["url"] = "https://go.fzj.de/proximity_results_arc"
 
         # Ensure the directory exists
-        self.proximity_results["path"].parent.mkdir(parents=True, exist_ok=True)
+        self.proximity_results_euc["path"].parent.mkdir(parents=True, exist_ok=True)
+        self.proximity_results_arc["path"].parent.mkdir(parents=True, exist_ok=True)
         self.retrieve_files()
 
     def retrieve_files(self) -> None:

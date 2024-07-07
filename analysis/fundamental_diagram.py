@@ -17,14 +17,14 @@ import streamlit as st
 import utils.helper as hp
 import visualization.plots as pl
 from analysis.measurement import (  # calculate_speed,
-    calculate_individual_density_csv, calculate_steady_state,
-    density_speed_time_series_micro)
+    calculate_individual_density_csv,
+    calculate_steady_state,
+    density_speed_time_series_micro,
+)
 from utils.docs import density_speed_documentation
 
 
-def fundamental_diagram_all_countries(
-    method: str, df: pd.DataFrame, dv: int, diff_const: int
-) -> go.Figure:
+def fundamental_diagram_all_countries(method: str, df: pd.DataFrame, dv: int, diff_const: int) -> go.Figure:
     """Calculate the functamental diagram with a specific dist calculation.
 
     df contains the content of the csv file with the distance calculations.
@@ -44,15 +44,11 @@ def fundamental_diagram_all_countries(
         options=st.session_state.config.countries,
         default=st.session_state.config.countries,
     )
-    filtered_country_data = {
-        country: all_data[country] for country in selected_countries
-    }
+    filtered_country_data = {country: all_data[country] for country in selected_countries}
     return pl.plot_fundamental_diagram_all(filtered_country_data)
 
 
-def fundamental_diagram_micro(
-    df: pd.DataFrame, country: str, dv: int, diff_const: int
-) -> pd.DataFrame:
+def fundamental_diagram_micro(df: pd.DataFrame, country: str, dv: int, diff_const: int) -> pd.DataFrame:
     """Calculate FD from results csv file."""
     all_merged_df = pd.DataFrame()
     msg = st.empty()
@@ -73,24 +69,16 @@ def fundamental_diagram_micro(
                     speed_calculation=pp.SpeedCalculation.BORDER_SINGLE_SIDED,
                 )
 
-                steady_state_index = calculate_steady_state(
-                    speed, window_size=5, threshold=0.1, diff_const=diff_const
-                )
-                speed_df = speed.loc[:, ["frame", "id", "speed"]].iloc[
-                    steady_state_index:
-                ]
+                steady_state_index = calculate_steady_state(speed, window_size=5, threshold=0.1, diff_const=diff_const)
+                speed_df = speed.loc[:, ["frame", "id", "speed"]].iloc[steady_state_index:]
 
                 # Data consistency check (example)
 
                 if not density.empty and not speed_df.empty:
                     merged_df = pd.merge(density, speed_df, on=["id", "frame"])
-                    all_merged_df = pd.concat(
-                        [all_merged_df, merged_df], ignore_index=True
-                    )
+                    all_merged_df = pd.concat([all_merged_df, merged_df], ignore_index=True)
                 else:
-                    msg.warning(
-                        f"Empty DataFrame encountered for {filename}. Skipping merge."
-                    )
+                    msg.warning(f"Empty DataFrame encountered for {filename}. Skipping merge.")
             except Exception as e:
                 msg.error(f"Error processing {filename}: {e}")
 
@@ -100,9 +88,7 @@ def fundamental_diagram_micro(
     return all_merged_df
 
 
-def load_or_calculate_fd(
-    method: str, df: pd.DataFrame, country: str, dv: int, diff_const: int
-) -> pd.DataFrame:
+def load_or_calculate_fd(method: str, df: pd.DataFrame, country: str, dv: int, diff_const: int) -> pd.DataFrame:
     """Load density calculation from file or calculate."""
     precalculated_file = f"app_data/density_micro_{method}_{country}.pkl"
     if not Path(precalculated_file).exists():
@@ -161,9 +147,7 @@ def run_tab2(country: str, selected_file: str) -> None:
                 help="To calculate the displacement over a specified number of frames. See Eq. (1)",
             )
         )
-        diff_const = int(
-            c2.slider("diff_const", 1, 500, 5, 1, help="window steady state")
-        )
+        diff_const = int(c2.slider("diff_const", 1, 500, 5, 1, help="window steady state"))
 
         if calculations == "time_series":
             density_speed_time_series_micro(country, selected_file, dv, diff_const)
@@ -171,14 +155,14 @@ def run_tab2(country: str, selected_file: str) -> None:
         if calculations == calculations == "FD":
             st.divider()
             paths = [
-                st.session_state.config.proximity_results["path"],
-                st.session_state.config.proximity_results0["path"],
+                st.session_state.config.proximity_results_euc["path"],
+                st.session_state.config.proximity_results_arc["path"],
             ]
             urls = [
-                st.session_state.config.proximity_results["url"],
-                st.session_state.config.proximity_results0["url"],
+                st.session_state.config.proximity_results_euc["url"],
+                st.session_state.config.proximity_results_arc["url"],
             ]
-            methods = ["Arc", "Euklidean"]
+            methods = ["Euklidean", "Arc"]
             for i, (result_csv, url) in enumerate(zip(paths, urls)):
                 if not result_csv.exists():
                     st.warning(f"{result_csv} does not exist yet!")
@@ -189,6 +173,5 @@ def run_tab2(country: str, selected_file: str) -> None:
                     st.info(f"Reading file {result_csv}")
                     df = pd.read_csv(result_csv)
 
-                st.info(f"FD: {methods[i]}")
                 fig = fundamental_diagram_all_countries(methods[i], df, dv, diff_const)
                 hp.show_fig(fig, html=True)
