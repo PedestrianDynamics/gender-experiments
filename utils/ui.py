@@ -38,7 +38,7 @@ def init_app_looks() -> None:
     c2.write(zenodo_badge)
     c1.write("**Data**")
     c2.write(data_badge)
-    c1.write("**Repository**")
+    c1.write("**Repo**")
     c2.markdown(repo_name, unsafe_allow_html=True)
     st.sidebar.image(str(logo_path), use_column_width=True)
 
