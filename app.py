@@ -7,8 +7,8 @@ from analysis.fundamental_diagram import run_tab2
 
 # from analysis.proximity_analysis import run_proximity_script,
 from analysis.proximity_analysis import run_tab3, run_pair_distribution
-from data.datafactory import init_session_state
-from utils.helper import get_numbers_country, sorting_key
+from datafactory import init_session_state
+from utils.helper import get_numbers_country, sorting_key, download_and_extract_zip
 from utils.ui import init_app_looks, init_page_config, init_sidebar
 from visualization.show_data import run_tab1
 
@@ -16,8 +16,12 @@ from visualization.show_data import run_tab1
 if __name__ == "__main__":
     setup_logging()
     init_page_config()
-    init_app_looks()
     msg = st.empty()
+    #############
+    # Call the function to download and extract the data
+    download_and_extract_zip()
+    #############
+    init_app_looks()
     init_session_state(msg)
     country, tab1, tab2, tab3, tab4 = init_sidebar()
     files = st.session_state.config.files[country]

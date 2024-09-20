@@ -2,6 +2,8 @@
 
 import logging
 import os
+import zipfile
+
 import shutil
 from pathlib import Path
 from typing import Any, List, Tuple, TypeAlias, Union
@@ -17,6 +19,12 @@ from plotly.graph_objs import Figure
 from shapely.geometry import Polygon
 from visualization import plots as pl
 import streamlit.components.v1 as components
+
+# Define the URL of the zip file and the local path
+zip_url = "http://ped.fz-juelich.de/data/experiments/external/singlefile_gender_culture/data/trajectories.zip"
+zip_local_path = "data.zip"
+extracted_data_folder = Path("data")
+
 
 Point: TypeAlias = Tuple[float, float]
 st_column: TypeAlias = st.delta_generator.DeltaGenerator
@@ -783,3 +791,87 @@ def sum_distances_between_agents_on_path(
     # Choose the shorter distance
     distance_sum = min(direct_distance_sum, loop_around_distance_sum)
     return distance_sum, p1, p2
+
+
+def download_zip_file(zip_url: str, zip_local_path: str) -> bool:
+    """Download zip file with a progress bar in Streamlit if it doesn't already exist."""
+    # Check if the file already exists
+    if os.path.exists(zip_local_path):
+        logging.info(f"File already exists. Skipping download. > {zip_local_path}")
+        st.success(f"File already exists at {zip_local_path}")
+        return True
+
+    try:
+        logging.info("Downloading trajectories from db...")
+        st.info("Downloading trajectories from db...")
+
+        response = requests.get(zip_url, stream=True)
+        response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
+
+        # Get the total file size from headers, if available
+        total_size = int(response.headers.get("content-length", 0))
+
+        # Initialize Streamlit progress bar
+        progress_bar = st.progress(0)
+        downloaded_size = 0
+
+        # Open the file and download in chunks, updating the progress bar
+        with open(zip_local_path, "wb") as file:
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:  # Filter out keep-alive chunks
+                    file.write(chunk)
+                    downloaded_size += len(chunk)
+
+                    # Update progress bar (percentage of total file size)
+                    if total_size > 0:
+                        progress = downloaded_size / total_size
+                        progress_bar.progress(progress)
+
+        logging.info(f"Download complete. > {zip_local_path}")
+        st.success(f"Download complete. File saved to {zip_local_path}")
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error downloading the file: {e}")
+        st.error(f"Error downloading the file: {e}")
+        return False
+
+    return True
+
+
+def extract_zip_file() -> bool:
+    """Extract zip file."""
+    try:
+        logging.info(f"Extracting data... from {zip_local_path}")
+        with zipfile.ZipFile(zip_local_path, "r") as zip_ref:
+            zip_ref.extractall(extracted_data_folder)
+        logging.info("Extraction complete.")
+
+        # Optionally, remove the zip file after extraction
+        # os.remove(zip_local_path)
+    except zipfile.BadZipFile as e:
+        logging.error(f"The downloaded zip file is corrupt: {e}")
+        return False
+    except Exception as e:
+        logging.info(f"An unexpected error occurred while extracting the zip file: {e}")
+        return False
+    return True
+
+
+def download_and_extract_zip() -> None:
+    """Download and extract the zip file if it doesn't exist locally."""
+    if not os.path.exists(extracted_data_folder):
+        # Create the directory if it doesn't exist
+        extracted_data_folder.mkdir(parents=True, exist_ok=True)
+
+        if not download_zip_file(zip_url, zip_local_path):
+            logging.error("Failed to download the zip file. Please check the URL or your connection.")
+            return
+
+        if not extract_zip_file():
+            logging.error("Failed to extract the zip file. Please check the file and try again.")
+            # Optionally, remove incomplete data
+            if os.path.exists(extracted_data_folder):
+                shutil.rmtree(extracted_data_folder)
+            return
+    else:
+        logging.info("Data already exists locally.")
