@@ -17,7 +17,7 @@ import requests  # type: ignore
 import streamlit as st
 from plotly.graph_objs import Figure
 from shapely.geometry import Polygon
-from visualization import plots as pl
+from src.visualization import plots as pl
 import streamlit.components.v1 as components
 
 # Define the URL of the zip file and the local path

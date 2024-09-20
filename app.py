@@ -2,15 +2,15 @@
 
 from pathlib import Path
 import streamlit as st
-from utils.logger_config import setup_logging
-from analysis.fundamental_diagram import run_tab2
+from src.utils.logger_config import setup_logging
+from src.analysis.fundamental_diagram import run_tab2
 
 # from analysis.proximity_analysis import run_proximity_script,
-from analysis.proximity_analysis import run_tab3, run_pair_distribution
-from datafactory import init_session_state
-from utils.helper import get_numbers_country, sorting_key, download_and_extract_zip
-from utils.ui import init_app_looks, init_page_config, init_sidebar
-from visualization.show_data import run_tab1
+from src.analysis.proximity_analysis import run_tab3, run_pair_distribution
+from src.datafactory import init_session_state
+from src.utils.helper import get_numbers_country, sorting_key, download_and_extract_zip
+from src.utils.ui import init_app_looks, init_page_config, init_sidebar
+from src.visualization.show_data import run_tab1
 
 
 if __name__ == "__main__":

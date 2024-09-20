@@ -11,8 +11,8 @@ from pandas import DataFrame
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 
-import utils.helper as hp
-import visualization.plots as pl
+import src.utils.helper as hp
+import src.visualization.plots as pl
 
 
 def calculate_speed(data: DataFrame, dv: int) -> DataFrame:

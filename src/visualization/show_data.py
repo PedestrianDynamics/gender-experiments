@@ -7,9 +7,9 @@ import pedpy
 import streamlit as st
 from shapely import Polygon, difference
 
-import utils.helper as hp
-import visualization.plots as pl
-from visualization.anim import animate
+import src.utils.helper as hp
+import src.visualization.plots as pl
+from src.visualization.anim import animate
 
 st_column: TypeAlias = st.delta_generator.DeltaGenerator
 

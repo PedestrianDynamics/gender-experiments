@@ -14,8 +14,8 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 from scipy import stats
-import utils.helper as hp
-import visualization.plots as pl
+import src.utils.helper as hp
+import src.visualization.plots as pl
 from scipy.signal import find_peaks
 from pedpy import compute_pair_distribution_function
 

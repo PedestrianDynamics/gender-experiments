@@ -26,7 +26,7 @@ def init_app_looks() -> None:
     """Add badges to sidebar."""
     current_file_path = Path(__file__)
     ROOT_DIR = current_file_path.parent.parent.absolute()
-    logo_path = ROOT_DIR / "images" / "logo.png"
+    logo_path = ROOT_DIR / ".." / "images" / "logo.png"
     gh = "https://badgen.net/badge/icon/GitHub?icon=github&label"
     zenodo_badge = "[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12675716.svg)](https://doi.org/10.5281/zenodo.12675716)"
     data_badge = "[![DOI:10.34735/ped.2024.1](https://img.shields.io/badge/DOI-10.34735/ped.2024.1-B31B1B.svg)](https://doi.org/10.34735/ped.2024.1)"

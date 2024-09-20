@@ -15,14 +15,14 @@ import plotly.graph_objects as go
 import streamlit as st
 from typing import List
 
-import utils.helper as hp
-import visualization.plots as pl
-from analysis.measurement import (  # calculate_speed,
+import src.utils.helper as hp
+import src.visualization.plots as pl
+from src.analysis.measurement import (  # calculate_speed,
     calculate_individual_density_csv,
     calculate_steady_state,
     density_speed_time_series_micro,
 )
-from utils.docs import density_speed_documentation
+from src.utils.docs import density_speed_documentation
 
 
 def fundamental_diagram_all_countries(method: str, df: pd.DataFrame, dv: int, diff_const: int) -> go.Figure:
