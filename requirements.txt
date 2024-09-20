@@ -1,0 +1,10 @@
+git+https://github.com/PedestrianDynamics/PedPy.git
+plotly
+streamlit
+pandas
+numpy
+scipy
+shapely
+joblib
+tqdm
+

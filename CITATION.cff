@@ -1,0 +1,23 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Mohcine"
+  given-names: "Chraibi"
+  orcid: "https://orcid.org/0000-0002-0999-6807"
+- family-names: "Claudio"
+  given-names: "Feliciani"
+  orcid: "https://orcid.org/0000-0003-0718-8707"
+- family-names: "Milad"
+  given-names: "Haghani"
+  orcid: "https://orcid.org/0000-0003-3904-5196"
+- family-names: "Xiaolu"
+  given-names: "Jia"
+  orcid: "https://orcid.org/0000-0002-8012-0015"
+- family-names: "Jian"
+  given-names: "Ma"
+  orcid: "https://orcid.org/0000-0002-1056-8519"
+title: "Gender and movement in a multicultural pedestrian study"
+version: v.1.0
+date-released: 2024-07-06
+doi: https://doi.org/10.5281/zenodo.12675716
+url: "https://gender-experiments.streamlit.app/"
