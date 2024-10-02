@@ -351,30 +351,8 @@ def calculate_proximity_analysis(country: str, filename: str, data: pd.DataFrame
         'gender_of_next_neighbor', 'gender_of_prev_neighbor', 'distance_to_next_neighbor',
         and 'distance_to_prev_neighbor' columns.
     """
-    pp = Path(filename).parts
-    country_short = Path(pp[-2]).name
-    print(f"METHOD {method=}")
-    print(f"{country_short}")
-    if country_short != "pal":
-        # print(f"WARNINNG in calculate_proximity_analysis(): method={method} is hard-coded")
-        # merge and vect are basically the same, just testing which implementation is faster
-        # arc uses a different calculation of distances based on arc.
-        if method == method.MERGE:
-            processed_data = compute_distance_merge(data)
-        elif method == method.VECT:
-            nagents = extract_first_number(filename)
-            cleaned_data = filter_frames(data, nagents)
-            processed_data = calculate_circular_distance_and_gender_vect(cleaned_data)
-        elif method == method.ARC:
-            nagents = extract_first_number(filename)
-            cleaned_data = filter_frames(data, nagents)
-            processed_data = calculate_circular_distance_and_gender_arc(cleaned_data)
-        else:
-            print(f"Method {method} is not recognised.")
-    else:
-        processed_data = calculate_circular_distance_and_gender_pal(data)
-        fps = 1
-
+    country_short, country_file = extract_country_info(filename)
+    processed_data, fps = process_data_by_method(data, filename, method, country_short, fps)
     proximity_analysis_res = []
     if processed_data.empty:
         print("========")
@@ -388,8 +366,6 @@ def calculate_proximity_analysis(country: str, filename: str, data: pd.DataFrame
 
     # Now iterate over the filtered DataFrame
     name = init_gender_code(filename)
-    pp = Path(filename).parts
-    country_file = Path(pp[-2]) / Path(pp[-1]).name
     for i, row in filtered_data.iterrows():
         # for i, row in processed_data.iterrows():
         # Check proximity with the next neighbor
@@ -431,7 +407,36 @@ def calculate_proximity_analysis(country: str, filename: str, data: pd.DataFrame
     return proximity_analysis_res
 
 
+def extract_country_info(filename: str) -> Tuple[str, Path]:
+    """Extract country short code and file information."""
+    pp = Path(filename).parts
+    country_short = Path(pp[-2]).name
+    country_file = Path(pp[-2]) / Path(pp[-1]).name
+    return country_short, country_file
+
+
+def process_data_by_method(data: pd.DataFrame, filename: str, method: Method, country_short: str, fps: int) -> Tuple[pd.DataFrame, int]:
+    """Process data based on the method selected."""
+    if country_short != "pal":
+        if method == Method.MERGE:
+            processed_data = compute_distance_merge(data)
+        elif method == Method.VECT:
+            nagents = extract_first_number(filename)
+            cleaned_data = filter_frames(data, nagents)
+            processed_data = calculate_circular_distance_and_gender_vect(cleaned_data)
+        elif method == Method.ARC:
+            nagents = extract_first_number(filename)
+            cleaned_data = filter_frames(data, nagents)
+            processed_data = calculate_circular_distance_and_gender_arc(cleaned_data)
+    else:
+        processed_data = calculate_circular_distance_and_gender_pal(data)
+        fps = 1
+    return processed_data, fps
+
+
+
 def unpack_and_process(args: Any) -> List[Dict[str, Any]]:
+    """Proxy method calling calculate_proximity."""
     return calculate_proximity_analysis(*args)
 
 
@@ -456,7 +461,7 @@ def calculate_with_joblib(init_data: InitData) -> pd.DataFrame:
     def process_task(task: List[Any]) -> List[Dict[str, Any]]:
         return unpack_and_process(task)
 
-    nproc = 1
+    nproc = -1
     print(f"Running {len(tasks)} taks with {nproc} proc...")
     results = Parallel(n_jobs=nproc)(delayed(process_task)(task) for task in tqdm(tasks))
     # for task in tasks:
