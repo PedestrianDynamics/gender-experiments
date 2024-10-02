@@ -15,11 +15,13 @@ from joblib import Parallel, delayed
 from tqdm import tqdm
 from enum import Enum
 
-parent_dir = str(Path(__file__).resolve().parent.parent)
-print("parent dir", parent_dir)
+parent_dir = Path(__file__).resolve().parents[2]
+print("Parent dir", parent_dir)
 if parent_dir not in sys.path:
     print(parent_dir)
-    sys.path.append(parent_dir)
+    sys.path.append(f"{parent_dir}/src")
+
+
 
 from utils.helper import (
     calculate_fps,
@@ -52,6 +54,7 @@ class InitData:
     result_csv: Path
     fps: int
     method: str
+
 
 
 def load_file(file: str) -> pedpy.TrajectoryData:
@@ -337,7 +340,7 @@ def calculate_proximity_analysis(country: str, filename: str, data: pd.DataFrame
         filename (str): The name of the file containing the dataset, used to infer gender composition.
         data (pd.DataFrame): A pandas DataFrame witqh rotated data including agent positions and genders.
         fps (int, optional): The frames per second rate used to filter the data. Defaults to 25.
-
+        method (Method): Method of calculation
     Returns:
         List[Dict]: A list of dictionaries, each containing the proximity analysis results for an agent in
         the filtered frames, including country, file name, agent type, ID, frame number, and distances to
@@ -350,6 +353,8 @@ def calculate_proximity_analysis(country: str, filename: str, data: pd.DataFrame
     """
     pp = Path(filename).parts
     country_short = Path(pp[-2]).name
+    print(f"METHOD {method=}")
+    print(f"{country_short}")
     if country_short != "pal":
         # print(f"WARNINNG in calculate_proximity_analysis(): method={method} is hard-coded")
         # merge and vect are basically the same, just testing which implementation is faster
@@ -430,8 +435,8 @@ def unpack_and_process(args: Any) -> List[Dict[str, Any]]:
     return calculate_proximity_analysis(*args)
 
 
-def prepare_data(country: str, selected_file: str, fps: int, method: Method) -> Tuple[str, str, pd.DataFrame, int]:
-    """Load file and make pedpy.datatrajectory."""
+def prepare_data(country: str, selected_file: str, fps: int, method: Method) -> Tuple[str, str, pd.DataFrame, int, Method]:
+    """Load the file and create a trajectory data object."""
     trajectory_data = load_file(selected_file)
     data = trajectory_data.data
     return country, selected_file, data, fps, method
@@ -442,7 +447,7 @@ def calculate_with_joblib(init_data: InitData) -> pd.DataFrame:
     tasks = []
     for country in init_data.countries:
         key = Path(country).name
-        print(f"prepare tasks: {country} with {key}")
+        print(f"prepare tasks: {country} with {key=} and {len(init_data.files[key])} files")
 
         for filename in init_data.files[key]:
             tasks.append(prepare_data(country, filename, init_data.fps, init_data.method))
@@ -451,13 +456,13 @@ def calculate_with_joblib(init_data: InitData) -> pd.DataFrame:
     def process_task(task: List[Any]) -> List[Dict[str, Any]]:
         return unpack_and_process(task)
 
-    nproc = -1
-    print(f"Running tasks in parallel {len(tasks)} with {nproc} proc...")
+    nproc = 1
+    print(f"Running {len(tasks)} taks with {nproc} proc...")
     results = Parallel(n_jobs=nproc)(delayed(process_task)(task) for task in tqdm(tasks))
     # for task in tasks:
     #     process_task(task)
 
-    print(f"Done running tasks in parallel {len(tasks)} ...")
+    print(f"Done running tasks in parallel {len(tasks)} tasks ...")
     # Return the final results
     flattened_results = pd.DataFrame(list(itertools.chain.from_iterable(results)))
     flattened_results.to_pickle(init_data.result_csv)
@@ -472,6 +477,7 @@ def init() -> InitData:
         InitData: A data class containing initialized data including countries, files dictionary, result CSV path, and FPS.
     """
     print("Enter Init")
+
     method = Method.VECT
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     result_csv = Path(f"{parent_dir}/app_data/proximity_analysis_results_{method}_{timestamp}.csv")
