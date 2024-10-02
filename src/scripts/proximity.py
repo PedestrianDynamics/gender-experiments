@@ -18,7 +18,7 @@ from enum import Enum
 parent_dir = Path(__file__).resolve().parents[2]
 parent_dir_str = str(parent_dir)
 print("Parent dir", parent_dir)
-if parent_dir not in sys.path:
+if parent_dir_str not in sys.path:
     print(parent_dir_str)
     sys.path.append(f"{parent_dir}/src")
 
