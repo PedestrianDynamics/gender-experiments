@@ -36,14 +36,20 @@ if __name__ == "__main__":
     country_dir = data_dir / country
     selected_file = str(country_dir / selected_file)
 
-    with tab1:
-        run_tab1(msg, country, selected_file)
+    if files:
+        with tab1:
+            run_tab1(msg, country, selected_file)
 
-    with tab2:
-        run_tab2(country, selected_file)
+        with tab2:
+            run_tab2(country, selected_file)
 
-    with tab3:
-        run_tab3(selected_file)
+        with tab3:
+            run_tab3(selected_file)
 
-    with tab4:
-        run_pair_distribution(selected_file)
+        with tab4:
+            run_pair_distribution(selected_file)
+    else:
+        st.warning("No files found. Please download the necessary data.")
+        if st.button("Download and Extract Data"):
+            download_and_extract_zip()
+            st.success("Download and extraction complete!")
