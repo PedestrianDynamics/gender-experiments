@@ -873,3 +873,5 @@ def download_and_extract_zip() -> None:
             if os.path.exists(extracted_data_folder):
                 shutil.rmtree(extracted_data_folder)
             return
+    else:
+        logging.info(f"{extracted_data_folder = } exists. Not downloading")
