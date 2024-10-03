@@ -1,5 +1,6 @@
 """Main entry point to the app."""
 
+import os
 from pathlib import Path
 import streamlit as st
 from src.utils.logger_config import setup_logging
@@ -51,5 +52,11 @@ if __name__ == "__main__":
     else:
         st.warning("No files found. Please download the necessary data.")
         if st.button("Download and Extract Data"):
+            if os.path.exists("data.zip"):
+                try:
+                    os.remove("data.zip")
+                    print("Deleted data.zip after extraction.")
+                except OSError as e:
+                    print(f"Error deleting data.zip: {e}")
             download_and_extract_zip()
             st.success("Download and extraction complete!")

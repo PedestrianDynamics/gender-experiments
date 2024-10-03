@@ -882,5 +882,12 @@ def download_and_extract_zip() -> None:
             if os.path.exists(extracted_data_folder):
                 shutil.rmtree(extracted_data_folder)
             return
+
+        if os.path.exists(zip_local_path):
+            try:
+                os.remove(zip_local_path)
+                logging.info(f"Deleted {zip_local_path} after extraction.")
+            except OSError as e:
+                logging.error(f"Error deleting {zip_local_path}: {e}")
     else:
         logging.info(f"{extracted_data_folder = } exists. Not downloading")
