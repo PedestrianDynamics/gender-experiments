@@ -857,9 +857,18 @@ def extract_zip_file() -> bool:
     return True
 
 
+def contains_csv_files(directory: Path) -> bool:
+    """Check if a directory (and its subdirectories) contains any CSV files."""
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if file.endswith(".csv"):
+                return True
+    return False
+
+
 def download_and_extract_zip() -> None:
     """Download and extract the zip file if it doesn't exist locally."""
-    if not os.path.exists(extracted_data_folder):
+    if not os.path.exists(extracted_data_folder) or not contains_csv_files(extracted_data_folder):
         # Create the directory if it doesn't exist
         extracted_data_folder.mkdir(parents=True, exist_ok=True)
 
