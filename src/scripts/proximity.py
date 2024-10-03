@@ -31,7 +31,7 @@ from utils.helper import (
     set_column_types,
     sum_distances_between_agents_on_path,
 )
-
+print("Proximity calling generate_parcour")
 _, _, middle_path = generate_parcour()
 # print(f"middle_path {len(middle_path)}")
 path_distances = precompute_path_distances(middle_path)

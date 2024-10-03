@@ -19,7 +19,9 @@ if __name__ == "__main__":
     msg = st.empty()
     #############
     # Call the function to download and extract the data
+    print("DOWNLIND ZIP ...")
     download_and_extract_zip()
+    print("DONE with downloading ZIP")
     #############
     init_app_looks()
     init_session_state(msg)

@@ -197,8 +197,8 @@ def generate_oval_shape_points(
     # Final adjustments
     if dist(selected_points[-1], start) < threshold:
         selected_points.pop()
-    if num_points > len(selected_points):
-        print(f"Warning: Requested {num_points} points, but only {len(selected_points)} can be provided.")
+    # if num_points > len(selected_points):
+    #     print(f"Warning: Requested {num_points} points, but only {len(selected_points)} can be provided.")
 
     selected_points = selected_points[:num_points]
     return points, selected_points
