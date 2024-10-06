@@ -17,6 +17,7 @@ The primary variable altered in these experiments are density (number of people 
 
 A more detailed description of the data can be found [here](https://doi.org/10.34735/ped.2024.1).
 
+Preprint can be found [here](http://dx.doi.org/10.2139/ssrn.4900271).
 
 
 ##  RUNNING 
