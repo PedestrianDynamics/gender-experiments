@@ -43,6 +43,8 @@ def init_app_looks() -> None:
     c1.write("**Article**")
     c2.markdown(article_badge, unsafe_allow_html=True)
     st.sidebar.image(str(logo_path), use_column_width=True)
+    # use_column_width will be deprecated and replaced with use_contrainer_widthd
+    # st.sidebar.image(str(logo_path), use_container_width=True)
 
 
 def init_sidebar() -> Tuple[str, DeltaGenerator, DeltaGenerator, DeltaGenerator, DeltaGenerator]:
