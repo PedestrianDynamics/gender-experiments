@@ -29,8 +29,8 @@ def init_app_looks() -> None:
     logo_path = ROOT_DIR / ".." / "images" / "logo.png"
     gh = "https://badgen.net/badge/icon/GitHub?icon=github&label"
     zenodo_badge = "[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12675716.svg)](https://doi.org/10.5281/zenodo.12675716)"
-    data_badge = "[![DOI:10.34735/ped.2024.1](https://img.shields.io/badge/DOI-10.34735/ped.2024.1-B31B1B.svg)](https://doi.org/10.34735/ped.2024.1)"
-
+    data_badge = "[![DOI:10.34735/ped.2024.1](https://img.shields.io/badge/DOI-10.34735/ped.2024.1-blue.svg)](https://doi.org/10.34735/ped.2024.1)"
+    article_badge = "[![DOI:10.1016/j.ssci.2024.106710](https://img.shields.io/badge/Safety%20Science-Published-blue.svg)](https://doi.org/10.1016/j.ssci.2024.106710)"
     repo = "https://github.com/PedestrianDynamics/gender-experiments"
     repo_name = f"[![Repo]({gh})]({repo})"
     c1, c2 = st.sidebar.columns((0.25, 0.8))
@@ -40,6 +40,8 @@ def init_app_looks() -> None:
     c2.write(data_badge)
     c1.write("**Repo**")
     c2.markdown(repo_name, unsafe_allow_html=True)
+    c1.write("**Article**")
+    c2.markdown(article_badge, unsafe_allow_html=True)
     st.sidebar.image(str(logo_path), use_column_width=True)
 
 
