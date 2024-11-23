@@ -1,9 +1,9 @@
 # Gender-experiments
 [![gender-experiments-world](https://github.com/PedestrianDynamics/gender-experiments/actions/workflows/code-quality.yml/badge.svg)](https://github.com/PedestrianDynamics/gender-experiments/actions/workflows/code-quality.yml)
 [![Open Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gender-experiments.streamlit.app/)
-[![DOI: Data](https://img.shields.io/badge/DOI-10.34735/ped.2024.1-B31B1B.svg)](https://doi.org/10.34735/ped.2024.1)
+[![DOI:Data](https://img.shields.io/badge/Data-10.34735/ped.2024.1-blue.svg)](https://doi.org/10.34735/ped.2024.1)
 [![DOI: Code](https://zenodo.org/badge/DOI/10.5281/zenodo.12675716.svg)](https://doi.org/10.5281/zenodo.12675716)
-[![DOI: Article](https://img.shields.io/badge/DOI-10.34735/ped.2024.1-blue.svg)](https://doi.org/10.34735/ped.2024.1)
+[![DOI: Article](https://img.shields.io/badge/Article-10.1016/j.ssci.2024.106710-blue.svg)](https://doi.org/10.1016/j.ssci.2024.106710)
     
 
 ## Data
