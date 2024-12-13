@@ -42,7 +42,7 @@ def init_app_looks() -> None:
     c2.markdown(repo_name, unsafe_allow_html=True)
     c1.write("**Article**")
     c2.markdown(article_badge, unsafe_allow_html=True)
-    st.sidebar.image(str(logo_path), use_column_width=True)
+    st.sidebar.image(str(logo_path), use_container_width=True)
     # use_column_width will be deprecated and replaced with use_contrainer_widthd
     # st.sidebar.image(str(logo_path), use_container_width=True)
 
